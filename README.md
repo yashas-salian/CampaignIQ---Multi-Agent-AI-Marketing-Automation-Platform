@@ -6,7 +6,8 @@ metrics-driven feedback → iterative correction → stop, entirely on free-tier
 infrastructure. Full design and milestone plan: [`DESIGN.md`](./DESIGN.md).
 
 **Status:** M1 (provider abstraction, capabilities layer, single-shot
-pipeline) built; M2 (eval harness) built.
+pipeline) built; M2 (eval harness) built; M3 (human-in-the-loop gates,
+pre-flight panel, resumable graph, React frontend) built.
 
 ## Setup
 
@@ -38,8 +39,7 @@ function log what it *would* send and return a synthetic result — no real
 Bluesky/Reddit/email calls. Set `DRY_RUN=false` to actually send. Every
 distribution call also takes a `campaign_id`/`round_id`, deduped against a
 local `.local_dedup_store.json` (gitignored) so the same campaign/round/
-channel is never sent twice — a placeholder for the Supabase
-`distribution_dedup` table that lands in M3.
+channel is never sent twice.
 
 ### `track-click` (email link tracking)
 
@@ -59,12 +59,6 @@ Without this set, `send-email --cta-url` still works but links go out
 unwrapped (no click tracking) rather than breaking.
 
 ## Run
-
-Full pipeline, one pass, no loop:
-
-```
-.venv\Scripts\python -m src.graph.build_graph "A subscription box for artisanal hot sauce"
-```
 
 Each capability standalone via the CLI:
 
@@ -99,3 +93,42 @@ rate + average persona quality, equally weighted) falls below 60% — this is
 what `.github/workflows/eval.yml` runs on every push/PR once this repo has a
 GitHub remote with `GROQ_API_KEY`/`NEWSAPI_KEY`/`REDDIT_*` configured as
 Actions secrets.
+
+## Human-in-the-loop gates + frontend (M3)
+
+Single-tenant, no auth yet (M4 adds that). Setup:
+
+1. In the Supabase SQL Editor (same project as `track-click`), run
+   [`src/db/schema.sql`](./src/db/schema.sql) — creates `campaigns`,
+   `personas`, `iterations`, `gate_decisions`.
+2. Set in `.env`: `SUPABASE_URL` (same project URL as `TRACK_CLICK_BASE_URL`'s
+   host) and `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API →
+   "service_role" secret — server-side only, never expose this one).
+3. `cd frontend && npm install && copy .env.example .env`, then fill in
+   `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (same page, "anon
+   public" key — safe to expose in the browser since RLS is off and there's
+   nothing per-user yet).
+4. `npm run dev` to run the frontend locally.
+
+Trigger a new campaign (runs idea → feasibility → audience, then pauses at
+Gate 1):
+
+```
+.venv\Scripts\python -m src.graph.run_campaign "A subscription box for artisanal hot sauce"
+```
+
+This prints a `campaign_id`. Open the frontend, find it in the Dashboard,
+click in, and Approve/Edit/Reject at the gate. Then resume the graph from
+where it paused:
+
+```
+.venv\Scripts\python -m src.graph.run_campaign --campaign-id <id>
+```
+
+Re-running with `--campaign-id` while the gate is still undecided is a
+no-op (prints "still awaiting gate N decision") — this is the same
+checkpoint-and-no-op pattern `campaign-loop.yml` will use in M5 to poll
+without erroring. Once Gate 1 is approved, the graph generates creative,
+runs it through the pre-flight persona panel (retrying up to 3 times,
+keeping the best-scoring attempt), then pauses again at Gate 2. Approving
+Gate 2 triggers real distribution (subject to `DRY_RUN`, same as always).

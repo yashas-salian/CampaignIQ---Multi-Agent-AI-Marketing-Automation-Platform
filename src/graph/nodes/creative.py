@@ -3,4 +3,4 @@ from src.graph.state import CampaignState
 
 
 def creative_node(state: CampaignState) -> CampaignState:
-    return {"creative": generate_creative(state["idea"], state["personas"][0])}
+    return {"creative": generate_creative(state["idea"], state["primary_persona"])}

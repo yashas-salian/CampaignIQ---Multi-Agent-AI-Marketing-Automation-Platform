@@ -12,6 +12,7 @@ def get_client() -> Client:
 
 
 def create_campaign(
+    campaign_id: str,
     idea: str,
     domain_category: str,
     feasibility_score: int,
@@ -20,8 +21,9 @@ def create_campaign(
     reddit_subreddit: str | None = None,
     email_to: list[str] | None = None,
     cta_url: str | None = None,
-) -> str:
+) -> None:
     row = {
+        "id": campaign_id,
         "idea": idea,
         "domain_category": domain_category,
         "feasibility_score": feasibility_score,
@@ -29,10 +31,9 @@ def create_campaign(
         "reddit_subreddit": reddit_subreddit,
         "email_to": email_to,
         "cta_url": cta_url,
-        "status": "awaiting_gate_1",
+        "status": "created",
     }
-    result = get_client().table("campaigns").insert(row).execute()
-    return result.data[0]["id"]
+    get_client().table("campaigns").insert(row).execute()
 
 
 def get_campaign(campaign_id: str) -> dict:

@@ -3,4 +3,5 @@ __pycache__/
 *.pyc
 .env
 .local_dedup_store.json
+.langgraph_checkpoints.sqlite
 *.egg-info/
