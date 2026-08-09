@@ -1,0 +1,48 @@
+name: Capability Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        required: true
+        type: string
+      user_id:
+        required: true
+        type: string
+      capability:
+        required: true
+        type: string
+      params:
+        required: false
+        type: string
+        default: "{}"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - run: >
+          python -m src.scheduler.run_capability
+          --run-id "${{ inputs.run_id }}"
+          --user-id "${{ inputs.user_id }}"
+          --capability "${{ inputs.capability }}"
+          --params '${{ inputs.params }}'
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          ENABLE_REDDIT: "false"
+          BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+          MASTODON_INSTANCE_URL: "https://mastodon.social"
+          MASTODON_ACCESS_TOKEN: ${{ secrets.MASTODON_ACCESS_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SETTINGS_ENCRYPTION_KEY: ${{ secrets.SETTINGS_ENCRYPTION_KEY }}
+          PAID_LLM_API_KEY: ${{ secrets.PAID_LLM_API_KEY }}
+          PAID_IMAGE_API_KEY: ${{ secrets.PAID_IMAGE_API_KEY }}
+          PAID_JUDGE_API_KEY: ${{ secrets.PAID_JUDGE_API_KEY }}

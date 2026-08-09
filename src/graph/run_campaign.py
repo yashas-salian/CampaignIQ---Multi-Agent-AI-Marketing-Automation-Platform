@@ -18,6 +18,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Trigger or resume one campaign run (M3: single-tenant, local).")
     parser.add_argument("idea", nargs="?", help="New campaign idea (omit when resuming --campaign-id)")
     parser.add_argument("--campaign-id", default=None, help="Resume an existing campaign instead of creating one")
+    parser.add_argument("--user-id", default=None, help="Owning user's Supabase Auth id (required for a new campaign)")
     parser.add_argument("--email-to", default="", help="Comma-separated recipient list")
     parser.add_argument("--reddit-subreddit", default=None)
     parser.add_argument("--cta-url", default=None)
@@ -45,11 +46,14 @@ def main() -> None:
         else:
             if not args.idea:
                 parser.error("an idea is required when not resuming with --campaign-id")
+            if not args.user_id:
+                parser.error("--user-id is required when creating a new campaign")
             campaign_id = str(uuid.uuid4())
             config = {"configurable": {"thread_id": campaign_id}}
             initial_state = {
                 "idea": args.idea,
                 "campaign_id": campaign_id,
+                "user_id": args.user_id,
                 "round_id": 1,
                 "email_to": args.email_to.split(",") if args.email_to else [os.environ["RESEND_TEST_TO_EMAIL"]],
                 "reddit_subreddit": args.reddit_subreddit,

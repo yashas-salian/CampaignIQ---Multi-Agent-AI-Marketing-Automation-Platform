@@ -28,3 +28,17 @@ def get_bluesky_metrics(post_uri: str) -> dict:
         "reposts": post.repost_count or 0,
         "replies": post.reply_count or 0,
     }
+
+
+def search_bluesky(keyword: str, *, limit: int = 25) -> dict:
+    client = _client()
+    response = client.app.bsky.feed.search_posts({"q": keyword, "limit": limit, "sort": "top"})
+    posts = response.posts
+    if not posts:
+        return {"keyword": keyword, "result_count": 0, "avg_score": 0.0, "avg_comments": 0.0}
+    return {
+        "keyword": keyword,
+        "result_count": len(posts),
+        "avg_score": sum((p.like_count or 0) + (p.repost_count or 0) for p in posts) / len(posts),
+        "avg_comments": sum(p.reply_count or 0 for p in posts) / len(posts),
+    }

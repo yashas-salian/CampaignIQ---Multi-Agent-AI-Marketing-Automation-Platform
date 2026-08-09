@@ -17,6 +17,10 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          # Reddit on hold (API access blocked by policy changes) — leave
+          # ENABLE_REDDIT false here even if REDDIT_* secrets get added later,
+          # until the main plan says to turn it back on.
+          ENABLE_REDDIT: "false"
           REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           REDDIT_USERNAME: ${{ secrets.REDDIT_USERNAME }}

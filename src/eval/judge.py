@@ -11,12 +11,12 @@ class PersonaJudgement(BaseModel):
     reasoning: str
 
 
-def judge_personas(idea: str, personas: list[Persona]) -> PersonaJudgement:
+def judge_personas(idea: str, personas: list[Persona], *, user_id: str | None = None) -> PersonaJudgement:
     personas_text = "\n".join(
         f"- {p.name}: {p.demographics} | {p.psychographics} | channel_fit={p.channel_fit} | angle={p.messaging_angle}"
         for p in personas
     )
-    response = get_judge_llm().generate(
+    response = get_judge_llm(user_id).generate(
         f'Campaign idea: "{idea}"\n\nGenerated personas:\n{personas_text}\n\n'
         "Judge these personas on relevance to the idea, specificity (not generic), and actionability "
         "for an ad campaign. Respond with ONLY a JSON object, no prose, with exactly two keys: "

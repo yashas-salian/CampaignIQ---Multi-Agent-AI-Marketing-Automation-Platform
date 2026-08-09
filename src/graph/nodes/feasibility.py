@@ -4,9 +4,10 @@ from src.graph.state import CampaignState
 
 
 def feasibility_node(state: CampaignState) -> CampaignState:
-    result = score_feasibility(state["idea"])
+    result = score_feasibility(state["idea"], user_id=state.get("user_id"))
     create_campaign(
         state["campaign_id"],
+        state["user_id"],
         state["idea"],
         state["domain_category"],
         result.score,

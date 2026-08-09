@@ -6,7 +6,7 @@ from src.graph.state import CampaignState
 
 
 def gate_1_node(state: CampaignState) -> CampaignState:
-    create_pending_gate(state["campaign_id"], gate_number=1, round_number=state["round_id"])
+    create_pending_gate(state["campaign_id"], state["user_id"], gate_number=1, round_number=state["round_id"])
     update_campaign_status(state["campaign_id"], "awaiting_gate_1")
 
     decision = interrupt({"gate_number": 1, "campaign_id": state["campaign_id"]})
@@ -34,7 +34,7 @@ def gate_1_node(state: CampaignState) -> CampaignState:
 
 
 def gate_2_node(state: CampaignState) -> CampaignState:
-    create_pending_gate(state["campaign_id"], gate_number=2, round_number=state["round_id"])
+    create_pending_gate(state["campaign_id"], state["user_id"], gate_number=2, round_number=state["round_id"])
     update_campaign_status(state["campaign_id"], "awaiting_gate_2")
 
     decision = interrupt({"gate_number": 2, "campaign_id": state["campaign_id"]})

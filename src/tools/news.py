@@ -12,7 +12,7 @@ def get_news_volume(keyword: str, *, page_size: int = 20) -> dict:
         params={
             "q": keyword,
             "pageSize": page_size,
-            "sortBy": "publishedAt",
+            "sortBy": "relevancy",
             "language": "en",
             "apiKey": api_key,
         },

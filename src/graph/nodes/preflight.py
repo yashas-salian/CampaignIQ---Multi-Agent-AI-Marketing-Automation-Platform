@@ -7,7 +7,7 @@ MAX_PREFLIGHT_ATTEMPTS = 3
 
 def preflight_node(state: CampaignState) -> CampaignState:
     creative = state["creative"]
-    result = score_preflight(creative, [state["primary_persona"]])
+    result = score_preflight(creative, [state["primary_persona"]], user_id=state.get("user_id"))
     attempt = state.get("preflight_attempt", 0) + 1
 
     best_creative = state.get("best_creative")
@@ -17,6 +17,7 @@ def preflight_node(state: CampaignState) -> CampaignState:
 
     upsert_iteration(
         state["campaign_id"],
+        state["user_id"],
         state["round_id"],
         copy_text=best_creative.copy_text,
         image_prompt=best_creative.image_prompt,

@@ -28,9 +28,9 @@ class NormalizedIdea(BaseModel):
     domain_category: DomainCategory
 
 
-def normalize_idea(raw_idea: str) -> NormalizedIdea:
+def normalize_idea(raw_idea: str, *, user_id: str | None = None) -> NormalizedIdea:
     idea = raw_idea.strip()
-    response = get_llm().generate(
+    response = get_llm(user_id).generate(
         f'Campaign idea: "{idea}"\n\n'
         f"Classify this idea into exactly one of these domain/category tags: {list(DOMAIN_CATEGORIES)}. "
         'Respond with ONLY a JSON object, no prose, with exactly one key: "domain_category".',

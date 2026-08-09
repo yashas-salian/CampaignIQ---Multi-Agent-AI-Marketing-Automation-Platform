@@ -1,3 +1,5 @@
+import os
+
 from langgraph.graph import END, START, StateGraph
 
 from src.graph.nodes.audience import audience_node
@@ -20,7 +22,13 @@ def route_after_gate_1(state: CampaignState) -> str:
 def route_after_gate_2(state: CampaignState) -> list[str]:
     if state.get("rejected"):
         return [END]
-    return ["distribution_bluesky", "distribution_reddit", "distribution_email"]
+    # Reddit temporarily on hold (API access blocked by policy changes) — the
+    # node/capability/CLI command all still exist, just excluded from the
+    # default fan-out. Re-enable via ENABLE_REDDIT=true.
+    channels = ["distribution_bluesky", "distribution_email"]
+    if os.environ.get("ENABLE_REDDIT", "false").lower() == "true":
+        channels.append("distribution_reddit")
+    return channels
 
 
 def build_graph(checkpointer=None):

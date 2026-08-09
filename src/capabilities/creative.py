@@ -12,8 +12,8 @@ class Creative(BaseModel):
     image_bytes: bytes
 
 
-def generate_creative(idea: str, persona: Persona) -> Creative:
-    response = get_llm().generate(
+def generate_creative(idea: str, persona: Persona, *, user_id: str | None = None) -> Creative:
+    response = get_llm(user_id).generate(
         f"Ad campaign idea: \"{idea}\"\n"
         f"Target persona: {persona.model_dump()}\n\n"
         "Write ad creative for this persona. Respond with ONLY a JSON object, no prose, "
@@ -25,5 +25,5 @@ def generate_creative(idea: str, persona: Persona) -> Creative:
     payload = response.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     parsed = json.loads(payload)
 
-    image_bytes = get_image_generator().generate_image(parsed["image_prompt"])
+    image_bytes = get_image_generator(user_id).generate_image(parsed["image_prompt"])
     return Creative(copy_text=parsed["copy"], image_prompt=parsed["image_prompt"], image_bytes=image_bytes)

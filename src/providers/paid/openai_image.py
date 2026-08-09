@@ -9,8 +9,8 @@ MODEL = "dall-e-3"
 
 
 class OpenAIImageProvider(ImageProvider):
-    def __init__(self) -> None:
-        self._client = OpenAI(api_key=os.environ.get("PAID_IMAGE_API_KEY") or os.environ["PAID_LLM_API_KEY"])
+    def __init__(self, api_key: str | None = None) -> None:
+        self._client = OpenAI(api_key=api_key or os.environ.get("PAID_IMAGE_API_KEY") or os.environ["PAID_LLM_API_KEY"])
 
     def generate_image(self, prompt: str) -> bytes:
         result = self._client.images.generate(model=MODEL, prompt=prompt, size="1024x1024", response_format="b64_json")

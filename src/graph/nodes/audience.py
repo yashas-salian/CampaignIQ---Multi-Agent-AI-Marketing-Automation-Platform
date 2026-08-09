@@ -4,6 +4,6 @@ from src.graph.state import CampaignState
 
 
 def audience_node(state: CampaignState) -> CampaignState:
-    personas = generate_personas(state["idea"], state["feasibility"])
-    insert_personas(state["campaign_id"], personas, primary_index=0)
+    personas = generate_personas(state["idea"], state["feasibility"], user_id=state.get("user_id"))
+    insert_personas(state["campaign_id"], state["user_id"], personas, primary_index=0)
     return {"personas": personas}

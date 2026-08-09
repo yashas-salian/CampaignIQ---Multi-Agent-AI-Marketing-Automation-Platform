@@ -23,14 +23,36 @@ Required free-tier keys (the system runs fully free without any paid key):
 |---|---|
 | `GROQ_API_KEY` | console.groq.com |
 | `NEWSAPI_KEY` | newsapi.org |
-| `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` | reddit.com/prefs/apps (create a "script" app) |
-| `REDDIT_USERNAME` / `REDDIT_PASSWORD` | your Reddit test account |
 | `BLUESKY_HANDLE` / `BLUESKY_APP_PASSWORD` | bsky.app Settings → App Passwords |
 | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` / `RESEND_TEST_TO_EMAIL` | resend.com |
+
+**Reddit is on hold** (API access blocked by policy changes) — `REDDIT_*`
+keys and `ENABLE_REDDIT` still exist in `.env.example` but aren't required;
+all Reddit code (feasibility signal + `post-reddit` distribution) stays in
+the repo, just unused by default. Set `ENABLE_REDDIT=true` once creds are
+available again.
+
+Feasibility's community signal is now sourced from **Bluesky search**
+(reuses your posting creds, no setup) plus optionally **Mastodon search**
+(`MASTODON_ACCESS_TOKEN`, optional — see below).
 
 Optional paid keys (`PAID_LLM_API_KEY`, `PAID_IMAGE_API_KEY` — both OpenAI)
 upgrade the LLM/image-gen tier; leave blank to stay on the free tier.
 `FORCE_FREE_TIER=true` forces free providers even if paid keys are set.
+
+### Community signal (feasibility scoring)
+
+`score_feasibility` combines Google Trends + NewsAPI + a "community" signal
+into its 0-100 score. The community signal is Bluesky search by default
+(works immediately, same creds as posting). Mastodon search is a second,
+optional input — but **it only activates once `MASTODON_ACCESS_TOKEN` is
+set**: unauthenticated search against a public instance (default
+`mastodon.social`) returns empty results for any keyword on most instances
+(confirmed — even common words return nothing without a token), so it's
+skipped by default rather than silently dragging every score toward zero.
+To enable it: on your chosen instance's web UI, go to Settings →
+Development → New Application, create one, and copy the access token it
+generates (no review/approval process).
 
 ### Distribution safety
 
@@ -90,9 +112,9 @@ capabilities), and prints a report:
 
 Exits non-zero if the overall score (domain accuracy + feasibility-in-range
 rate + average persona quality, equally weighted) falls below 60% — this is
-what `.github/workflows/eval.yml` runs on every push/PR once this repo has a
-GitHub remote with `GROQ_API_KEY`/`NEWSAPI_KEY`/`REDDIT_*` configured as
-Actions secrets.
+what `.github/workflows/eval.yml` runs on every push/PR, with
+`GROQ_API_KEY`/`NEWSAPI_KEY` configured as repo Actions secrets (Reddit
+secrets are optional/on hold, same as local `.env`).
 
 ## Human-in-the-loop gates + frontend (M3)
 

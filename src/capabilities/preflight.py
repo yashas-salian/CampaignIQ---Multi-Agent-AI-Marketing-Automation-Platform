@@ -15,9 +15,9 @@ class PreflightResult(BaseModel):
     panel_feedback: str
 
 
-def score_preflight(creative: Creative, personas: list[Persona]) -> PreflightResult:
+def score_preflight(creative: Creative, personas: list[Persona], *, user_id: str | None = None) -> PreflightResult:
     panel_text = "\n".join(f"- {p.name}: {p.demographics} | {p.psychographics}" for p in personas)
-    response = get_llm().generate(
+    response = get_llm(user_id).generate(
         f'Ad copy: "{creative.copy_text}"\n'
         f'Image description: "{creative.image_prompt}"\n\n'
         f"You are simulating how this panel of target personas would honestly react:\n{panel_text}\n\n"

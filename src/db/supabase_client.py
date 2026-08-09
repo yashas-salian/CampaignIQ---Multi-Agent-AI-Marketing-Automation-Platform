@@ -13,6 +13,7 @@ def get_client() -> Client:
 
 def create_campaign(
     campaign_id: str,
+    user_id: str,
     idea: str,
     domain_category: str,
     feasibility_score: int,
@@ -24,6 +25,7 @@ def create_campaign(
 ) -> None:
     row = {
         "id": campaign_id,
+        "user_id": user_id,
         "idea": idea,
         "domain_category": domain_category,
         "feasibility_score": feasibility_score,
@@ -45,9 +47,9 @@ def update_campaign_status(campaign_id: str, status: str) -> None:
     get_client().table("campaigns").update({"status": status}).eq("id", campaign_id).execute()
 
 
-def insert_personas(campaign_id: str, personas: list[Persona], *, primary_index: int = 0) -> None:
+def insert_personas(campaign_id: str, user_id: str, personas: list[Persona], *, primary_index: int = 0) -> None:
     rows = [
-        {**p.model_dump(), "campaign_id": campaign_id, "is_primary": i == primary_index}
+        {**p.model_dump(), "campaign_id": campaign_id, "user_id": user_id, "is_primary": i == primary_index}
         for i, p in enumerate(personas)
     ]
     get_client().table("personas").insert(rows).execute()
@@ -71,8 +73,13 @@ def get_primary_persona(campaign_id: str) -> dict:
     return result.data
 
 
-def create_pending_gate(campaign_id: str, gate_number: int, round_number: int = 1) -> None:
-    row = {"campaign_id": campaign_id, "gate_number": gate_number, "round_number": round_number}
+def create_pending_gate(campaign_id: str, user_id: str, gate_number: int, round_number: int = 1) -> None:
+    row = {
+        "campaign_id": campaign_id,
+        "user_id": user_id,
+        "gate_number": gate_number,
+        "round_number": round_number,
+    }
     get_client().table("gate_decisions").upsert(row, on_conflict="campaign_id,gate_number,round_number").execute()
 
 
@@ -90,6 +97,6 @@ def get_gate_decision(campaign_id: str, gate_number: int, round_number: int = 1)
     return result.data if result else None
 
 
-def upsert_iteration(campaign_id: str, round_number: int, **fields) -> None:
-    row = {"campaign_id": campaign_id, "round_number": round_number, **fields}
+def upsert_iteration(campaign_id: str, user_id: str, round_number: int, **fields) -> None:
+    row = {"campaign_id": campaign_id, "user_id": user_id, "round_number": round_number, **fields}
     get_client().table("iterations").upsert(row, on_conflict="campaign_id,round_number").execute()

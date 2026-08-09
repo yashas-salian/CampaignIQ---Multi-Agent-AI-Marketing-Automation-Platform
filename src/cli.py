@@ -15,24 +15,24 @@ app = typer.Typer(help="Standalone, one-off runs of each capability, independent
 
 
 @app.command()
-def feasibility(idea: str) -> None:
-    result = score_feasibility(idea)
+def feasibility(idea: str, user_id: str = "") -> None:
+    result = score_feasibility(idea, user_id=user_id or None)
     typer.echo(f"Score: {result.score}")
     typer.echo(f"Rationale: {result.rationale}")
 
 
 @app.command()
-def image(prompt: str, out: str = "output.png") -> None:
-    data = get_image_generator().generate_image(prompt)
+def image(prompt: str, out: str = "output.png", user_id: str = "") -> None:
+    data = get_image_generator(user_id or None).generate_image(prompt)
     with open(out, "wb") as f:
         f.write(data)
     typer.echo(f"Wrote {len(data)} bytes to {out}")
 
 
 @app.command()
-def personas(idea: str, n: int = 3) -> None:
-    result = score_feasibility(idea)
-    for p in generate_personas(idea, result, n=n):
+def personas(idea: str, n: int = 3, user_id: str = "") -> None:
+    result = score_feasibility(idea, user_id=user_id or None)
+    for p in generate_personas(idea, result, n=n, user_id=user_id or None):
         typer.echo(p.model_dump_json(indent=2))
 
 
@@ -42,6 +42,7 @@ def creative(
     persona_name: str = "General audience",
     persona_description: str = "A broad, price-sensitive early adopter.",
     out: str = "creative.png",
+    user_id: str = "",
 ) -> None:
     persona = Persona(
         name=persona_name,
@@ -50,7 +51,7 @@ def creative(
         channel_fit="social",
         messaging_angle=persona_description,
     )
-    result = generate_creative(idea, persona)
+    result = generate_creative(idea, persona, user_id=user_id or None)
     with open(out, "wb") as f:
         f.write(result.image_bytes)
     typer.echo(f"Copy: {result.copy_text}")
@@ -89,6 +90,29 @@ def send_email_cmd(
         cta_url=cta_url or None,
     )
     typer.echo(f"Result: {result}")
+
+
+admin_app = typer.Typer(help="Admin/operator commands.")
+app.add_typer(admin_app, name="admin")
+
+
+@admin_app.command("set-subscription")
+def set_subscription(email: str, status: str) -> None:
+    if status not in ("free", "subscribed"):
+        typer.echo('status must be "free" or "subscribed"')
+        raise typer.Exit(code=1)
+
+    from src.db.supabase_client import get_client
+
+    client = get_client()
+    users = client.auth.admin.list_users()
+    match = next((u for u in users if u.email == email), None)
+    if not match:
+        typer.echo(f"No user found with email {email!r}")
+        raise typer.Exit(code=1)
+
+    client.table("subscriptions").upsert({"user_id": match.id, "status": status}).execute()
+    typer.echo(f"{email} ({match.id}) is now '{status}'")
 
 
 if __name__ == "__main__":
