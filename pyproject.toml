@@ -18,6 +18,10 @@ dependencies = [
     "resend>=2.4,<3",
     "supabase>=2.9,<3",
     "langgraph-checkpoint-sqlite>=2.0,<3",
+    "langgraph-checkpoint-postgres>=2.0,<3",
+    "psycopg[binary]>=3.1,<4",
+    "cryptography>=42,<45",
+    "Pillow>=10.0,<12",
 ]
 
 [build-system]

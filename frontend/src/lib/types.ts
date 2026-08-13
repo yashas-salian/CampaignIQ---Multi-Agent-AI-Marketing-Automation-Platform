@@ -18,6 +18,13 @@ export interface Campaign {
   reddit_subreddit: string | null
   email_to: string[] | null
   cta_url: string | null
+  use_image_template: boolean
+  use_email_template: boolean
+  max_rounds: number | null
+  max_duration_minutes: number | null
+  campaign_summary: Record<string, unknown> | null
+  distributed_at: string | null
+  stop_requested: boolean
   created_at: string
   updated_at: string
 }

@@ -1,0 +1,50 @@
+name: Campaign Loop
+
+on:
+  schedule:
+    # Reliability backstop: sweeps every campaign not in a terminal state,
+    # resuming whichever ones are actually ready (gate decided / metrics
+    # wait elapsed). Catches anything an immediate resume-campaign trigger
+    # missed or never fired for.
+    - cron: "0 * * * *"
+  workflow_dispatch:
+    inputs:
+      campaign_id:
+        description: "Resume just this one campaign immediately (leave blank to sweep all)"
+        required: false
+        type: string
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - name: Run iteration
+        run: |
+          if [ -n "${{ inputs.campaign_id }}" ]; then
+            python -m src.scheduler.run_iteration --campaign-id "${{ inputs.campaign_id }}"
+          else
+            python -m src.scheduler.run_iteration
+          fi
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          ENABLE_REDDIT: "false"
+          BLUESKY_HANDLE: ${{ secrets.BLUESKY_HANDLE }}
+          BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+          MASTODON_ACCESS_TOKEN: ${{ secrets.MASTODON_ACCESS_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          RESEND_TEST_TO_EMAIL: ${{ secrets.RESEND_TEST_TO_EMAIL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SETTINGS_ENCRYPTION_KEY: ${{ secrets.SETTINGS_ENCRYPTION_KEY }}
+          PAID_LLM_API_KEY: ${{ secrets.PAID_LLM_API_KEY }}
+          PAID_IMAGE_API_KEY: ${{ secrets.PAID_IMAGE_API_KEY }}
+          PAID_JUDGE_API_KEY: ${{ secrets.PAID_JUDGE_API_KEY }}
+          DRY_RUN: ${{ secrets.DRY_RUN || 'true' }}

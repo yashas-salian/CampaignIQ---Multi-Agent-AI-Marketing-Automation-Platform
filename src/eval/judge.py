@@ -1,8 +1,7 @@
-import json
-
 from pydantic import BaseModel
 
 from src.capabilities.audience import Persona
+from src.llm_json import generate_json
 from src.providers.registry import get_judge_llm
 
 
@@ -16,7 +15,8 @@ def judge_personas(idea: str, personas: list[Persona], *, user_id: str | None = 
         f"- {p.name}: {p.demographics} | {p.psychographics} | channel_fit={p.channel_fit} | angle={p.messaging_angle}"
         for p in personas
     )
-    response = get_judge_llm(user_id).generate(
+    parsed = generate_json(
+        get_judge_llm(user_id),
         f'Campaign idea: "{idea}"\n\nGenerated personas:\n{personas_text}\n\n'
         "Judge these personas on relevance to the idea, specificity (not generic), and actionability "
         "for an ad campaign. Respond with ONLY a JSON object, no prose, with exactly two keys: "
@@ -26,8 +26,6 @@ def judge_personas(idea: str, personas: list[Persona], *, user_id: str | None = 
             "You output only valid JSON, never prose or markdown fences."
         ),
     )
-    payload = response.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-    parsed = json.loads(payload)
     return PersonaJudgement(**parsed)
 
 

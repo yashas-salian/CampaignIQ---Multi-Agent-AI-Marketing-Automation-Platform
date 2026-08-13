@@ -16,6 +16,7 @@ export default function CampaignDetail() {
   const [pendingGate, setPendingGate] = useState<GateDecision | null>(null)
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [stopping, setStopping] = useState(false)
 
   async function load() {
     if (!id) return
@@ -49,6 +50,16 @@ export default function CampaignDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
+  async function resumeNow() {
+    // Best-effort: don't block the UI on this, the scheduled sweep is the
+    // reliability backstop either way if this call fails for any reason.
+    try {
+      await supabase.functions.invoke('resume-campaign', { body: { campaign_id: id } })
+    } catch {
+      // no-op — cron will pick it up
+    }
+  }
+
   async function submitDecision(decision: 'approve' | 'edit' | 'reject') {
     if (!pendingGate) return
     setSubmitting(true)
@@ -56,8 +67,18 @@ export default function CampaignDetail() {
       .from('gate_decisions')
       .update({ decision, comment: comment || null, decided_at: new Date().toISOString() })
       .eq('id', pendingGate.id)
+    await resumeNow()
     setSubmitting(false)
     setComment('')
+    await load()
+  }
+
+  async function stopCampaign() {
+    if (!id) return
+    setStopping(true)
+    await supabase.from('campaigns').update({ stop_requested: true }).eq('id', id)
+    await resumeNow()
+    setStopping(false)
     await load()
   }
 
@@ -70,18 +91,32 @@ export default function CampaignDetail() {
 
   if (!campaign) return <p className="p-8 text-gray-500">Loading…</p>
 
+  const isActive = !['completed', 'rejected'].includes(campaign.status)
+
   return (
     <div className="max-w-3xl mx-auto p-8 space-y-8">
       <Link to="/" className="text-sm text-gray-500 hover:underline">
         &larr; All campaigns
       </Link>
 
-      <div>
-        <h1 className="text-2xl font-semibold">{campaign.idea}</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          {campaign.domain_category} · status <span className="font-mono">{campaign.status}</span> · round{' '}
-          {campaign.current_round}
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-semibold">{campaign.idea}</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {campaign.domain_category} · status <span className="font-mono">{campaign.status}</span> · round{' '}
+            {campaign.current_round}
+            {campaign.max_rounds ? ` of ${campaign.max_rounds}` : ''}
+          </p>
+        </div>
+        {isActive && (
+          <button
+            onClick={stopCampaign}
+            disabled={stopping || campaign.stop_requested}
+            className="px-3 py-1.5 rounded-lg border border-red-300 text-red-600 text-sm disabled:opacity-50"
+          >
+            {campaign.stop_requested ? 'Stopping…' : stopping ? 'Stopping…' : 'Stop campaign'}
+          </button>
+        )}
       </div>
 
       <section>
@@ -124,7 +159,7 @@ export default function CampaignDetail() {
 
       {iterations.length > 0 && (
         <section>
-          <h2 className="text-lg font-medium mb-2">Creative</h2>
+          <h2 className="text-lg font-medium mb-2">Rounds</h2>
           {iterations.map((it) => (
             <div key={it.id} className="border rounded-lg p-3 mb-2">
               <p className="text-sm text-gray-500">
@@ -144,6 +179,15 @@ export default function CampaignDetail() {
               )}
             </div>
           ))}
+        </section>
+      )}
+
+      {campaign.status === 'completed' && campaign.campaign_summary && (
+        <section className="border-t pt-6">
+          <h2 className="text-lg font-medium mb-2">Campaign summary</h2>
+          <pre className="text-xs bg-gray-50 border rounded-lg p-3 overflow-auto">
+            {JSON.stringify(campaign.campaign_summary, null, 2)}
+          </pre>
         </section>
       )}
 

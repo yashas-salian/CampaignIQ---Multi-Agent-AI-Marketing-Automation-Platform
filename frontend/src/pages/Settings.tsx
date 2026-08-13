@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useSession } from '../lib/useAuth'
 
 const CAPABILITIES = ['llm', 'image', 'judge'] as const
 
@@ -9,11 +10,24 @@ interface MaskedKey {
   updated_at: string
 }
 
+interface Template {
+  template_type: 'image' | 'email'
+  image_base64: string | null
+  email_html: string | null
+  updated_at: string
+}
+
 export default function Settings() {
+  const { session } = useSession()
   const [keys, setKeys] = useState<Record<string, MaskedKey>>({})
   const [inputs, setInputs] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+
+  const [templates, setTemplates] = useState<Record<string, Template>>({})
+  const [emailHtml, setEmailHtml] = useState('')
+  const [templateMessage, setTemplateMessage] = useState<string | null>(null)
+  const [savingTemplate, setSavingTemplate] = useState<'image' | 'email' | null>(null)
 
   async function load() {
     const { data } = await supabase.from('provider_keys_masked').select('*')
@@ -24,9 +38,57 @@ export default function Settings() {
     setKeys(byCapability)
   }
 
+  async function loadTemplates() {
+    const { data } = await supabase.from('templates').select('*')
+    const byType: Record<string, Template> = {}
+    for (const row of (data as Template[]) ?? []) {
+      byType[row.template_type] = row
+    }
+    setTemplates(byType)
+    setEmailHtml(byType.email?.email_html ?? '')
+  }
+
   useEffect(() => {
     load()
+    loadTemplates()
   }, [])
+
+  async function uploadImageTemplate(file: File) {
+    const userId = session?.user.id
+    if (!userId) return
+    setSavingTemplate('image')
+    setTemplateMessage(null)
+
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve((reader.result as string).split(',')[1])
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+
+    const { error } = await supabase
+      .from('templates')
+      .upsert({ user_id: userId, template_type: 'image', image_base64: base64 }, { onConflict: 'user_id,template_type' })
+
+    setSavingTemplate(null)
+    setTemplateMessage(error ? `Failed: ${error.message}` : 'Image template saved.')
+    if (!error) await loadTemplates()
+  }
+
+  async function saveEmailTemplate() {
+    const userId = session?.user.id
+    if (!userId) return
+    setSavingTemplate('email')
+    setTemplateMessage(null)
+
+    const { error } = await supabase
+      .from('templates')
+      .upsert({ user_id: userId, template_type: 'email', email_html: emailHtml }, { onConflict: 'user_id,template_type' })
+
+    setSavingTemplate(null)
+    setTemplateMessage(error ? `Failed: ${error.message}` : 'Email template saved.')
+    if (!error) await loadTemplates()
+  }
 
   async function submit(capability: string) {
     const apiKey = inputs[capability]
@@ -82,6 +144,59 @@ export default function Settings() {
           </div>
         </div>
       ))}
+
+      <div className="border-t pt-6 space-y-4">
+        <h2 className="text-xl font-semibold">Templates (optional, opt-in per campaign)</h2>
+        <p className="text-sm text-gray-500">
+          If set, a campaign can choose to build on top of your own ad image or email layout instead of a
+          fully generated one. The full pipeline (feasibility, personas, creative) still runs either way —
+          your template is the foundation the result is built around, not a replacement for it.
+        </p>
+
+        {templateMessage && <p className="text-sm text-purple-600">{templateMessage}</p>}
+
+        <div className="border rounded-lg p-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-medium">Ad image template</span>
+            <span className="text-sm text-gray-500">{templates.image ? 'set' : 'not set'}</span>
+          </div>
+          {templates.image?.image_base64 && (
+            <img
+              src={`data:image/png;base64,${templates.image.image_base64}`}
+              alt="Current image template"
+              className="max-h-32 rounded mb-2"
+            />
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => e.target.files?.[0] && uploadImageTemplate(e.target.files[0])}
+            disabled={savingTemplate === 'image'}
+            className="text-sm"
+          />
+        </div>
+
+        <div className="border rounded-lg p-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-medium">Email template</span>
+            <span className="text-sm text-gray-500">{templates.email ? 'set' : 'not set'}</span>
+          </div>
+          <textarea
+            placeholder="Full HTML layout, with {{copy}} where the generated ad copy should be inserted…"
+            value={emailHtml}
+            onChange={(e) => setEmailHtml(e.target.value)}
+            rows={6}
+            className="w-full border rounded-lg p-2 text-sm font-mono mb-2"
+          />
+          <button
+            onClick={saveEmailTemplate}
+            disabled={savingTemplate === 'email'}
+            className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm disabled:opacity-50"
+          >
+            {savingTemplate === 'email' ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

@@ -44,6 +44,18 @@ def _is_subscribed(user_id: str) -> bool:
     return bool(result and result.data and result.data["status"] == "subscribed")
 
 
+def has_paid_tier_access(user_id: str | None) -> bool:
+    """Subscribed, or has at least one BYOK key set for any capability."""
+    if not user_id:
+        return False
+    if _is_subscribed(user_id):
+        return True
+    from src.db.supabase_client import get_client
+
+    result = get_client().table("provider_keys").select("id").eq("user_id", user_id).limit(1).execute()
+    return bool(result.data)
+
+
 def get_llm(user_id: str | None = None) -> LLMProvider:
     if user_id and not _force_free_tier():
         byok = _byok_key(user_id, "llm")

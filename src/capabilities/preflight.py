@@ -1,9 +1,8 @@
-import json
-
 from pydantic import BaseModel
 
 from src.capabilities.audience import Persona
 from src.capabilities.creative import Creative
+from src.llm_json import generate_json
 from src.providers.registry import get_llm
 
 PREFLIGHT_PASS_THRESHOLD = 50
@@ -17,7 +16,8 @@ class PreflightResult(BaseModel):
 
 def score_preflight(creative: Creative, personas: list[Persona], *, user_id: str | None = None) -> PreflightResult:
     panel_text = "\n".join(f"- {p.name}: {p.demographics} | {p.psychographics}" for p in personas)
-    response = get_llm(user_id).generate(
+    parsed = generate_json(
+        get_llm(user_id),
         f'Ad copy: "{creative.copy_text}"\n'
         f'Image description: "{creative.image_prompt}"\n\n'
         f"You are simulating how this panel of target personas would honestly react:\n{panel_text}\n\n"
@@ -30,8 +30,6 @@ def score_preflight(creative: Creative, personas: list[Persona], *, user_id: str
             "feedback. You output only valid JSON, never prose or markdown fences."
         ),
     )
-    payload = response.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-    parsed = json.loads(payload)
     predicted_engagement = parsed["predicted_engagement"]
     return PreflightResult(
         predicted_engagement=predicted_engagement,

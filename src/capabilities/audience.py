@@ -1,8 +1,7 @@
-import json
-
 from pydantic import BaseModel
 
 from src.capabilities.feasibility import FeasibilityResult
+from src.llm_json import generate_json
 from src.providers.registry import get_llm
 
 
@@ -25,7 +24,8 @@ def _coerce_to_str(value: object) -> str:
 def generate_personas(
     idea: str, feasibility: FeasibilityResult, *, n: int = 3, user_id: str | None = None
 ) -> list[Persona]:
-    response = get_llm(user_id).generate(
+    personas_raw = generate_json(
+        get_llm(user_id),
         f"Ad campaign idea: \"{idea}\"\n"
         f"Feasibility rationale: {feasibility.rationale}\n\n"
         f"Generate exactly {n} distinct ideal-customer-profile personas for this campaign. "
@@ -34,8 +34,6 @@ def generate_personas(
         '"name", "demographics", "psychographics", "channel_fit", "messaging_angle".',
         system="You are an audience research strategist. You output only valid JSON, never prose or markdown fences.",
     )
-    payload = response.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-    personas_raw = json.loads(payload)
     return [
         Persona(
             name=_coerce_to_str(p["name"]),
