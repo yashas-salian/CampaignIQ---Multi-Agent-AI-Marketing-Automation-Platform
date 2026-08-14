@@ -46,7 +46,7 @@ alter view provider_keys_masked set (security_invoker = true);
 
 -- 4. subscriptions: minimal stub flag, not real billing. Regular users can
 -- read their own row (for a Settings page tier readout) but never write it
--- — only the service-role admin CLI (`cli.py admin set-subscription`)
+-- — only the service-role admin script (`src/admin/set_subscription.py`)
 -- changes tier, so a stub flag can never look like something the user
 -- controls themselves.
 create table if not exists subscriptions (

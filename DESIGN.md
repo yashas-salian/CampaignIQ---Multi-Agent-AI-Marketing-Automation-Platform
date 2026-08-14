@@ -333,3 +333,13 @@ Optional: **per-user OAuth-connected distribution channels** (each user authenti
 ## RAG type note (added post-migration)
 
 For the memory/RAG layer in M6: use **plain vector similarity search over `pgvector`** (normal RAG), not agentic RAG or GraphRAG. The retrieval task here — "find the k most similar past campaigns/personas/creatives by embedding similarity" — is a single-hop lookup, not a multi-step or relational reasoning problem, so added retrieval sophistication here would be scope creep on what's meant to be a supporting feature. This project's AI/ML differentiation comes from the bandit, the eval harness, and the fine-tune (M6/M7) — not retrieval complexity.
+
+## CLI removed from the product surface (added post-M6)
+
+`src/cli.py` (the standalone Typer commands referenced throughout this doc — `feasibility`/`personas`/`creative`/`image`/`post-bluesky`/`post-reddit`/`send-email`, plus `admin set-subscription`) has been deleted. Decision: a real product doesn't ask its user to open a terminal to operate it — everything the CLI covered now has a frontend equivalent that's actually used:
+
+- Standalone capability testing → the Tools page (`trigger-capability-run` Edge Function + `capability-run.yml`), already existed alongside the CLI and now covers this alone.
+- Campaign creation → the Dashboard's Create Campaign form, calling a new `create-campaign` Edge Function that dispatches `run_campaign.py` via `campaign-loop.yml`'s `workflow_dispatch` (mirrors how `resume-campaign` already dispatched gate-decision/stop resumption).
+- `admin set-subscription` is the one exception with no frontend equivalent, since it's an operator billing action, not something an end user does to themselves. It's now `src/admin/set_subscription.py`, a plain standalone script — still not part of the product's own UI, run directly by the operator when needed.
+
+`src/graph/run_campaign.py`, `src/scheduler/run_iteration.py`, and `src/scheduler/run_capability.py` are unaffected — they were always backend worker scripts invoked by GitHub Actions, not "the CLI" in the sense removed here. The "Layering for standalone use" section above and the M1 repo layout's `cli.py` line are now historical — accurate to what M1 built, superseded by this decision.

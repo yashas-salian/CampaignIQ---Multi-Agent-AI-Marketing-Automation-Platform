@@ -1,0 +1,92 @@
+{
+  "common": {
+    "loading": "Carregando…",
+    "dashboard": "Painel",
+    "tools": "Ferramentas",
+    "settings": "Configurações",
+    "signOut": "Sair ({{email}})"
+  },
+  "login": {
+    "titleSignin": "Entrar",
+    "titleSignup": "Cadastrar-se",
+    "emailPlaceholder": "E-mail",
+    "passwordPlaceholder": "Senha",
+    "submitSignin": "Entrar",
+    "submitSignup": "Cadastrar-se",
+    "toggleToSignup": "Não tem uma conta? Cadastre-se",
+    "toggleToSignin": "Já tem uma conta? Entrar"
+  },
+  "dashboard": {
+    "title": "Campanhas",
+    "refresh": "Atualizar",
+    "empty": "Ainda não há campanhas — crie uma acima para começar.",
+    "createTitle": "Criar uma nova campanha",
+    "ideaPlaceholder": "Ideia da campanha",
+    "languageLabel": "Idioma de destino",
+    "createSubmit": "Criar campanha",
+    "creating": "Criando…",
+    "feasibility": "viabilidade"
+  },
+  "campaignDetail": {
+    "backLink": "← Todas as campanhas",
+    "metricsLink": "Ver métricas →",
+    "stopButton": "Parar campanha",
+    "stopping": "Parando…",
+    "roundOf": "rodada {{current}} de {{max}}",
+    "round": "rodada {{current}}",
+    "feasibilityTitle": "Viabilidade",
+    "score": "Pontuação:",
+    "personasTitle": "Personas",
+    "primaryBadge": "PRINCIPAL",
+    "makePrimary": "Tornar principal",
+    "channelAngle": "Canal: {{channel}} · Ângulo: {{angle}}",
+    "roundsTitle": "Rodadas",
+    "roundHeader": "Rodada {{round}} · tentativa de preflight {{attempt}}",
+    "imageLabel": "Imagem: {{prompt}}",
+    "preflightLabel": "Preflight: {{score}}/100",
+    "summaryTitle": "Resumo da campanha",
+    "gateTitle": "Decisão necessária no portão {{number}}",
+    "commentPlaceholder": "Comentário opcional…",
+    "approve": "Aprovar",
+    "approveEdits": "Aprovar com edições",
+    "reject": "Rejeitar",
+    "editHint": "\"Aprovar com edições\": altere algo acima primeiro (por exemplo, defina uma persona principal diferente), depois clique aqui para registrar a decisão como uma edição."
+  },
+  "metrics": {
+    "backLink": "← Voltar para a campanha",
+    "title": "Métricas — {{idea}}",
+    "subtitle": "Tendência de recompensa em todas as rodadas, detalhamento por canal, e qual variante criativa foi usada.",
+    "rewardTrendTitle": "Tendência de recompensa",
+    "noMetrics": "Ainda não há métricas coletadas.",
+    "perRoundTitle": "Detalhe por rodada",
+    "round": "Rodada {{round}}",
+    "arm": "variante: {{style}} / {{tone}} (#{{index}})",
+    "noRoundMetrics": "Ainda não há métricas coletadas para esta rodada.",
+    "channel": "Canal",
+    "rawMetrics": "Métricas brutas",
+    "reward": "Recompensa"
+  },
+  "settings": {
+    "title": "Configurações — Traga sua própria chave",
+    "subtitle": "Conecte sua própria chave de API paga por capacidade para obter qualidade de nível pago sem assinatura. As chaves são criptografadas no servidor; apenas os últimos 4 caracteres são exibidos aqui.",
+    "notSet": "não definida",
+    "keyPlaceholder": "sk-...",
+    "save": "Salvar",
+    "saving": "Salvando…",
+    "templatesTitle": "Modelos (opcional, por campanha)",
+    "templatesSubtitle": "Se definido, uma campanha pode optar por se basear em sua própria imagem de anúncio ou modelo de e-mail em vez de um totalmente gerado. O pipeline completo (viabilidade, personas, criativo) ainda é executado — seu modelo é a base sobre a qual o resultado é construído, não um substituto.",
+    "imageTemplateLabel": "Modelo de imagem de anúncio",
+    "emailTemplateLabel": "Modelo de e-mail",
+    "set": "definido",
+    "emailTemplatePlaceholder": "Layout HTML completo, com {{placeholder}} onde o texto do anúncio gerado deve ser inserido…"
+  },
+  "tools": {
+    "title": "Ferramentas — execuções pontuais de capacidades",
+    "subtitle": "Executa uma única capacidade via GitHub Actions, independente de qualquer campanha em andamento.",
+    "imagePromptPlaceholder": "Prompt de imagem",
+    "ideaPlaceholder": "Ideia da campanha",
+    "run": "Executar",
+    "dispatching": "Enviando…",
+    "status": "Status: {{status}}"
+  }
+}

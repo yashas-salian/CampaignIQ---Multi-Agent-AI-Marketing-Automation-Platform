@@ -28,6 +28,8 @@ def gate_1_node(state: CampaignState) -> CampaignState:
             psychographics=primary["psychographics"],
             channel_fit=primary["channel_fit"],
             messaging_angle=primary["messaging_angle"],
+            age_bracket=primary["age_bracket"],
+            income_tier=primary["income_tier"],
         ),
         "rejected": False,
     }

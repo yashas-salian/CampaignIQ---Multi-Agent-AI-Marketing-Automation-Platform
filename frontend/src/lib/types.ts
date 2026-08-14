@@ -52,6 +52,9 @@ export interface Iteration {
   bluesky_post_uri: string | null
   reddit_post_url: string | null
   email_id: string | null
+  image_style: string | null
+  copy_tone: string | null
+  arm_index: number | null
 }
 
 export interface GateDecision {
@@ -62,4 +65,14 @@ export interface GateDecision {
   decision: 'approve' | 'edit' | 'reject' | null
   comment: string | null
   decided_at: string | null
+}
+
+export interface Metric {
+  id: string
+  campaign_id: string
+  round_number: number
+  channel: 'bluesky' | 'reddit' | 'email'
+  raw_metrics: Record<string, number>
+  reward: number
+  collected_at: string
 }

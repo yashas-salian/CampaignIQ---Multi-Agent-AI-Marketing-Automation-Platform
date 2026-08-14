@@ -5,9 +5,13 @@ scoring → audience generation → creative production → multi-channel launch
 metrics-driven feedback → iterative correction → stop, entirely on free-tier
 infrastructure. Full design and milestone plan: [`DESIGN.md`](./DESIGN.md).
 
-**Status:** M1 (provider abstraction, capabilities layer, single-shot
-pipeline) built; M2 (eval harness) built; M3 (human-in-the-loop gates,
-pre-flight panel, resumable graph, React frontend) built.
+**Status:** M1–M6 (the full "must-finish core" per [`DESIGN.md`](./DESIGN.md))
+built and live-verified: provider abstraction, eval harness, human-in-the-loop
+gates + pre-flight panel, multi-tenancy + BYOK + Tools page, the metrics →
+feedback → autonomy loop, and a contextual bandit + per-user memory/RAG.
+M7–M9 (fine-tuning, MCP server, stretch) are explicitly out of scope for now.
+Architecture diagram + what makes this more than an LLM wrapper:
+[`docs/architecture.md`](./docs/architecture.md).
 
 ## Setup
 
@@ -80,22 +84,52 @@ auth/RLS/campaigns tables isn't set up until then, just this one function:
 Without this set, `send-email --cta-url` still works but links go out
 unwrapped (no click tracking) rather than breaking.
 
-## Run
+## Using the app
 
-Each capability standalone via the CLI:
+Everything happens in the browser — creating a campaign, approving gates,
+stopping a campaign, and one-off capability testing. There is no CLI in the
+product surface; `src/graph/run_campaign.py`, `src/scheduler/run_iteration.py`,
+and `src/scheduler/run_capability.py` are backend worker scripts, invoked
+automatically by GitHub Actions when a frontend action dispatches one of the
+Edge Functions below — you never run them yourself.
 
-```
-.venv\Scripts\python -m src.cli feasibility "A subscription box for artisanal hot sauce"
-.venv\Scripts\python -m src.cli image "a jar of hot sauce on a rustic wooden table"
-.venv\Scripts\python -m src.cli personas "A subscription box for artisanal hot sauce"
-.venv\Scripts\python -m src.cli creative "A subscription box for artisanal hot sauce"
-.venv\Scripts\python -m src.cli post-bluesky "hello from the ad campaign agent" --campaign-id demo --round-id 1
-.venv\Scripts\python -m src.cli post-reddit test "test post" "test body" --campaign-id demo --round-id 1
-.venv\Scripts\python -m src.cli send-email "test subject" "test body" --cta-url "https://example.com" --campaign-id demo --round-id 1
-```
+- **Create a campaign**: Dashboard → fill in the idea + target language →
+  "Create campaign". This calls the `create-campaign` Edge Function, which
+  dispatches `campaign-loop.yml` to run `run_campaign.py` for you. The
+  campaign appears in the Dashboard once feasibility scoring completes.
+- **Approve/reject a gate**: open the campaign, use the Approve / Approve
+  with edits / Reject buttons. This writes the decision and immediately
+  calls `resume-campaign`, which dispatches the same workflow to pick up
+  right where the graph paused — no waiting for the hourly cron sweep.
+- **Stop a campaign**: "Stop campaign" on the campaign's detail page — same
+  immediate-dispatch mechanism.
+- **One-off capability testing** (no full campaign): the Tools page —
+  feasibility / personas / image, via the `trigger-capability-run` Edge
+  Function and `capability-run.yml`.
 
-All three distribution commands default to `DRY_RUN=true` — set
-`DRY_RUN=false` in `.env` when you're ready to confirm a real send.
+`DRY_RUN=false` in `.env` (local) / the `DRY_RUN` repo secret (GitHub
+Actions) controls whether distribution calls actually hit Bluesky/email/
+Reddit or just log a synthetic result — see "Distribution safety" above.
+
+### Edge Functions to deploy
+
+All five are Supabase Dashboard → Edge Functions → paste the file → Deploy
+(keep "Enforce JWT Verification" ON for all except `track-click`, which
+needs it OFF since email clients follow the link unauthenticated):
+
+| Function | Source | Needs |
+|---|---|---|
+| `track-click` | `supabase_setup/functions/track-click/index.ts` | — |
+| `submit-provider-key` | `supabase_setup/functions/submit-provider-key/index.ts` | `SETTINGS_ENCRYPTION_KEY` secret |
+| `trigger-capability-run` | `supabase_setup/functions/trigger-capability-run/index.ts` | `GITHUB_REPO`, `GITHUB_PAT` secrets |
+| `resume-campaign` | `supabase_setup/functions/resume-campaign/index.ts` | `GITHUB_REPO`, `GITHUB_PAT` secrets |
+| `create-campaign` | `supabase_setup/functions/create-campaign/index.ts` | `GITHUB_REPO`, `GITHUB_PAT` secrets |
+
+`GITHUB_REPO`/`GITHUB_PAT` are shared across the last three (same repo, same
+PAT, only set once). The GitHub Actions side needs every key in `.env`
+mirrored as a repo secret (Settings → Secrets and variables → Actions) —
+`campaign-loop.yml` and `capability-run.yml` both list exactly which ones
+in their `env:` blocks.
 
 ## Eval harness (M2)
 
@@ -132,25 +166,94 @@ Single-tenant, no auth yet (M4 adds that). Setup:
    nothing per-user yet).
 4. `npm run dev` to run the frontend locally.
 
-Trigger a new campaign (runs idea → feasibility → audience, then pauses at
-Gate 1):
-
-```
-.venv\Scripts\python -m src.graph.run_campaign "A subscription box for artisanal hot sauce"
-```
-
-This prints a `campaign_id`. Open the frontend, find it in the Dashboard,
-click in, and Approve/Edit/Reject at the gate. Then resume the graph from
-where it paused:
-
-```
-.venv\Scripts\python -m src.graph.run_campaign --campaign-id <id>
-```
-
-Re-running with `--campaign-id` while the gate is still undecided is a
-no-op (prints "still awaiting gate N decision") — this is the same
-checkpoint-and-no-op pattern `campaign-loop.yml` will use in M5 to poll
-without erroring. Once Gate 1 is approved, the graph generates creative,
+Create a campaign from the Dashboard (see "Using the app" below) — it runs
+idea → feasibility → audience, then pauses at Gate 1. Approve/Edit/Reject
+directly on the campaign's page; the frontend handles resuming the graph
+for you (see M5's `resume-campaign` Edge Function). Re-invoking the graph
+while a gate is still undecided is a no-op (prints "still awaiting gate N
+decision") — this is the checkpoint-and-no-op pattern `campaign-loop.yml`
+uses (M5) to poll without erroring. Once Gate 1 is approved, the graph
+generates creative,
 runs it through the pre-flight persona panel (retrying up to 3 times,
 keeping the best-scoring attempt), then pauses again at Gate 2. Approving
 Gate 2 triggers real distribution (subject to `DRY_RUN`, same as always).
+
+## Multi-tenancy + BYOK + Tools (M4)
+
+Adds Supabase Auth (email+password) and `user_id`-scoped row-level security
+across every tenant table, plus a full 3-tier provider precedence resolved
+per logged-in user: **BYOK** (their own key, Settings page, AES-256-GCM
+encrypted server-side in a `submit-provider-key` Edge Function) →
+**our-paid-if-subscribed** (a `subscriptions` stub flag, toggled by the
+operator via `python -m src.admin.set_subscription <email> subscribed` —
+this one action has no frontend since it's a billing decision made by you,
+not the end user) → **free**
+(same `.env` keys as always). The Tools page runs any capability standalone
+(dispatches `capability-run.yml` via a `trigger-capability-run` Edge
+Function, result shown live via Supabase Realtime). Run
+[`src/db/schema_m4.sql`](./src/db/schema_m4.sql) after `schema.sql`, sign up
+two test users in the frontend to confirm RLS actually denies cross-user
+reads (not just UI-hidden), and set `SETTINGS_ENCRYPTION_KEY` (generate with
+`python -c "import os, base64; print(base64.b64encode(os.urandom(32)).decode())"`)
+in both `.env` and the Edge Function's own secrets.
+
+## Feedback loop + autonomy (M5)
+
+Adds `metrics_collector.py` (Bluesky/Reddit engagement + email click-through
+via `track-click`) and `feedback_correction.py`, which decides whether to
+loop back to another round or stop, enforces tier-based round caps
+(free: 3, subscribed/BYOK: 10), and writes a `campaign_summary` closing
+artifact. `run_iteration.py` + `campaign-loop.yml` (GitHub Actions) provide
+both the hourly reliability sweep (`schedule`, no input) and immediate
+per-campaign resumption (`workflow_dispatch`, `campaign_id` input) — the
+latter triggered instantly by the `resume-campaign` Edge Function on a gate
+decision or "stop campaign" (campaign *creation* instead dispatches
+`run_campaign.py` via the separate `create-campaign` Edge Function, added
+alongside the multilingual work below). Run
+[`src/db/schema_m5.sql`](./src/db/schema_m5.sql), set `SUPABASE_DB_URL`
+(Project Settings → Database → Connection string — this is what lets
+LangGraph's Postgres checkpointer survive across separate, ephemeral
+GitHub Actions runs), and add the same GitHub Actions secrets already used
+by `capability-run.yml` plus `SUPABASE_DB_URL` to the repo's Actions secrets.
+
+## Contextual bandit + memory/RAG + observability (M6)
+
+Adds `tools/bandit.py` — a LinUCB contextual bandit over a fixed 20-arm
+catalog (5 image styles × 4 copy tones) driving each round's creative
+style/tone selection, and `tools/memory.py` — per-user pgvector embeddings
+used for feasibility grounding and a novelty check (retries creative
+generation up to 3 times if too similar to this user's own past creative,
+per the same best-attempt pattern the pre-flight loop already uses). Run
+[`src/db/schema_m6.sql`](./src/db/schema_m6.sql) (adds `bandit_arms`,
+`embeddings` + `pgvector`, and new persona/iteration columns). The
+`Metrics.tsx` frontend page (linked from a campaign's detail view) shows
+per-round/per-channel real engagement, the normalized reward, which arm was
+used, and a reward-trend chart. LangSmith tracing is optional — set
+`LANGCHAIN_TRACING_V2=true` + `LANGCHAIN_API_KEY` in `.env` (LangGraph reads
+these automatically, no code change needed).
+
+**Note:** `sentence-transformers` pulls in `torch`, a large download (~1GB+
+depending on platform) — if `pip install -e .` times out or drops mid-download
+on a slow/flaky connection, just re-run it; pip resumes partial downloads.
+
+## Multilingual campaigns
+
+Every campaign has a `target_language` (`src/languages.py`, ~15 languages),
+chosen from the Dashboard's Create Campaign form — independent of whatever
+language the idea itself was typed in. Feasibility rationale, personas, ad
+copy, and feedback reasoning are all generated in that language; `image_prompt`
+deliberately always stays in English regardless (image models are
+English-prompt-optimized — only the visible copy needs to match the target
+market). Research signals are localized too: NewsAPI's `language` param and
+Google Trends' `hl` both follow `target_language`. The embedding model
+(`tools/memory.py`) is multilingual (`paraphrase-multilingual-MiniLM-L12-v2`,
+also 384-dim) so retrieval/novelty-check work correctly across languages for
+the same user — confirmed live (an English query matched a Spanish embedding
+at 0.9 cosine similarity). Run [`src/db/schema_i18n.sql`](./src/db/schema_i18n.sql)
+(adds `campaigns.target_language`).
+
+The frontend's own UI chrome is separately localizable via `react-i18next`
+— a language switcher in the nav bar, independent of any campaign's
+`target_language`. Ships with 5 locales (English/Spanish/French/Hindi/
+Portuguese, `frontend/src/i18n/locales/`); add another by dropping in a new
+locale JSON with the same keys.

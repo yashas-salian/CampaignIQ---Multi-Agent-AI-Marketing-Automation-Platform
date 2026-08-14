@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabaseClient'
 import { useSession } from '../lib/useAuth'
 
@@ -18,6 +19,7 @@ interface Template {
 }
 
 export default function Settings() {
+  const { t } = useTranslation()
   const { session } = useSession()
   const [keys, setKeys] = useState<Record<string, MaskedKey>>({})
   const [inputs, setInputs] = useState<Record<string, string>>({})
@@ -112,11 +114,8 @@ export default function Settings() {
 
   return (
     <div className="max-w-2xl mx-auto p-8 space-y-6">
-      <h1 className="text-2xl font-semibold">Settings — Bring Your Own Key</h1>
-      <p className="text-sm text-gray-500">
-        Plug in your own paid API key per capability to get paid-tier quality without a subscription.
-        Keys are encrypted server-side; only the last 4 characters are ever shown here.
-      </p>
+      <h1 className="text-2xl font-semibold">{t('settings.title')}</h1>
+      <p className="text-sm text-gray-500">{t('settings.subtitle')}</p>
 
       {message && <p className="text-sm text-purple-600">{message}</p>}
 
@@ -124,12 +123,12 @@ export default function Settings() {
         <div key={capability} className="border rounded-lg p-4">
           <div className="flex justify-between items-center mb-2">
             <span className="font-medium capitalize">{capability}</span>
-            <span className="text-sm text-gray-500 font-mono">{keys[capability]?.masked_key ?? 'not set'}</span>
+            <span className="text-sm text-gray-500 font-mono">{keys[capability]?.masked_key ?? t('settings.notSet')}</span>
           </div>
           <div className="flex gap-2">
             <input
               type="password"
-              placeholder="sk-..."
+              placeholder={t('settings.keyPlaceholder')}
               value={inputs[capability] ?? ''}
               onChange={(e) => setInputs((prev) => ({ ...prev, [capability]: e.target.value }))}
               className="flex-1 border rounded-lg p-2 text-sm"
@@ -139,26 +138,22 @@ export default function Settings() {
               disabled={submitting === capability}
               className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm disabled:opacity-50"
             >
-              {submitting === capability ? 'Saving…' : 'Save'}
+              {submitting === capability ? t('settings.saving') : t('settings.save')}
             </button>
           </div>
         </div>
       ))}
 
       <div className="border-t pt-6 space-y-4">
-        <h2 className="text-xl font-semibold">Templates (optional, opt-in per campaign)</h2>
-        <p className="text-sm text-gray-500">
-          If set, a campaign can choose to build on top of your own ad image or email layout instead of a
-          fully generated one. The full pipeline (feasibility, personas, creative) still runs either way —
-          your template is the foundation the result is built around, not a replacement for it.
-        </p>
+        <h2 className="text-xl font-semibold">{t('settings.templatesTitle')}</h2>
+        <p className="text-sm text-gray-500">{t('settings.templatesSubtitle')}</p>
 
         {templateMessage && <p className="text-sm text-purple-600">{templateMessage}</p>}
 
         <div className="border rounded-lg p-4">
           <div className="flex justify-between items-center mb-2">
-            <span className="font-medium">Ad image template</span>
-            <span className="text-sm text-gray-500">{templates.image ? 'set' : 'not set'}</span>
+            <span className="font-medium">{t('settings.imageTemplateLabel')}</span>
+            <span className="text-sm text-gray-500">{templates.image ? t('settings.set') : t('settings.notSet')}</span>
           </div>
           {templates.image?.image_base64 && (
             <img
@@ -178,11 +173,11 @@ export default function Settings() {
 
         <div className="border rounded-lg p-4">
           <div className="flex justify-between items-center mb-2">
-            <span className="font-medium">Email template</span>
-            <span className="text-sm text-gray-500">{templates.email ? 'set' : 'not set'}</span>
+            <span className="font-medium">{t('settings.emailTemplateLabel')}</span>
+            <span className="text-sm text-gray-500">{templates.email ? t('settings.set') : t('settings.notSet')}</span>
           </div>
           <textarea
-            placeholder="Full HTML layout, with {{copy}} where the generated ad copy should be inserted…"
+            placeholder={t('settings.emailTemplatePlaceholder', { placeholder: '{{copy}}' })}
             value={emailHtml}
             onChange={(e) => setEmailHtml(e.target.value)}
             rows={6}
@@ -193,7 +188,7 @@ export default function Settings() {
             disabled={savingTemplate === 'email'}
             className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm disabled:opacity-50"
           >
-            {savingTemplate === 'email' ? 'Saving…' : 'Save'}
+            {savingTemplate === 'email' ? t('settings.saving') : t('settings.save')}
           </button>
         </div>
       </div>

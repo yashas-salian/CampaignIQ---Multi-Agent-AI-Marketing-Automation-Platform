@@ -26,6 +26,7 @@ def create_campaign(
     use_email_template: bool = False,
     max_rounds: int | None = None,
     max_duration_minutes: int | None = None,
+    target_language: str = "en",
 ) -> None:
     row = {
         "id": campaign_id,
@@ -41,6 +42,7 @@ def create_campaign(
         "use_email_template": use_email_template,
         "max_rounds": max_rounds,
         "max_duration_minutes": max_duration_minutes,
+        "target_language": target_language,
         "status": "created",
     }
     get_client().table("campaigns").insert(row).execute()

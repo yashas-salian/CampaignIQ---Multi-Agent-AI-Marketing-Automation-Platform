@@ -8,6 +8,7 @@ from langgraph.types import Command
 
 from src.db.supabase_client import get_campaign, get_gate_decision
 from src.graph.build_graph import build_graph
+from src.languages import SUPPORTED_LANGUAGES
 
 GATE_NUMBER_BY_STATUS = {"awaiting_gate_1": 1, "awaiting_gate_2": 2}
 
@@ -27,6 +28,10 @@ def main() -> None:
     parser.add_argument("--cta-url", default=None)
     parser.add_argument("--use-image-template", action="store_true", help="Use this user's stored image template instead of generating one")
     parser.add_argument("--use-email-template", action="store_true", help="Use this user's stored email template instead of the default layout")
+    parser.add_argument(
+        "--target-language", default="en", choices=list(SUPPORTED_LANGUAGES),
+        help="Language for generated content (copy, personas, rationale) and localized research signals",
+    )
     args = parser.parse_args()
 
     with _checkpointer() as checkpointer:
@@ -59,6 +64,7 @@ def main() -> None:
                 "email_to": args.email_to.split(",") if args.email_to else [os.environ["RESEND_TEST_TO_EMAIL"]],
                 "reddit_subreddit": args.reddit_subreddit, "cta_url": args.cta_url,
                 "use_image_template": args.use_image_template, "use_email_template": args.use_email_template,
+                "target_language": args.target_language,
             }
             app.invoke(initial_state, config=config)
             print(f"New campaign created: {campaign_id}")

@@ -1,0 +1,92 @@
+{
+  "common": {
+    "loading": "Cargando…",
+    "dashboard": "Panel",
+    "tools": "Herramientas",
+    "settings": "Configuración",
+    "signOut": "Cerrar sesión ({{email}})"
+  },
+  "login": {
+    "titleSignin": "Iniciar sesión",
+    "titleSignup": "Registrarse",
+    "emailPlaceholder": "Correo electrónico",
+    "passwordPlaceholder": "Contraseña",
+    "submitSignin": "Iniciar sesión",
+    "submitSignup": "Registrarse",
+    "toggleToSignup": "¿No tienes una cuenta? Regístrate",
+    "toggleToSignin": "¿Ya tienes una cuenta? Inicia sesión"
+  },
+  "dashboard": {
+    "title": "Campañas",
+    "refresh": "Actualizar",
+    "empty": "Todavía no hay campañas — crea una arriba para empezar.",
+    "createTitle": "Crear una nueva campaña",
+    "ideaPlaceholder": "Idea de campaña",
+    "languageLabel": "Idioma de destino",
+    "createSubmit": "Crear campaña",
+    "creating": "Creando…",
+    "feasibility": "viabilidad"
+  },
+  "campaignDetail": {
+    "backLink": "← Todas las campañas",
+    "metricsLink": "Ver métricas →",
+    "stopButton": "Detener campaña",
+    "stopping": "Deteniendo…",
+    "roundOf": "ronda {{current}} de {{max}}",
+    "round": "ronda {{current}}",
+    "feasibilityTitle": "Viabilidad",
+    "score": "Puntuación:",
+    "personasTitle": "Personas",
+    "primaryBadge": "PRINCIPAL",
+    "makePrimary": "Hacer principal",
+    "channelAngle": "Canal: {{channel}} · Ángulo: {{angle}}",
+    "roundsTitle": "Rondas",
+    "roundHeader": "Ronda {{round}} · intento de preflight {{attempt}}",
+    "imageLabel": "Imagen: {{prompt}}",
+    "preflightLabel": "Preflight: {{score}}/100",
+    "summaryTitle": "Resumen de la campaña",
+    "gateTitle": "Se necesita decisión en la puerta {{number}}",
+    "commentPlaceholder": "Comentario opcional…",
+    "approve": "Aprobar",
+    "approveEdits": "Aprobar con cambios",
+    "reject": "Rechazar",
+    "editHint": "\"Aprobar con cambios\": cambia algo arriba primero (p. ej. establece una persona principal diferente), luego haz clic aquí para registrar la decisión como una edición."
+  },
+  "metrics": {
+    "backLink": "← Volver a la campaña",
+    "title": "Métricas — {{idea}}",
+    "subtitle": "Tendencia de recompensa en todas las rondas, desglose por canal, y qué variante creativa se usó.",
+    "rewardTrendTitle": "Tendencia de recompensa",
+    "noMetrics": "Aún no se han recopilado métricas.",
+    "perRoundTitle": "Detalle por ronda",
+    "round": "Ronda {{round}}",
+    "arm": "variante: {{style}} / {{tone}} (#{{index}})",
+    "noRoundMetrics": "Aún no se han recopilado métricas para esta ronda.",
+    "channel": "Canal",
+    "rawMetrics": "Métricas sin procesar",
+    "reward": "Recompensa"
+  },
+  "settings": {
+    "title": "Configuración — Usa tu propia clave",
+    "subtitle": "Conecta tu propia clave de API paga por capacidad para obtener calidad de nivel pago sin suscripción. Las claves se cifran del lado del servidor; aquí solo se muestran los últimos 4 caracteres.",
+    "notSet": "no configurada",
+    "keyPlaceholder": "sk-...",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "templatesTitle": "Plantillas (opcional, por campaña)",
+    "templatesSubtitle": "Si se configura, una campaña puede construirse sobre tu propia imagen publicitaria o plantilla de correo en lugar de una totalmente generada. El pipeline completo (viabilidad, personas, creatividad) se ejecuta de todos modos — tu plantilla es la base sobre la que se construye el resultado, no un reemplazo.",
+    "imageTemplateLabel": "Plantilla de imagen publicitaria",
+    "emailTemplateLabel": "Plantilla de correo",
+    "set": "configurada",
+    "emailTemplatePlaceholder": "Diseño HTML completo, con {{placeholder}} donde debe insertarse el texto publicitario generado…"
+  },
+  "tools": {
+    "title": "Herramientas — ejecuciones puntuales de capacidades",
+    "subtitle": "Ejecuta una sola capacidad vía GitHub Actions, independiente de cualquier campaña en curso.",
+    "imagePromptPlaceholder": "Instrucción de imagen",
+    "ideaPlaceholder": "Idea de campaña",
+    "run": "Ejecutar",
+    "dispatching": "Enviando…",
+    "status": "Estado: {{status}}"
+  }
+}

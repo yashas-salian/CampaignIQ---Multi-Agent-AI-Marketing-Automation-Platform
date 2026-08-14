@@ -12,7 +12,7 @@ from src.db.supabase_client import get_client
 def _run_feasibility(params: dict, user_id: str) -> dict:
     from src.capabilities.feasibility import score_feasibility
 
-    result = score_feasibility(params["idea"], user_id=user_id)
+    result = score_feasibility(params["idea"], user_id=user_id, target_language=params.get("target_language", "en"))
     return result.model_dump()
 
 
@@ -20,16 +20,24 @@ def _run_personas(params: dict, user_id: str) -> list[dict]:
     from src.capabilities.audience import generate_personas
     from src.capabilities.feasibility import score_feasibility
 
-    feasibility = score_feasibility(params["idea"], user_id=user_id)
-    personas = generate_personas(params["idea"], feasibility, n=params.get("n", 3), user_id=user_id)
+    target_language = params.get("target_language", "en")
+    feasibility = score_feasibility(params["idea"], user_id=user_id, target_language=target_language)
+    personas = generate_personas(
+        params["idea"], feasibility, n=params.get("n", 3), user_id=user_id, target_language=target_language
+    )
     return [p.model_dump() for p in personas]
 
 
 def _run_creative(params: dict, user_id: str) -> dict:
     from src.capabilities.creative import Persona, generate_creative
+    from src.constants import active_channels
 
-    persona = Persona(**params["persona"])
-    result = generate_creative(params["idea"], persona, user_id=user_id)
+    persona_params = {"age_bracket": "25-34", "income_tier": "mid", **params["persona"]}
+    persona = Persona(**persona_params)
+    result = generate_creative(
+        params["idea"], persona, domain_category=params.get("domain_category", "other"),
+        active_channels=active_channels(), user_id=user_id, target_language=params.get("target_language", "en"),
+    )
     return {
         "copy_text": result.copy_text,
         "image_prompt": result.image_prompt,

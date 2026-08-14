@@ -3,6 +3,8 @@ import os
 
 from pydantic import BaseModel
 
+from src.languages import language_name, newsapi_language, trends_hl
+from src.llm_json import generate_json
 from src.providers.registry import get_llm
 from src.tools.bluesky_client import search_bluesky
 from src.tools.mastodon_client import search_mastodon
@@ -30,32 +32,42 @@ class FeasibilityResult(BaseModel):
     signals: dict
 
 
-def _extract_search_keywords(idea: str, user_id: str | None) -> str:
-    response = get_llm(user_id).generate(
+def _extract_search_keywords(idea: str, user_id: str | None, target_language: str) -> str:
+    # Localizes the research-signal query so Trends/News/community search
+    # reflect the target market's language, not always English -- one LLM
+    # call produces both, since the English phrase is a useful anchor even
+    # when target_language != "en".
+    parsed = generate_json(
+        get_llm(user_id),
         f'Campaign idea: "{idea}"\n\n'
         "Extract a short 2-4 word search keyword phrase capturing the core product/topic — suitable "
-        "as a Google Trends / news search query, not a full sentence. Respond with ONLY the keyword "
-        "phrase itself: no quotes, no prose, no punctuation.",
-        system="You output only a short keyword phrase, nothing else.",
+        "as a Google Trends / news search query, not a full sentence. Respond with ONLY a JSON object, "
+        'no prose, with exactly two keys: "keywords_en" (the phrase in English) and "keywords_localized" '
+        f'(the same phrase translated into {language_name(target_language)}).',
+        system="You are a precise translator and keyword extractor. You output only valid JSON, never prose or markdown fences.",
     )
-    return response.strip().strip('"')
+    if target_language == "en":
+        return str(parsed["keywords_en"]).strip().strip('"')
+    return str(parsed["keywords_localized"]).strip().strip('"')
 
 
-def _safe_signal(fetch_fn, keyword: str, neutral: dict) -> dict:
+def _safe_signal(fetch_fn, keyword: str, neutral: dict, **kwargs) -> dict:
     # Free/public signal sources (Bluesky, Mastodon, NewsAPI, Reddit) can time
     # out or error transiently — degrade that one signal to neutral rather
     # than crashing the whole feasibility/campaign run over it.
     try:
-        return fetch_fn(keyword)
+        return fetch_fn(keyword, **kwargs)
     except Exception as exc:
         logger.warning("%s failed for %r: %s", getattr(fetch_fn, "__name__", fetch_fn), keyword, exc)
         return {**neutral, "keyword": keyword, "error": str(exc)}
 
 
-def score_feasibility(idea: str, *, user_id: str | None = None) -> FeasibilityResult:
-    keywords = _extract_search_keywords(idea, user_id)
-    trend = get_trend_interest(keywords)  # has its own internal retry + graceful fallback
-    news = _safe_signal(get_news_volume, keywords, {"total_results": 0, "headlines": []})
+def score_feasibility(idea: str, *, user_id: str | None = None, target_language: str = "en") -> FeasibilityResult:
+    keywords = _extract_search_keywords(idea, user_id, target_language)
+    trend = get_trend_interest(keywords, hl=trends_hl(target_language))  # has its own internal retry + graceful fallback
+    news = _safe_signal(
+        get_news_volume, keywords, {"total_results": 0, "headlines": []}, language=newsapi_language(target_language)
+    )
     bluesky = _safe_signal(search_bluesky, keywords, {"result_count": 0, "avg_score": 0.0, "avg_comments": 0.0})
 
     trend_score = trend["mean_interest"]
@@ -82,12 +94,28 @@ def score_feasibility(idea: str, *, user_id: str | None = None) -> FeasibilityRe
     community_score = sum(community_scores) / len(community_scores)
     composite = round(TREND_WEIGHT * trend_score + NEWS_WEIGHT * news_score + COMMUNITY_WEIGHT * community_score)
 
+    # Few-shot grounding only, not a scoring input -- keeps the composite
+    # formula above fully transparent/auditable regardless of retrieval.
+    similar_text = ""
+    if user_id:
+        # Lazy import: src.db.supabase_client imports capabilities.audience for
+        # the Persona type, and capabilities.audience imports this module for
+        # FeasibilityResult -- a module-level import of memory.py here (which
+        # itself imports supabase_client) would create a circular import.
+        from src.tools.memory import retrieve_similar
+
+        similar = retrieve_similar(user_id, "idea_persona", idea, k=3)
+        if similar:
+            examples = "\n".join(f"- {m['content_text']} (outcome reward: {m.get('outcome_reward')})" for m in similar)
+            similar_text = f"\nSimilar past campaigns from this user's own history:\n{examples}\n"
+
     rationale = get_llm(user_id).generate(
         f"An ad campaign idea is: \"{idea}\".\n"
         f"Research signals gathered: {signals}\n"
+        f"{similar_text}"
         f"The computed feasibility score (0-100) is {composite}.\n"
         "Write a 2-3 sentence rationale explaining what these signals suggest "
-        "about this campaign's real-world momentum and feasibility.",
+        f"about this campaign's real-world momentum and feasibility. Write it in {language_name(target_language)}.",
         system="You are a marketing analyst writing terse, evidence-grounded feasibility rationales.",
     )
 

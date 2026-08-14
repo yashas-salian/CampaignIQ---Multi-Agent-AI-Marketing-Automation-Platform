@@ -19,10 +19,14 @@ class CampaignState(TypedDict, total=False):
     cta_url: Optional[str]
     use_image_template: bool
     use_email_template: bool
+    target_language: str
     feasibility: FeasibilityResult
     personas: list[Persona]
     primary_persona: Persona
     creative: Creative
+    novelty_attempt: int
+    best_novel_creative: Creative
+    best_novelty_score: float
     preflight: PreflightResult
     preflight_attempt: int
     best_creative: Creative

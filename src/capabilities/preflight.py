@@ -2,6 +2,7 @@ from pydantic import BaseModel
 
 from src.capabilities.audience import Persona
 from src.capabilities.creative import Creative
+from src.languages import language_name
 from src.llm_json import generate_json
 from src.providers.registry import get_llm
 
@@ -14,7 +15,9 @@ class PreflightResult(BaseModel):
     panel_feedback: str
 
 
-def score_preflight(creative: Creative, personas: list[Persona], *, user_id: str | None = None) -> PreflightResult:
+def score_preflight(
+    creative: Creative, personas: list[Persona], *, user_id: str | None = None, target_language: str = "en"
+) -> PreflightResult:
     panel_text = "\n".join(f"- {p.name}: {p.demographics} | {p.psychographics}" for p in personas)
     parsed = generate_json(
         get_llm(user_id),
@@ -24,7 +27,7 @@ def score_preflight(creative: Creative, personas: list[Persona], *, user_id: str
         "Estimate an overall predicted engagement score (0-100, where 100 = extremely likely to "
         "engage/click/share, 0 = would ignore or dislike it). Respond with ONLY a JSON object, no "
         'prose, with exactly two keys: "predicted_engagement" (integer 0-100) and "panel_feedback" '
-        "(one or two sentences summarizing the panel's honest reaction).",
+        f"(one or two sentences summarizing the panel's honest reaction, written in {language_name(target_language)}).",
         system=(
             "You are a panel of skeptical target-audience consumers giving honest, critical ad "
             "feedback. You output only valid JSON, never prose or markdown fences."

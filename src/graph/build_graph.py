@@ -14,6 +14,7 @@ from src.graph.nodes.human_gate import gate_1_node, gate_2_node
 from src.graph.nodes.idea_intake import idea_intake_node
 from src.graph.nodes.metrics_collector import metrics_collector_node
 from src.graph.nodes.metrics_wait import metrics_wait_node
+from src.graph.nodes.novelty_check import novelty_check_node, route_after_novelty_check
 from src.graph.nodes.preflight import preflight_node, route_after_preflight
 from src.graph.state import CampaignState
 
@@ -41,6 +42,7 @@ def build_graph(checkpointer=None):
     graph.add_node("audience", audience_node)
     graph.add_node("gate_1", gate_1_node)
     graph.add_node("generate_creative", creative_node)
+    graph.add_node("novelty_check", novelty_check_node)
     graph.add_node("run_preflight", preflight_node)
     graph.add_node("gate_2", gate_2_node)
     graph.add_node("distribution_bluesky", distribution_bluesky_node)
@@ -56,7 +58,12 @@ def build_graph(checkpointer=None):
     graph.add_edge("score_feasibility", "audience")
     graph.add_edge("audience", "gate_1")
     graph.add_conditional_edges("gate_1", route_after_gate_1, {END: END, "generate_creative": "generate_creative"})
-    graph.add_edge("generate_creative", "run_preflight")
+    graph.add_edge("generate_creative", "novelty_check")
+    graph.add_conditional_edges(
+        "novelty_check",
+        route_after_novelty_check,
+        {"run_preflight": "run_preflight", "generate_creative": "generate_creative"},
+    )
     graph.add_conditional_edges(
         "run_preflight",
         route_after_preflight,

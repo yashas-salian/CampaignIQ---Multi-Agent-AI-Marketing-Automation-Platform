@@ -1,0 +1,92 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "dashboard": "Dashboard",
+    "tools": "Tools",
+    "settings": "Settings",
+    "signOut": "Sign out ({{email}})"
+  },
+  "login": {
+    "titleSignin": "Log in",
+    "titleSignup": "Sign up",
+    "emailPlaceholder": "Email",
+    "passwordPlaceholder": "Password",
+    "submitSignin": "Log in",
+    "submitSignup": "Sign up",
+    "toggleToSignup": "Don't have an account? Sign up",
+    "toggleToSignin": "Already have an account? Log in"
+  },
+  "dashboard": {
+    "title": "Campaigns",
+    "refresh": "Refresh",
+    "empty": "No campaigns yet — create one above to get started.",
+    "createTitle": "Create a new campaign",
+    "ideaPlaceholder": "Campaign idea",
+    "languageLabel": "Target language",
+    "createSubmit": "Create campaign",
+    "creating": "Creating…",
+    "feasibility": "feasibility"
+  },
+  "campaignDetail": {
+    "backLink": "← All campaigns",
+    "metricsLink": "View metrics →",
+    "stopButton": "Stop campaign",
+    "stopping": "Stopping…",
+    "roundOf": "round {{current}} of {{max}}",
+    "round": "round {{current}}",
+    "feasibilityTitle": "Feasibility",
+    "score": "Score:",
+    "personasTitle": "Personas",
+    "primaryBadge": "PRIMARY",
+    "makePrimary": "Make primary",
+    "channelAngle": "Channel: {{channel}} · Angle: {{angle}}",
+    "roundsTitle": "Rounds",
+    "roundHeader": "Round {{round}} · preflight attempt {{attempt}}",
+    "imageLabel": "Image: {{prompt}}",
+    "preflightLabel": "Preflight: {{score}}/100",
+    "summaryTitle": "Campaign summary",
+    "gateTitle": "Gate {{number}} decision needed",
+    "commentPlaceholder": "Optional comment…",
+    "approve": "Approve",
+    "approveEdits": "Approve with edits",
+    "reject": "Reject",
+    "editHint": "\"Approve with edits\": change something above first (e.g. set a different primary persona), then click this to record the decision as an edit."
+  },
+  "metrics": {
+    "backLink": "← Back to campaign",
+    "title": "Metrics — {{idea}}",
+    "subtitle": "Reward trend across all rounds, per-channel breakdown, and which creative arm was used.",
+    "rewardTrendTitle": "Reward trend",
+    "noMetrics": "No metrics collected yet.",
+    "perRoundTitle": "Per-round detail",
+    "round": "Round {{round}}",
+    "arm": "arm: {{style}} / {{tone}} (#{{index}})",
+    "noRoundMetrics": "No metrics collected for this round yet.",
+    "channel": "Channel",
+    "rawMetrics": "Raw metrics",
+    "reward": "Reward"
+  },
+  "settings": {
+    "title": "Settings — Bring Your Own Key",
+    "subtitle": "Plug in your own paid API key per capability to get paid-tier quality without a subscription. Keys are encrypted server-side; only the last 4 characters are ever shown here.",
+    "notSet": "not set",
+    "keyPlaceholder": "sk-...",
+    "save": "Save",
+    "saving": "Saving…",
+    "templatesTitle": "Templates (optional, opt-in per campaign)",
+    "templatesSubtitle": "If set, a campaign can choose to build on top of your own ad image or email layout instead of a fully generated one. The full pipeline (feasibility, personas, creative) still runs either way — your template is the foundation the result is built around, not a replacement for it.",
+    "imageTemplateLabel": "Ad image template",
+    "emailTemplateLabel": "Email template",
+    "set": "set",
+    "emailTemplatePlaceholder": "Full HTML layout, with {{placeholder}} where the generated ad copy should be inserted…"
+  },
+  "tools": {
+    "title": "Tools — one-off capability runs",
+    "subtitle": "Runs a single capability via GitHub Actions, independent of any campaign in progress.",
+    "imagePromptPlaceholder": "Image prompt",
+    "ideaPlaceholder": "Campaign idea",
+    "run": "Run",
+    "dispatching": "Dispatching…",
+    "status": "Status: {{status}}"
+  }
+}

@@ -7,7 +7,10 @@ MAX_PREFLIGHT_ATTEMPTS = 3
 
 def preflight_node(state: CampaignState) -> CampaignState:
     creative = state["creative"]
-    result = score_preflight(creative, [state["primary_persona"]], user_id=state.get("user_id"))
+    result = score_preflight(
+        creative, [state["primary_persona"]], user_id=state.get("user_id"),
+        target_language=state.get("target_language", "en"),
+    )
     attempt = state.get("preflight_attempt", 0) + 1
 
     best_creative = state.get("best_creative")
@@ -24,6 +27,9 @@ def preflight_node(state: CampaignState) -> CampaignState:
         preflight_score=best_preflight.predicted_engagement,
         preflight_passed=best_preflight.passed,
         preflight_attempt=attempt,
+        image_style=best_creative.image_style,
+        copy_tone=best_creative.copy_tone,
+        arm_index=best_creative.arm_index,
     )
 
     return {

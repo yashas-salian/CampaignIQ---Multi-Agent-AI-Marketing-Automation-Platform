@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabaseClient'
 
 const CAPABILITIES = ['feasibility', 'personas', 'image'] as const
 type Capability = (typeof CAPABILITIES)[number]
 
 export default function Tools() {
+  const { t } = useTranslation()
   const [capability, setCapability] = useState<Capability>('feasibility')
   const [idea, setIdea] = useState('')
   const [prompt, setPrompt] = useState('')
@@ -56,10 +58,8 @@ export default function Tools() {
 
   return (
     <div className="max-w-2xl mx-auto p-8 space-y-6">
-      <h1 className="text-2xl font-semibold">Tools — one-off capability runs</h1>
-      <p className="text-sm text-gray-500">
-        Runs a single capability via GitHub Actions, independent of any campaign in progress.
-      </p>
+      <h1 className="text-2xl font-semibold">{t('tools.title')}</h1>
+      <p className="text-sm text-gray-500">{t('tools.subtitle')}</p>
 
       <div className="space-y-3">
         <select
@@ -76,14 +76,14 @@ export default function Tools() {
 
         {capability === 'image' ? (
           <input
-            placeholder="Image prompt"
+            placeholder={t('tools.imagePromptPlaceholder')}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             className="w-full border rounded-lg p-2 text-sm"
           />
         ) : (
           <input
-            placeholder="Campaign idea"
+            placeholder={t('tools.ideaPlaceholder')}
             value={idea}
             onChange={(e) => setIdea(e.target.value)}
             className="w-full border rounded-lg p-2 text-sm"
@@ -95,11 +95,11 @@ export default function Tools() {
           disabled={submitting}
           className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm disabled:opacity-50"
         >
-          {submitting ? 'Dispatching…' : 'Run'}
+          {submitting ? t('tools.dispatching') : t('tools.run')}
         </button>
       </div>
 
-      {status && <p className="text-sm text-gray-600">Status: {status}</p>}
+      {status && <p className="text-sm text-gray-600">{t('tools.status', { status })}</p>}
       {result !== null && (
         <pre className="text-xs bg-gray-50 border rounded-lg p-3 overflow-auto">{JSON.stringify(result, null, 2)}</pre>
       )}

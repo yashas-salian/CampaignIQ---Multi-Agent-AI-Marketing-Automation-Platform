@@ -9,15 +9,15 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
     wait=wait_exponential(multiplier=3, min=3, max=15),
     reraise=True,
 )
-def _fetch_interest_over_time(keyword: str):
-    pytrends = TrendReq(hl="en-US", tz=360)
+def _fetch_interest_over_time(keyword: str, hl: str = "en-US"):
+    pytrends = TrendReq(hl=hl, tz=360)
     pytrends.build_payload([keyword], timeframe="today 3-m")
     return pytrends.interest_over_time()
 
 
-def get_trend_interest(keyword: str) -> dict:
+def get_trend_interest(keyword: str, *, hl: str = "en-US") -> dict:
     try:
-        df = _fetch_interest_over_time(keyword)
+        df = _fetch_interest_over_time(keyword, hl=hl)
     except TooManyRequestsError:
         # Google Trends' unofficial API rate-limits hard under repeated use
         # (e.g. the eval harness running many ideas back-to-back). Degrade to

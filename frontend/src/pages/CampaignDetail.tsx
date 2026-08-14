@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import type { Campaign, GateDecision, Iteration, Persona } from '../lib/types'
@@ -9,6 +10,7 @@ const GATE_NUMBER_BY_STATUS: Partial<Record<string, 1 | 2>> = {
 }
 
 export default function CampaignDetail() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [personas, setPersonas] = useState<Persona[]>([])
@@ -89,23 +91,29 @@ export default function CampaignDetail() {
     await load()
   }
 
-  if (!campaign) return <p className="p-8 text-gray-500">Loading…</p>
+  if (!campaign) return <p className="p-8 text-gray-500">{t('common.loading')}</p>
 
   const isActive = !['completed', 'rejected'].includes(campaign.status)
 
   return (
     <div className="max-w-3xl mx-auto p-8 space-y-8">
-      <Link to="/" className="text-sm text-gray-500 hover:underline">
-        &larr; All campaigns
-      </Link>
+      <div className="flex justify-between items-center">
+        <Link to="/" className="text-sm text-gray-500 hover:underline">
+          {t('campaignDetail.backLink')}
+        </Link>
+        <Link to={`/campaigns/${id}/metrics`} className="text-sm text-purple-600 hover:underline">
+          {t('campaignDetail.metricsLink')}
+        </Link>
+      </div>
 
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl font-semibold">{campaign.idea}</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {campaign.domain_category} · status <span className="font-mono">{campaign.status}</span> · round{' '}
-            {campaign.current_round}
-            {campaign.max_rounds ? ` of ${campaign.max_rounds}` : ''}
+            {campaign.domain_category} · status <span className="font-mono">{campaign.status}</span> ·{' '}
+            {campaign.max_rounds
+              ? t('campaignDetail.roundOf', { current: campaign.current_round, max: campaign.max_rounds })
+              : t('campaignDetail.round', { current: campaign.current_round })}
           </p>
         </div>
         {isActive && (
@@ -114,21 +122,21 @@ export default function CampaignDetail() {
             disabled={stopping || campaign.stop_requested}
             className="px-3 py-1.5 rounded-lg border border-red-300 text-red-600 text-sm disabled:opacity-50"
           >
-            {campaign.stop_requested ? 'Stopping…' : stopping ? 'Stopping…' : 'Stop campaign'}
+            {campaign.stop_requested || stopping ? t('campaignDetail.stopping') : t('campaignDetail.stopButton')}
           </button>
         )}
       </div>
 
       <section>
-        <h2 className="text-lg font-medium mb-2">Feasibility</h2>
+        <h2 className="text-lg font-medium mb-2">{t('campaignDetail.feasibilityTitle')}</h2>
         <p className="text-sm">
-          Score: <strong>{campaign.feasibility_score ?? '—'}</strong>
+          {t('campaignDetail.score')} <strong>{campaign.feasibility_score ?? '—'}</strong>
         </p>
         <p className="text-sm text-gray-600 mt-1">{campaign.feasibility_rationale}</p>
       </section>
 
       <section>
-        <h2 className="text-lg font-medium mb-2">Personas</h2>
+        <h2 className="text-lg font-medium mb-2">{t('campaignDetail.personasTitle')}</h2>
         <ul className="space-y-2">
           {personas.map((p) => (
             <li
@@ -138,11 +146,11 @@ export default function CampaignDetail() {
               <div className="flex justify-between items-center">
                 <span className="font-medium">
                   {p.name}
-                  {p.is_primary && <span className="ml-2 text-xs text-purple-600">PRIMARY</span>}
+                  {p.is_primary && <span className="ml-2 text-xs text-purple-600">{t('campaignDetail.primaryBadge')}</span>}
                 </span>
                 {!p.is_primary && (
                   <button onClick={() => setPrimaryPersona(p.id)} className="text-xs text-purple-600 hover:underline">
-                    Make primary
+                    {t('campaignDetail.makePrimary')}
                   </button>
                 )}
               </div>
@@ -150,7 +158,7 @@ export default function CampaignDetail() {
                 {p.demographics} · {p.psychographics}
               </p>
               <p className="text-sm text-gray-600">
-                Channel: {p.channel_fit} · Angle: {p.messaging_angle}
+                {t('campaignDetail.channelAngle', { channel: p.channel_fit, angle: p.messaging_angle })}
               </p>
             </li>
           ))}
@@ -159,16 +167,16 @@ export default function CampaignDetail() {
 
       {iterations.length > 0 && (
         <section>
-          <h2 className="text-lg font-medium mb-2">Rounds</h2>
+          <h2 className="text-lg font-medium mb-2">{t('campaignDetail.roundsTitle')}</h2>
           {iterations.map((it) => (
             <div key={it.id} className="border rounded-lg p-3 mb-2">
               <p className="text-sm text-gray-500">
-                Round {it.round_number} · preflight attempt {it.preflight_attempt}
+                {t('campaignDetail.roundHeader', { round: it.round_number, attempt: it.preflight_attempt })}
               </p>
               <p className="mt-1">{it.copy_text}</p>
-              <p className="text-sm text-gray-600 mt-1">Image: {it.image_prompt}</p>
+              <p className="text-sm text-gray-600 mt-1">{t('campaignDetail.imageLabel', { prompt: it.image_prompt })}</p>
               <p className="text-sm mt-1">
-                Preflight: {it.preflight_score ?? '—'}/100 {it.preflight_passed ? '✅' : '❌'}
+                {t('campaignDetail.preflightLabel', { score: it.preflight_score ?? '—' })} {it.preflight_passed ? '✅' : '❌'}
               </p>
               {(it.bluesky_post_uri || it.reddit_post_url || it.email_id) && (
                 <div className="text-sm text-gray-600 mt-1 space-x-3">
@@ -184,7 +192,7 @@ export default function CampaignDetail() {
 
       {campaign.status === 'completed' && campaign.campaign_summary && (
         <section className="border-t pt-6">
-          <h2 className="text-lg font-medium mb-2">Campaign summary</h2>
+          <h2 className="text-lg font-medium mb-2">{t('campaignDetail.summaryTitle')}</h2>
           <pre className="text-xs bg-gray-50 border rounded-lg p-3 overflow-auto">
             {JSON.stringify(campaign.campaign_summary, null, 2)}
           </pre>
@@ -193,10 +201,10 @@ export default function CampaignDetail() {
 
       {pendingGate && !pendingGate.decided_at && (
         <section className="border-t pt-6">
-          <h2 className="text-lg font-medium mb-2">Gate {pendingGate.gate_number} decision needed</h2>
+          <h2 className="text-lg font-medium mb-2">{t('campaignDetail.gateTitle', { number: pendingGate.gate_number })}</h2>
           <textarea
             className="w-full border rounded-lg p-2 text-sm"
-            placeholder="Optional comment…"
+            placeholder={t('campaignDetail.commentPlaceholder')}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
           />
@@ -206,27 +214,24 @@ export default function CampaignDetail() {
               onClick={() => submitDecision('approve')}
               className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm disabled:opacity-50"
             >
-              Approve
+              {t('campaignDetail.approve')}
             </button>
             <button
               disabled={submitting}
               onClick={() => submitDecision('edit')}
               className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm disabled:opacity-50"
             >
-              Approve with edits
+              {t('campaignDetail.approveEdits')}
             </button>
             <button
               disabled={submitting}
               onClick={() => submitDecision('reject')}
               className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm disabled:opacity-50"
             >
-              Reject
+              {t('campaignDetail.reject')}
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            "Approve with edits": change something above first (e.g. set a different primary persona),
-            then click this to record the decision as an edit.
-          </p>
+          <p className="text-xs text-gray-500 mt-2">{t('campaignDetail.editHint')}</p>
         </section>
       )}
     </div>

@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
 from src.capabilities.metrics import MetricsResult
+from src.languages import language_name
 from src.llm_json import generate_json
 from src.providers.registry import get_llm
 
@@ -19,6 +20,7 @@ def run_feedback_correction(
     *,
     stakeholder_comment: str | None = None,
     user_id: str | None = None,
+    target_language: str = "en",
 ) -> RevisionDirective:
     if current_round >= max_rounds:
         return RevisionDirective(
@@ -37,7 +39,8 @@ def run_feedback_correction(
         "be adjusted (tone, image style, channel emphasis, etc.) for the next round's creative. "
         "Respond with ONLY a JSON object, no prose, with exactly three keys: "
         '"continue_campaign" (boolean), "reasoning" (one sentence), "adjustments" (a short '
-        'directive to feed into the next round\'s creative generation, empty string if not continuing).',
+        "directive to feed into the next round's creative generation, empty string if not continuing). "
+        f"Write \"reasoning\" and \"adjustments\" in {language_name(target_language)}.",
         system="You are a marketing performance analyst deciding whether a campaign is working. "
         "You output only valid JSON, never prose or markdown fences.",
     )

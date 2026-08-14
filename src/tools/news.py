@@ -5,7 +5,7 @@ import requests
 NEWSAPI_URL = "https://newsapi.org/v2/everything"
 
 
-def get_news_volume(keyword: str, *, page_size: int = 20) -> dict:
+def get_news_volume(keyword: str, *, page_size: int = 20, language: str = "en") -> dict:
     api_key = os.environ["NEWSAPI_KEY"]
     response = requests.get(
         NEWSAPI_URL,
@@ -13,7 +13,7 @@ def get_news_volume(keyword: str, *, page_size: int = 20) -> dict:
             "q": keyword,
             "pageSize": page_size,
             "sortBy": "relevancy",
-            "language": "en",
+            "language": language,
             "apiKey": api_key,
         },
         timeout=30,

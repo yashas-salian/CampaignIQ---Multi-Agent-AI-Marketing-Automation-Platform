@@ -15,3 +15,10 @@ def max_rounds_for_tier(is_subscribed_or_byok: bool) -> int:
 
 def max_duration_minutes_for(max_rounds: int) -> int:
     return round(max_rounds * METRICS_WAIT_HOURS * 60 * DURATION_BUFFER_FACTOR)
+
+
+def active_channels() -> list[str]:
+    channels = ["bluesky", "email"]
+    if os.environ.get("ENABLE_REDDIT", "false").lower() == "true":
+        channels.append("reddit")
+    return channels

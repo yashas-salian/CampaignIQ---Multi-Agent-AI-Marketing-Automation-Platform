@@ -13,6 +13,23 @@ on:
         description: "Resume just this one campaign immediately (leave blank to sweep all)"
         required: false
         type: string
+      idea:
+        description: "Create a brand-new campaign with this idea instead of resuming (requires user_id too)"
+        required: false
+        type: string
+      user_id:
+        description: "Owning user's Supabase Auth id -- required when idea is set"
+        required: false
+        type: string
+      target_language:
+        description: "Target language code for a new campaign (see src/languages.py)"
+        required: false
+        type: string
+        default: "en"
+      email_to:
+        description: "Comma-separated recipient list for a new campaign (blank uses RESEND_TEST_TO_EMAIL)"
+        required: false
+        type: string
 
 jobs:
   run:
@@ -25,7 +42,12 @@ jobs:
       - run: pip install -e .
       - name: Run iteration
         run: |
-          if [ -n "${{ inputs.campaign_id }}" ]; then
+          if [ -n "${{ inputs.idea }}" ]; then
+            python -m src.graph.run_campaign "${{ inputs.idea }}" \
+              --user-id "${{ inputs.user_id }}" \
+              --target-language "${{ inputs.target_language || 'en' }}" \
+              --email-to "${{ inputs.email_to }}"
+          elif [ -n "${{ inputs.campaign_id }}" ]; then
             python -m src.scheduler.run_iteration --campaign-id "${{ inputs.campaign_id }}"
           else
             python -m src.scheduler.run_iteration

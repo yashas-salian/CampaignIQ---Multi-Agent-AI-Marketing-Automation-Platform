@@ -1,0 +1,92 @@
+{
+  "common": {
+    "loading": "Chargement…",
+    "dashboard": "Tableau de bord",
+    "tools": "Outils",
+    "settings": "Paramètres",
+    "signOut": "Se déconnecter ({{email}})"
+  },
+  "login": {
+    "titleSignin": "Connexion",
+    "titleSignup": "S'inscrire",
+    "emailPlaceholder": "E-mail",
+    "passwordPlaceholder": "Mot de passe",
+    "submitSignin": "Connexion",
+    "submitSignup": "S'inscrire",
+    "toggleToSignup": "Pas de compte ? Inscrivez-vous",
+    "toggleToSignin": "Déjà un compte ? Connectez-vous"
+  },
+  "dashboard": {
+    "title": "Campagnes",
+    "refresh": "Actualiser",
+    "empty": "Aucune campagne pour l'instant — créez-en une ci-dessus pour commencer.",
+    "createTitle": "Créer une nouvelle campagne",
+    "ideaPlaceholder": "Idée de campagne",
+    "languageLabel": "Langue cible",
+    "createSubmit": "Créer la campagne",
+    "creating": "Création…",
+    "feasibility": "faisabilité"
+  },
+  "campaignDetail": {
+    "backLink": "← Toutes les campagnes",
+    "metricsLink": "Voir les métriques →",
+    "stopButton": "Arrêter la campagne",
+    "stopping": "Arrêt en cours…",
+    "roundOf": "tour {{current}} sur {{max}}",
+    "round": "tour {{current}}",
+    "feasibilityTitle": "Faisabilité",
+    "score": "Score :",
+    "personasTitle": "Personas",
+    "primaryBadge": "PRINCIPAL",
+    "makePrimary": "Définir comme principal",
+    "channelAngle": "Canal : {{channel}} · Angle : {{angle}}",
+    "roundsTitle": "Tours",
+    "roundHeader": "Tour {{round}} · tentative de préflight {{attempt}}",
+    "imageLabel": "Image : {{prompt}}",
+    "preflightLabel": "Préflight : {{score}}/100",
+    "summaryTitle": "Résumé de la campagne",
+    "gateTitle": "Décision requise à la porte {{number}}",
+    "commentPlaceholder": "Commentaire facultatif…",
+    "approve": "Approuver",
+    "approveEdits": "Approuver avec modifications",
+    "reject": "Rejeter",
+    "editHint": "« Approuver avec modifications » : modifiez d'abord quelque chose ci-dessus (par ex. définissez un autre persona principal), puis cliquez ici pour enregistrer la décision comme une modification."
+  },
+  "metrics": {
+    "backLink": "← Retour à la campagne",
+    "title": "Métriques — {{idea}}",
+    "subtitle": "Tendance de la récompense sur tous les tours, répartition par canal, et quelle variante créative a été utilisée.",
+    "rewardTrendTitle": "Tendance de la récompense",
+    "noMetrics": "Aucune métrique collectée pour le moment.",
+    "perRoundTitle": "Détail par tour",
+    "round": "Tour {{round}}",
+    "arm": "variante : {{style}} / {{tone}} (#{{index}})",
+    "noRoundMetrics": "Aucune métrique collectée pour ce tour pour le moment.",
+    "channel": "Canal",
+    "rawMetrics": "Métriques brutes",
+    "reward": "Récompense"
+  },
+  "settings": {
+    "title": "Paramètres — Utilisez votre propre clé",
+    "subtitle": "Connectez votre propre clé API payante par capacité pour obtenir une qualité de niveau payant sans abonnement. Les clés sont chiffrées côté serveur ; seuls les 4 derniers caractères sont jamais affichés ici.",
+    "notSet": "non définie",
+    "keyPlaceholder": "sk-...",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "templatesTitle": "Modèles (facultatif, par campagne)",
+    "templatesSubtitle": "Si défini, une campagne peut choisir de s'appuyer sur votre propre image publicitaire ou modèle d'e-mail plutôt qu'un contenu entièrement généré. Le pipeline complet (faisabilité, personas, créativité) s'exécute quand même — votre modèle est la base sur laquelle le résultat est construit, pas un remplacement.",
+    "imageTemplateLabel": "Modèle d'image publicitaire",
+    "emailTemplateLabel": "Modèle d'e-mail",
+    "set": "défini",
+    "emailTemplatePlaceholder": "Mise en page HTML complète, avec {{placeholder}} à l'endroit où insérer le texte publicitaire généré…"
+  },
+  "tools": {
+    "title": "Outils — exécutions ponctuelles de capacités",
+    "subtitle": "Exécute une seule capacité via GitHub Actions, indépendamment de toute campagne en cours.",
+    "imagePromptPlaceholder": "Prompt d'image",
+    "ideaPlaceholder": "Idée de campagne",
+    "run": "Exécuter",
+    "dispatching": "Envoi…",
+    "status": "Statut : {{status}}"
+  }
+}
