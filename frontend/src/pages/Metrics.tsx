@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import styles from '../styles/shell.module.css'
 import type { Campaign, Iteration, Metric } from '../lib/types'
 
 const CHART_WIDTH = 600
@@ -10,7 +11,7 @@ const CHART_PADDING = 24
 
 function RewardTrendChart({ points }: { points: { round: number; reward: number }[] }) {
   const { t } = useTranslation()
-  if (points.length === 0) return <p className="text-sm text-gray-500">{t('metrics.noMetrics')}</p>
+  if (points.length === 0) return <p className={`text-sm ${styles.muted}`}>{t('metrics.noMetrics')}</p>
 
   const innerWidth = CHART_WIDTH - CHART_PADDING * 2
   const innerHeight = CHART_HEIGHT - CHART_PADDING * 2
@@ -30,15 +31,20 @@ function RewardTrendChart({ points }: { points: { round: number; reward: number 
         y1={CHART_HEIGHT - CHART_PADDING}
         x2={CHART_WIDTH - CHART_PADDING}
         y2={CHART_HEIGHT - CHART_PADDING}
-        stroke="currentColor"
-        className="text-gray-300"
+        stroke="var(--mos-surface-border)"
       />
-      <line x1={CHART_PADDING} y1={CHART_PADDING} x2={CHART_PADDING} y2={CHART_HEIGHT - CHART_PADDING} stroke="currentColor" className="text-gray-300" />
-      <path d={path} fill="none" stroke="currentColor" className="text-purple-600" strokeWidth={2} />
+      <line
+        x1={CHART_PADDING}
+        y1={CHART_PADDING}
+        x2={CHART_PADDING}
+        y2={CHART_HEIGHT - CHART_PADDING}
+        stroke="var(--mos-surface-border)"
+      />
+      <path d={path} fill="none" stroke="var(--mos-accent)" strokeWidth={2} />
       {coords.map((c) => (
         <g key={c.round}>
-          <circle cx={c.x} cy={c.y} r={3} className="fill-purple-600" />
-          <text x={c.x} y={CHART_HEIGHT - 6} textAnchor="middle" className="fill-gray-500 text-[10px]">
+          <circle cx={c.x} cy={c.y} r={3} fill="var(--mos-accent)" />
+          <text x={c.x} y={CHART_HEIGHT - 6} textAnchor="middle" fill="var(--mos-text-muted)" fontSize={10}>
             R{c.round}
           </text>
         </g>
@@ -69,7 +75,7 @@ export default function Metrics() {
     load()
   }, [id])
 
-  if (!campaign) return <p className="p-8 text-gray-500">{t('common.loading')}</p>
+  if (!campaign) return <p className={`p-8 ${styles.muted}`}>{t('common.loading')}</p>
 
   const rounds = iterations.map((it) => it.round_number)
   const trend = rounds.map((round) => {
@@ -79,14 +85,14 @@ export default function Metrics() {
   })
 
   return (
-    <div className="max-w-3xl mx-auto p-8 space-y-8">
-      <Link to={`/campaigns/${id}`} className="text-sm text-gray-500 hover:underline">
+    <div className={`max-w-3xl mx-auto p-8 space-y-8 ${styles.shell}`}>
+      <Link to={`/campaigns/${id}`} className={`text-sm ${styles.muted} hover:underline`}>
         {t('metrics.backLink')}
       </Link>
 
       <div>
-        <h1 className="text-2xl font-semibold">{t('metrics.title', { idea: campaign.idea })}</h1>
-        <p className="text-sm text-gray-500 mt-1">{t('metrics.subtitle')}</p>
+        <h1 className="text-2xl">{t('metrics.title', { idea: campaign.idea })}</h1>
+        <p className={`text-sm ${styles.muted} mt-1`}>{t('metrics.subtitle')}</p>
       </div>
 
       <section>
@@ -99,29 +105,29 @@ export default function Metrics() {
         {iterations.map((it) => {
           const roundMetrics = metrics.filter((m) => m.round_number === it.round_number)
           return (
-            <div key={it.id} className="border rounded-lg p-4">
+            <div key={it.id} className={`${styles.card} p-4`}>
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">{t('metrics.round', { round: it.round_number })}</span>
-                <span className="text-xs text-gray-500 font-mono">
+                <span className={`text-xs ${styles.muted} ${styles.mono}`}>
                   {t('metrics.arm', { style: it.image_style ?? '—', tone: it.copy_tone ?? '—', index: it.arm_index ?? '—' })}
                 </span>
               </div>
               {roundMetrics.length === 0 ? (
-                <p className="text-sm text-gray-500">{t('metrics.noRoundMetrics')}</p>
+                <p className={`text-sm ${styles.muted}`}>{t('metrics.noRoundMetrics')}</p>
               ) : (
-                <table className="w-full text-sm">
+                <table className={`${styles.table} text-sm`}>
                   <thead>
-                    <tr className="text-left text-gray-500">
-                      <th className="pr-4 font-normal">{t('metrics.channel')}</th>
-                      <th className="pr-4 font-normal">{t('metrics.rawMetrics')}</th>
-                      <th className="font-normal">{t('metrics.reward')}</th>
+                    <tr>
+                      <th className="pr-4 pb-1">{t('metrics.channel')}</th>
+                      <th className="pr-4 pb-1">{t('metrics.rawMetrics')}</th>
+                      <th className="pb-1">{t('metrics.reward')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {roundMetrics.map((m) => (
-                      <tr key={m.id} className="border-t">
+                      <tr key={m.id}>
                         <td className="pr-4 py-1 capitalize">{m.channel}</td>
-                        <td className="pr-4 py-1 font-mono text-xs">
+                        <td className={`pr-4 py-1 text-xs ${styles.mono}`}>
                           {Object.entries(m.raw_metrics)
                             .map(([k, v]) => `${k}=${v}`)
                             .join(', ')}

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { CAMPAIGN_LANGUAGES } from '../lib/languages'
 import { supabase } from '../lib/supabaseClient'
+import styles from '../styles/shell.module.css'
 import type { Campaign } from '../lib/types'
 
 export default function Dashboard() {
@@ -45,29 +46,29 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-8">
+    <div className={`max-w-3xl mx-auto p-8 ${styles.shell}`}>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">{t('dashboard.title')}</h1>
-        <button onClick={load} className="text-sm text-gray-500 hover:underline">
+        <h1 className="text-2xl">{t('dashboard.title')}</h1>
+        <button onClick={load} className={`text-sm ${styles.muted} hover:underline`}>
           {t('dashboard.refresh')}
         </button>
       </div>
 
-      <div className="border rounded-lg p-4 mb-6 space-y-3">
+      <div className={`${styles.card} p-4 mb-6 space-y-3`}>
         <h2 className="font-medium">{t('dashboard.createTitle')}</h2>
         <textarea
           placeholder={t('dashboard.ideaPlaceholder')}
           value={idea}
           onChange={(e) => setIdea(e.target.value)}
           rows={2}
-          className="w-full border rounded-lg p-2 text-sm"
+          className={styles.textarea}
         />
         <div className="flex gap-2 items-center">
-          <label className="text-sm text-gray-500">{t('dashboard.languageLabel')}</label>
+          <label className={`text-sm ${styles.muted}`}>{t('dashboard.languageLabel')}</label>
           <select
             value={targetLanguage}
             onChange={(e) => setTargetLanguage(e.target.value)}
-            className="border rounded-lg p-1.5 text-sm"
+            className={`${styles.select} text-sm`}
           >
             {CAMPAIGN_LANGUAGES.map((l) => (
               <option key={l.code} value={l.code}>
@@ -78,27 +79,27 @@ export default function Dashboard() {
           <button
             onClick={createCampaign}
             disabled={creating || !idea.trim()}
-            className="ml-auto px-4 py-1.5 rounded-lg bg-purple-600 text-white text-sm disabled:opacity-50"
+            className={`ml-auto ${styles.btn} ${styles.btnPrimary}`}
           >
             {creating ? t('dashboard.creating') : t('dashboard.createSubmit')}
           </button>
         </div>
-        {createMessage && <p className="text-sm text-purple-600">{createMessage}</p>}
+        {createMessage && <p className="text-sm" style={{ color: 'var(--mos-accent)' }}>{createMessage}</p>}
       </div>
 
-      {loading && <p className="text-gray-500">{t('common.loading')}</p>}
+      {loading && <p className={styles.muted}>{t('common.loading')}</p>}
 
-      {!loading && campaigns.length === 0 && <p className="text-gray-500">{t('dashboard.empty')}</p>}
+      {!loading && campaigns.length === 0 && <p className={styles.muted}>{t('dashboard.empty')}</p>}
 
       <ul className="space-y-3">
         {campaigns.map((c) => (
-          <li key={c.id} className="border rounded-lg p-4 hover:bg-gray-50">
+          <li key={c.id} className={`${styles.card} ${styles.cardHover} p-4`}>
             <Link to={`/campaigns/${c.id}`} className="block">
               <div className="flex justify-between items-center">
                 <span className="font-medium">{c.idea}</span>
-                <span className="text-xs uppercase tracking-wide text-gray-500">{c.status}</span>
+                <span className={styles.badge}>{c.status}</span>
               </div>
-              <div className="text-sm text-gray-500 mt-1">
+              <div className={`text-sm ${styles.muted} mt-1`}>
                 {c.domain_category} · {t('dashboard.feasibility')} {c.feasibility_score ?? '—'}
               </div>
             </Link>

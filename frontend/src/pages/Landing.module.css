@@ -1,0 +1,245 @@
+/* Fonts and color tokens live globally in index.css so the rest of the app
+   (Dashboard, Settings, Tools, Metrics, CampaignDetail) shares the same
+   identity. Everything below is Landing-page-specific layout/motion,
+   still namespaced under .page as a matter of hygiene. */
+.page {
+  background: var(--mos-bg);
+  color: var(--mos-text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  /* clip, not hidden: hidden forces overflow-y to 'auto', which makes .page
+     a scroll container and breaks position:sticky for descendants (the
+     scrub section below relies on real sticky-to-viewport behavior). */
+  overflow-x: clip;
+  min-height: 100vh;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+.page h1, .page h2, .page h3 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; }
+.page p { margin: 0; }
+.page a { color: inherit; }
+.page button { font-family: inherit; cursor: pointer; border: none; background: none; padding: 0; color: inherit; }
+.page ::selection { background: var(--mos-accent); color: var(--mos-on-accent); }
+.page * { box-sizing: border-box; }
+
+.wrap { max-width: var(--mos-container); margin: 0 auto; padding: 0 32px; }
+@media (max-width: 640px) { .wrap { padding: 0 20px; } }
+
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--mos-accent);
+}
+.dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--mos-accent);
+  animation: pulse 2.2s ease-out infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--mos-accent) 55%, transparent); }
+  70% { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--mos-bg) 78%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--mos-text) 10%, transparent);
+}
+.navInner { display: flex; align-items: center; justify-content: space-between; height: 76px; }
+.logo { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 600; font-size: 20px; letter-spacing: -0.01em; text-decoration: none; }
+.logo svg { width: 26px; height: 26px; }
+.links { display: flex; gap: 32px; font-size: 14.5px; }
+.links a { text-decoration: none; color: var(--mos-text-muted); transition: color 0.2s; }
+.links a:hover { color: var(--mos-text); }
+.navRight { display: flex; align-items: center; gap: 14px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 22px; border-radius: 999px; border: 1px solid transparent;
+  font-size: 14.5px; font-weight: 600; text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.btn:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: 2px; }
+.btnPrimary { background: var(--mos-accent); color: var(--mos-on-accent); }
+.btnPrimary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--mos-accent) 70%, transparent); }
+.btnGhost { background: transparent; border-color: color-mix(in srgb, var(--mos-text) 25%, transparent); color: var(--mos-text); }
+.btnGhost:hover { border-color: color-mix(in srgb, var(--mos-text) 45%, transparent); }
+.themeToggle {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--mos-text) 20%, transparent);
+  display: flex; align-items: center; justify-content: center;
+}
+.themeToggle svg { width: 17px; height: 17px; }
+
+.hero { position: relative; padding: 200px 0 140px; overflow: hidden; }
+.heroGrid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center; }
+@media (max-width: 980px) { .heroGrid { grid-template-columns: 1fr; } }
+
+.heroCopy h1 { font-size: clamp(40px, 5.4vw, 68px); line-height: 1.04; letter-spacing: -0.015em; margin: 22px 0 26px; }
+.heroCopy h1 em { font-style: italic; color: var(--mos-accent); font-weight: 500; }
+.heroLine { display: block; will-change: transform; }
+.heroSub { font-size: 18px; line-height: 1.6; color: var(--mos-text-muted); max-width: 46ch; margin-bottom: 34px; }
+.heroCtas { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.linkCta { font-size: 14.5px; color: var(--mos-text-muted); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.linkCta:hover { color: var(--mos-text); }
+
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.7s cubic-bezier(.2,.7,.2,1), transform 0.7s cubic-bezier(.2,.7,.2,1); }
+.revealIn { opacity: 1; transform: translateY(0); }
+.reveal1 { transition-delay: 0.05s; } .reveal2 { transition-delay: 0.15s; } .reveal3 { transition-delay: 0.25s; } .reveal4 { transition-delay: 0.35s; }
+
+.mockStage { position: relative; height: 460px; }
+.mockCard {
+  position: absolute; width: 340px;
+  background: var(--mos-card-bg); color: var(--mos-card-text);
+  border-radius: 18px; padding: 22px 24px;
+  box-shadow: 0 30px 60px -20px rgba(0,0,0,0.45);
+}
+.primary { top: 30px; left: 40px; z-index: 3; transform: rotate(-3deg); }
+.secondary { top: 190px; left: 190px; z-index: 2; transform: rotate(4deg); width: 300px; opacity: 0.96; }
+.tertiary { top: 340px; left: 10px; z-index: 1; transform: rotate(-6deg); width: 250px; opacity: 0.9; }
+.mockStatic { position: static; transform: rotate(-1.5deg); width: 100%; max-width: 380px; }
+.mockLabel { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; margin-bottom: 10px; }
+.mockTitle { font-family: var(--font-display); font-size: 21px; font-weight: 600; margin-bottom: 4px; }
+.mockTitleSm { font-family: var(--font-display); font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+.mockTitleXs { font-family: var(--font-display); font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.mockRow { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; font-size: 13px; }
+.mockScore { font-family: var(--font-mono); font-size: 30px; font-weight: 600; }
+.mockBar { height: 6px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 12%, transparent); margin-top: 8px; overflow: hidden; }
+.mockBar span { display: block; height: 100%; border-radius: 4px; }
+.mockBadges { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+.mockBadge { font-family: var(--font-mono); font-size: 10.5px; padding: 4px 9px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.mockSpark { display: flex; align-items: flex-end; gap: 4px; height: 40px; margin-top: 12px; }
+.mockSpark div { flex: 1; border-radius: 2px 2px 0 0; }
+
+.page section { padding: 120px 0; position: relative; }
+.sectionHead { max-width: 720px; margin-bottom: 64px; }
+.sectionHead h2 { font-size: clamp(30px, 3.6vw, 44px); letter-spacing: -0.01em; margin-top: 16px; }
+.sectionHead p { color: var(--mos-text-muted); font-size: 17px; margin-top: 16px; max-width: 56ch; }
+
+.loopSection { background: var(--mos-bg-raised); }
+.loopTrack { display: flex; flex-direction: column; gap: 0; max-width: 760px; margin: 0 auto; }
+.loopNode { display: grid; grid-template-columns: 56px 1fr; gap: 22px; padding: 26px 0; position: relative; }
+.loopNode::before {
+  content: ''; position: absolute; left: 27px; top: 0; bottom: 0; width: 2px;
+  background: color-mix(in srgb, var(--mos-text) 14%, transparent);
+}
+.loopNode:first-child::before { top: 27px; }
+.loopNode:last-child::before { bottom: calc(100% - 27px); }
+.loopNum {
+  width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 15px; font-weight: 600;
+  background: var(--mos-bg); border: 2px solid color-mix(in srgb, var(--mos-text) 18%, transparent);
+  color: var(--mos-text-muted); position: relative; z-index: 1;
+  transition: background 0.5s ease, border-color 0.5s ease, color 0.5s ease, transform 0.5s ease;
+}
+.loopActive .loopNum { background: var(--mos-accent); border-color: var(--mos-accent); color: var(--mos-on-accent); transform: scale(1.08); }
+.loopActive .loopTitle { color: var(--mos-text); }
+.loopBody { padding-top: 8px; }
+.loopTitle { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--mos-text-muted); transition: color 0.5s ease; margin-bottom: 6px; }
+.loopDesc { font-size: 15px; color: var(--mos-text-muted); max-width: 52ch; line-height: 1.55; }
+.loopFeedback::after { content: ' ↺'; color: var(--mos-accent); }
+
+/* Pinned horizontal scrub: a tall spacer (height set in JS-driven vh below)
+   holds a viewport-height sticky stage in place while the headline slides
+   right-to-left in step with scroll progress through the spacer. Fixed to
+   the dark ink palette regardless of light/dark toggle -- same reasoning as
+   .ctaBand/.footer below -- so the parchment note cards always read at full
+   contrast instead of washing out against a light-mode parchment page. */
+.scrubSection { position: relative; height: 280vh; background: var(--ink); }
+.scrubSticky {
+  position: sticky; top: 0; height: 100vh;
+  display: flex; align-items: center;
+  overflow: hidden;
+}
+.scrubText {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(52px, 10vw, 152px); line-height: 1;
+  letter-spacing: -0.01em; white-space: nowrap;
+  color: var(--text-on-dark); will-change: transform;
+  position: relative; z-index: 1;
+}
+.scrubNote {
+  position: absolute; z-index: 2; width: 230px; padding: 22px 22px;
+  background: var(--parchment); color: var(--text-on-light);
+  border-radius: 16px; font-family: var(--font-display);
+  font-size: 18px; font-weight: 500; line-height: 1.35;
+  box-shadow: 0 24px 50px -20px rgba(0,0,0,0.55);
+  opacity: 0;
+  /* --driftX/--driftY are pushed every scroll tick from JS so each note
+     glides at its own depth/speed, independent of the main headline --
+     --rot is a fixed per-note tilt set once in JSX. */
+  transform: translateX(var(--driftX, 0px)) translateY(calc(28px + var(--driftY, 0px))) rotate(var(--rot, -4deg));
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+.scrubNoteIn { opacity: 1; transform: translateX(var(--driftX, 0px)) translateY(var(--driftY, 0px)) rotate(var(--rot, -4deg)); }
+.scrubNote1 { top: 24%; left: 10%; --rot: -5deg; }
+.scrubNote2 { bottom: 22%; left: 56%; --rot: 4deg; }
+.scrubNote3 { top: 60%; left: 30%; --rot: -3deg; }
+@media (max-width: 760px) { .scrubNote { display: none; } }
+
+.triptych { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+@media (max-width: 860px) { .triptych { grid-template-columns: 1fr; } }
+.featureCard { background: var(--mos-surface); border: 1px solid var(--mos-surface-border); border-radius: var(--mos-radius); padding: 32px 28px; }
+.featureIcon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 22px; }
+.featureIcon svg { width: 22px; height: 22px; }
+.featureCard h3 { font-size: 21px; margin-bottom: 12px; }
+.featureCard p { color: var(--mos-text-muted); font-size: 15px; line-height: 1.6; }
+
+.proofSection { background: var(--mos-bg-raised); overflow: hidden; }
+.marqueeViewport {
+  overflow: hidden; margin: 0 -32px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 6%, black 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, black 6%, black 94%, transparent);
+}
+.marqueeTrack { display: flex; gap: 20px; width: max-content; animation: marquee 42s linear infinite; padding: 6px 32px; }
+.marqueeTrack:hover { animation-play-state: paused; }
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.statCard {
+  flex: 0 0 auto; width: 300px; padding: 24px 22px; border-radius: 16px;
+  font-family: var(--font-display); font-size: 17px; font-weight: 500; line-height: 1.4;
+  transform: rotate(-1.4deg);
+}
+.statCard:nth-child(even) { transform: rotate(1.6deg); }
+.statKicker { display: block; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; opacity: 0.65; }
+
+.platformGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+@media (max-width: 900px) { .platformGrid { grid-template-columns: 1fr; } }
+.checklist { list-style: none; margin: 28px 0 32px; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.checklist li { display: flex; gap: 14px; align-items: flex-start; font-size: 15.5px; }
+.check { flex: none; width: 22px; height: 22px; border-radius: 50%; background: color-mix(in srgb, var(--mos-accent) 18%, transparent); color: var(--mos-accent); display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.check svg { width: 12px; height: 12px; }
+
+.pricingGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+@media (max-width: 900px) { .pricingGrid { grid-template-columns: 1fr; } }
+.priceCard { border-radius: var(--mos-radius); padding: 34px 28px; border: 1px solid var(--mos-surface-border); background: var(--mos-surface); display: flex; flex-direction: column; }
+.priceFeatured { background: var(--ink); color: var(--text-on-dark); border-color: var(--ink); }
+.priceFeatured .priceTierDesc { color: var(--text-on-dark-muted); }
+.priceTier { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mos-accent); }
+.priceFeatured .priceTier { color: var(--mos-accent-strong); }
+.priceName { font-family: var(--font-display); font-size: 26px; margin: 10px 0 8px; }
+.priceTierDesc { color: var(--mos-text-muted); font-size: 14.5px; margin-bottom: 22px; min-height: 44px; }
+.priceFeats { list-style: none; padding: 0; margin: 0 0 26px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+.priceFeats li { display: flex; gap: 9px; }
+.priceFeats li::before { content: '—'; opacity: 0.5; flex: none; }
+.priceCard .btn { margin-top: auto; justify-content: center; }
+
+.ctaBand { background: linear-gradient(115deg, var(--ink) 0%, var(--berry) 45%, var(--brass) 78%, var(--moss) 100%); padding: 110px 0; text-align: center; }
+.ctaBand h2 { color: #f7f1e3; font-size: clamp(30px, 4.4vw, 48px); max-width: 18ch; margin: 0 auto 30px; }
+.ctaBandBtn { background: #f7f1e3; color: var(--ink); }
+
+.footer { background: var(--ink); color: var(--text-on-dark); padding: 72px 0 32px; }
+.footer .logo { color: var(--text-on-dark); }
+.footerTop { display: grid; grid-template-columns: 1.4fr repeat(4, 1fr); gap: 40px; padding-bottom: 56px; border-bottom: 1px solid #3a3226; }
+@media (max-width: 860px) { .footerTop { grid-template-columns: repeat(2, 1fr); } }
+.footerBrand p { color: var(--text-on-dark-muted); font-size: 14px; margin-top: 14px; max-width: 30ch; }
+.footerCol h4 { font-family: var(--font-body); font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-on-dark-muted); margin-bottom: 16px; font-weight: 600; }
+.footerCol a { display: block; color: var(--text-on-dark); text-decoration: none; font-size: 14.5px; margin-bottom: 11px; opacity: 0.88; }
+.footerCol a:hover { opacity: 1; text-decoration: underline; }
+.footerBottom { display: flex; justify-content: space-between; padding-top: 26px; font-size: 13px; color: var(--text-on-dark-muted); flex-wrap: wrap; gap: 10px; }

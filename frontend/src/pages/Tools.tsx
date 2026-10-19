@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabaseClient'
+import styles from '../styles/shell.module.css'
 
 const CAPABILITIES = ['feasibility', 'personas', 'image'] as const
 type Capability = (typeof CAPABILITIES)[number]
@@ -57,15 +58,15 @@ export default function Tools() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-8 space-y-6">
-      <h1 className="text-2xl font-semibold">{t('tools.title')}</h1>
-      <p className="text-sm text-gray-500">{t('tools.subtitle')}</p>
+    <div className={`max-w-2xl mx-auto p-8 space-y-6 ${styles.shell}`}>
+      <h1 className="text-2xl">{t('tools.title')}</h1>
+      <p className={`text-sm ${styles.muted}`}>{t('tools.subtitle')}</p>
 
       <div className="space-y-3">
         <select
           value={capability}
           onChange={(e) => setCapability(e.target.value as Capability)}
-          className="border rounded-lg p-2 text-sm"
+          className={`${styles.select} text-sm`}
         >
           {CAPABILITIES.map((c) => (
             <option key={c} value={c}>
@@ -79,29 +80,25 @@ export default function Tools() {
             placeholder={t('tools.imagePromptPlaceholder')}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            className="w-full border rounded-lg p-2 text-sm"
+            className={styles.input}
           />
         ) : (
           <input
             placeholder={t('tools.ideaPlaceholder')}
             value={idea}
             onChange={(e) => setIdea(e.target.value)}
-            className="w-full border rounded-lg p-2 text-sm"
+            className={styles.input}
           />
         )}
 
-        <button
-          onClick={submit}
-          disabled={submitting}
-          className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm disabled:opacity-50"
-        >
+        <button onClick={submit} disabled={submitting} className={`${styles.btn} ${styles.btnPrimary}`}>
           {submitting ? t('tools.dispatching') : t('tools.run')}
         </button>
       </div>
 
-      {status && <p className="text-sm text-gray-600">{t('tools.status', { status })}</p>}
+      {status && <p className={`text-sm ${styles.muted}`}>{t('tools.status', { status })}</p>}
       {result !== null && (
-        <pre className="text-xs bg-gray-50 border rounded-lg p-3 overflow-auto">{JSON.stringify(result, null, 2)}</pre>
+        <pre className={`text-xs ${styles.codeBlock} p-3 overflow-auto`}>{JSON.stringify(result, null, 2)}</pre>
       )}
     </div>
   )

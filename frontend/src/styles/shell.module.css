@@ -1,0 +1,137 @@
+/* Shared primitives for the authenticated app (Dashboard, Tools, Settings,
+   Metrics, CampaignDetail, Login, TopBar) -- built on the same color/type
+   tokens as the Landing page (see index.css) so the whole app reads as one
+   product instead of a marketing page bolted onto a generic admin UI. */
+
+.shell {
+  min-height: 100vh;
+}
+
+.muted { color: var(--mos-text-muted); }
+
+.link {
+  color: var(--mos-accent);
+  text-decoration: none;
+}
+.link:hover { text-decoration: underline; }
+
+.mono { font-family: var(--font-mono); }
+
+.divider { border-top: 1px solid var(--mos-surface-border); }
+
+.card {
+  background: var(--mos-surface);
+  border: 1px solid var(--mos-surface-border);
+  border-radius: 14px;
+}
+
+.cardHover { transition: background 0.15s ease, border-color 0.15s ease; }
+.cardHover:hover { background: var(--mos-bg-raised); border-color: color-mix(in srgb, var(--mos-text) 24%, var(--mos-surface-border)); }
+
+.highlight {
+  border-color: color-mix(in srgb, var(--mos-accent) 55%, var(--mos-surface-border));
+  background: color-mix(in srgb, var(--mos-accent) 12%, var(--mos-surface));
+}
+
+.input, .textarea, .select {
+  width: 100%;
+  background: var(--mos-surface);
+  color: var(--mos-text);
+  border: 1px solid var(--mos-surface-border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: inherit;
+}
+.input::placeholder, .textarea::placeholder { color: var(--mos-text-muted); }
+.input:focus, .textarea:focus, .select:focus {
+  outline: none;
+  border-color: var(--mos-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mos-accent) 22%, transparent);
+}
+.select { width: auto; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: 2px; }
+
+.btnPrimary { background: var(--mos-accent); color: var(--mos-on-accent); }
+.btnGhost { background: transparent; border-color: color-mix(in srgb, var(--mos-text) 25%, transparent); color: var(--mos-text); }
+.btnGhost:hover:not(:disabled) { border-color: color-mix(in srgb, var(--mos-text) 45%, transparent); }
+.btnSuccess { background: var(--mos-success); color: var(--text-on-dark); }
+.btnDanger { background: var(--mos-danger); color: var(--text-on-dark); }
+.btnDangerOutline { background: transparent; border-color: color-mix(in srgb, var(--mos-danger) 55%, transparent); color: var(--mos-danger); }
+.btnDangerOutline:hover:not(:disabled) { background: color-mix(in srgb, var(--mos-danger) 12%, transparent); }
+.btnInfo { background: var(--mos-accent-strong); color: var(--mos-on-accent); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mos-text) 10%, transparent);
+  color: var(--mos-text-muted);
+}
+.badgeAccent { color: var(--mos-accent); background: color-mix(in srgb, var(--mos-accent) 16%, transparent); }
+
+.codeBlock {
+  background: var(--mos-bg-raised);
+  border: 1px solid var(--mos-surface-border);
+  border-radius: 10px;
+  color: var(--mos-text);
+  font-family: var(--font-mono);
+}
+
+.table { width: 100%; border-collapse: collapse; }
+.table th { text-align: left; font-weight: 400; color: var(--mos-text-muted); }
+.table tr + tr td { border-top: 1px solid var(--mos-surface-border); }
+
+/* TopBar (App.tsx) */
+.topbar {
+  border-bottom: 1px solid var(--mos-surface-border);
+  background: color-mix(in srgb, var(--mos-bg) 92%, transparent);
+}
+.topbarInner {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 16px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.topbarLinks { display: flex; gap: 20px; align-items: center; font-size: 14px; }
+.topbarLink { color: var(--mos-text-muted); text-decoration: none; transition: color 0.15s ease; }
+.topbarLink:hover { color: var(--mos-text); }
+
+.themeToggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--mos-text) 20%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--mos-text);
+  cursor: pointer;
+  flex: none;
+}
+.themeToggle svg { width: 15px; height: 15px; }

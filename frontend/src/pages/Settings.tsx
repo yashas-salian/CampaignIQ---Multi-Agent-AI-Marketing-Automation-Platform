@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabaseClient'
+import styles from '../styles/shell.module.css'
 import { useSession } from '../lib/useAuth'
 
 const CAPABILITIES = ['llm', 'image', 'judge'] as const
@@ -113,17 +114,19 @@ export default function Settings() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-8 space-y-6">
-      <h1 className="text-2xl font-semibold">{t('settings.title')}</h1>
-      <p className="text-sm text-gray-500">{t('settings.subtitle')}</p>
+    <div className={`max-w-2xl mx-auto p-8 space-y-6 ${styles.shell}`}>
+      <h1 className="text-2xl">{t('settings.title')}</h1>
+      <p className={`text-sm ${styles.muted}`}>{t('settings.subtitle')}</p>
 
-      {message && <p className="text-sm text-purple-600">{message}</p>}
+      {message && <p className="text-sm" style={{ color: 'var(--mos-accent)' }}>{message}</p>}
 
       {CAPABILITIES.map((capability) => (
-        <div key={capability} className="border rounded-lg p-4">
+        <div key={capability} className={`${styles.card} p-4`}>
           <div className="flex justify-between items-center mb-2">
             <span className="font-medium capitalize">{capability}</span>
-            <span className="text-sm text-gray-500 font-mono">{keys[capability]?.masked_key ?? t('settings.notSet')}</span>
+            <span className={`text-sm ${styles.muted} ${styles.mono}`}>
+              {keys[capability]?.masked_key ?? t('settings.notSet')}
+            </span>
           </div>
           <div className="flex gap-2">
             <input
@@ -131,12 +134,12 @@ export default function Settings() {
               placeholder={t('settings.keyPlaceholder')}
               value={inputs[capability] ?? ''}
               onChange={(e) => setInputs((prev) => ({ ...prev, [capability]: e.target.value }))}
-              className="flex-1 border rounded-lg p-2 text-sm"
+              className={`flex-1 ${styles.input}`}
             />
             <button
               onClick={() => submit(capability)}
               disabled={submitting === capability}
-              className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm disabled:opacity-50"
+              className={`${styles.btn} ${styles.btnPrimary}`}
             >
               {submitting === capability ? t('settings.saving') : t('settings.save')}
             </button>
@@ -144,16 +147,16 @@ export default function Settings() {
         </div>
       ))}
 
-      <div className="border-t pt-6 space-y-4">
-        <h2 className="text-xl font-semibold">{t('settings.templatesTitle')}</h2>
-        <p className="text-sm text-gray-500">{t('settings.templatesSubtitle')}</p>
+      <div className={`${styles.divider} pt-6 space-y-4`}>
+        <h2 className="text-xl">{t('settings.templatesTitle')}</h2>
+        <p className={`text-sm ${styles.muted}`}>{t('settings.templatesSubtitle')}</p>
 
-        {templateMessage && <p className="text-sm text-purple-600">{templateMessage}</p>}
+        {templateMessage && <p className="text-sm" style={{ color: 'var(--mos-accent)' }}>{templateMessage}</p>}
 
-        <div className="border rounded-lg p-4">
+        <div className={`${styles.card} p-4`}>
           <div className="flex justify-between items-center mb-2">
             <span className="font-medium">{t('settings.imageTemplateLabel')}</span>
-            <span className="text-sm text-gray-500">{templates.image ? t('settings.set') : t('settings.notSet')}</span>
+            <span className={`text-sm ${styles.muted}`}>{templates.image ? t('settings.set') : t('settings.notSet')}</span>
           </div>
           {templates.image?.image_base64 && (
             <img
@@ -171,22 +174,22 @@ export default function Settings() {
           />
         </div>
 
-        <div className="border rounded-lg p-4">
+        <div className={`${styles.card} p-4`}>
           <div className="flex justify-between items-center mb-2">
             <span className="font-medium">{t('settings.emailTemplateLabel')}</span>
-            <span className="text-sm text-gray-500">{templates.email ? t('settings.set') : t('settings.notSet')}</span>
+            <span className={`text-sm ${styles.muted}`}>{templates.email ? t('settings.set') : t('settings.notSet')}</span>
           </div>
           <textarea
             placeholder={t('settings.emailTemplatePlaceholder', { placeholder: '{{copy}}' })}
             value={emailHtml}
             onChange={(e) => setEmailHtml(e.target.value)}
             rows={6}
-            className="w-full border rounded-lg p-2 text-sm font-mono mb-2"
+            className={`${styles.textarea} ${styles.mono} mb-2`}
           />
           <button
             onClick={saveEmailTemplate}
             disabled={savingTemplate === 'email'}
-            className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm disabled:opacity-50"
+            className={`${styles.btn} ${styles.btnPrimary}`}
           >
             {savingTemplate === 'email' ? t('settings.saving') : t('settings.save')}
           </button>
