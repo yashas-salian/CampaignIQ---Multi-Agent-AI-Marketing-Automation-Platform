@@ -1,0 +1,41 @@
+{
+  "generated_at": "2026-10-20T19:17:32.191382+00:00",
+  "golden": {
+    "base (qwen2.5-1.5b-instruct-q4_k_m.gguf)": {
+      "n": 18,
+      "correct": 10,
+      "accuracy": 0.5556,
+      "invalid_outputs": 2,
+      "errors": 0,
+      "median_ms_per_idea": 586.8,
+      "top_confusions": [
+        [
+          "ecommerce_retail -> None",
+          1
+        ],
+        [
+          "other -> ecommerce_retail",
+          1
+        ],
+        [
+          "education -> consumer_electronics",
+          1
+        ],
+        [
+          "consumer_electronics -> healthcare",
+          1
+        ],
+        [
+          "other -> consumer_electronics",
+          1
+        ]
+      ]
+    }
+  },
+  "heldout_agreement_with_teacher": {},
+  "notes": {
+    "golden": "human labels; the fair accuracy comparison",
+    "heldout": "teacher labels; measures fidelity to the teacher (teacher = 100% by construction)",
+    "teacher_cost": "Groq free tier: no per-call cost, but rate-limited and an external dependency"
+  }
+}

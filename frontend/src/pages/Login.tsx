@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import Photo from '../components/Photo'
-import { PHOTOS } from '../lib/photos'
+import LogoMark from '../components/LogoMark'
+import { isValidUsername, normalizeUsername } from '../lib/profile'
 import { supabase } from '../lib/supabaseClient'
 import { useSession } from '../lib/useAuth'
 import { useTheme } from '../lib/useTheme'
@@ -43,13 +43,6 @@ const GitHubIcon = () => (
   </svg>
 )
 
-const LogoMark = () => (
-  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-    <path d="M12 3v5l4-2.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-)
-
 export default function Login() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -58,6 +51,7 @@ export default function Login() {
   const { theme, toggleTheme } = useTheme()
   const mode: 'signin' | 'signup' = location.pathname === '/signup' ? 'signup' : 'signin'
 
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -99,14 +93,19 @@ export default function Login() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError(null)
     setNotice(null)
+    if (mode === 'signup' && !isValidUsername(username)) {
+      setError(t('st.usernameInvalid'))
+      return
+    }
+    setLoading(true)
 
+    // The username is stored in the new account's auth profile (user_metadata).
     const { data, error: authError } =
       mode === 'signin'
         ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password })
+        : await supabase.auth.signUp({ email, password, options: { data: { username: normalizeUsername(username) } } })
 
     setLoading(false)
     if (authError) {
@@ -197,6 +196,22 @@ export default function Login() {
             </div>
 
             <form onSubmit={handleSubmit} className={styles.form}>
+              {mode === 'signup' && (
+                <label className={styles.field}>
+                  <span>{t('login.usernameLabel')}</span>
+                  <input
+                    type="text"
+                    required
+                    minLength={2}
+                    maxLength={32}
+                    autoComplete="nickname"
+                    placeholder={t('login.usernamePlaceholder')}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
+                  <small className={styles.hint}>{t('login.usernameHint')}</small>
+                </label>
+              )}
               <label className={styles.field}>
                 <span>{t('login.emailLabel')}</span>
                 <input
@@ -290,14 +305,7 @@ export default function Login() {
           <p>{t('login.panelBody')}</p>
           <div className={styles.mediaFrame}>
             <div className={styles.media}>
-              <Photo photo={PHOTOS.workspace} sizes="(max-width: 960px) 0px, 560px" />
-            </div>
-            <div className={`${styles.chip} ${styles.chipA}`}>
-              <span className={styles.chipKicker}>{t('login.chipFeasibility')}</span>
-              <strong>78</strong>/100
-            </div>
-            <div className={`${styles.chip} ${styles.chipB}`}>
-              {t('login.chipGate')}
+              <LogoMark size="large" className={styles.heroLogo} />
             </div>
           </div>
         </div>

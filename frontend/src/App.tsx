@@ -1,7 +1,9 @@
-import { lazy, Suspense, useEffect, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { UI_LOCALES } from './i18n'
+import LogoMark from './components/LogoMark'
+import { displayName } from './lib/profile'
 import { ThemeProvider } from './lib/ThemeContext'
 import { supabase } from './lib/supabaseClient'
 import { useSession } from './lib/useAuth'
@@ -79,6 +81,62 @@ function ThemeToggle() {
 // render their own header even for a logged-in visitor.
 const APP_PREFIXES = ['/dashboard', '/campaigns', '/tools', '/settings']
 
+/**
+ * Username cell with a dropdown (account email, Settings, Sign out). Opens on
+ * hover, on keyboard focus, and on tap for touch screens; Esc or an outside
+ * click closes it.
+ */
+function AccountMenu({ name, email }: { name: string | null; email: string }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  return (
+    <div ref={ref} className={`${styles.account} ${open ? styles.accountOpen : ''}`} onMouseLeave={() => setOpen(false)}>
+      <button
+        type="button"
+        className={`${styles.topbarCell} ${styles.accountButton} wipe-host`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className={styles.avatar} aria-hidden="true">
+          {(name ?? email).trim().charAt(0).toUpperCase() || '?'}
+        </span>
+        <span className="link-wipe">{name ?? t('dash.addUsername')}</span>
+        <svg className={styles.chevron} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <div className={styles.menu} role="menu">
+        <p className={styles.menuEmail}>{email}</p>
+        <Link role="menuitem" to="/settings#account" className={styles.menuItem} onClick={() => setOpen(false)}>
+          {t('common.settings')}
+        </Link>
+        <button role="menuitem" type="button" className={`${styles.menuItem} ${styles.menuDanger}`} onClick={() => supabase.auth.signOut()}>
+          {t('st.signOut')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function TopBar() {
   const { session } = useSession()
   const { t, i18n } = useTranslation()
@@ -88,10 +146,7 @@ function TopBar() {
   return (
     <header className={styles.topbar}>
       <Link to="/dashboard" className={`${styles.topbarCell} ${styles.topbarBrand}`}>
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-          <path d="M12 3v5l4-2.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <LogoMark className={styles.topbarLogo} />
         MarketingOS
       </Link>
       <nav className={styles.topbarLinks}>
@@ -119,9 +174,7 @@ function TopBar() {
           </select>
         </label>
         <ThemeToggle />
-        <button onClick={() => supabase.auth.signOut()} className={`${styles.topbarCell} ${styles.topbarSignOut} wipe-host`}>
-          <span className="link-wipe">{t('common.signOut', { email: session.user.email })}</span>
-        </button>
+        <AccountMenu name={displayName(session.user)} email={session.user.email ?? ''} />
       </div>
     </header>
   )

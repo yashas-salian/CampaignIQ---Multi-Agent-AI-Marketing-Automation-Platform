@@ -36,7 +36,10 @@
     "continueGoogle": "Google के साथ जारी रखें",
     "continueGithub": "GitHub के साथ जारी रखें",
     "or": "या ईमेल से",
-    "agree": "आगे बढ़कर आप <terms>शर्तों</terms> और <privacy>गोपनीयता नीति</privacy> से सहमत होते हैं।"
+    "agree": "आगे बढ़कर आप <terms>शर्तों</terms> और <privacy>गोपनीयता नीति</privacy> से सहमत होते हैं।",
+    "usernameLabel": "यूज़रनेम",
+    "usernamePlaceholder": "हम आपको क्या कहें?",
+    "usernameHint": "2–32 अक्षर। बाद में सेटिंग्स में बदल सकते हैं।"
   },
   "dashboard": {
     "title": "कैंपेन",
@@ -54,6 +57,7 @@
     "greetingAfternoon": "नमस्कार",
     "greetingEvening": "शुभ संध्या",
     "subtitle": "आपके कैंपेन की स्थिति यह है।",
+    "addUsername": "अपना यूज़रनेम जोड़ें",
     "newCampaign": "नया कैंपेन",
     "live": "लाइव",
     "attention_one": "{{count}} कैंपेन आपकी स्वीकृति की प्रतीक्षा में है",
@@ -234,7 +238,12 @@
     "imageSaved": "इमेज टेम्पलेट सेव हुआ।",
     "emailSaved": "ईमेल टेम्पलेट सेव हुआ।",
     "privacy": "गोपनीयता नीति",
-    "terms": "उपयोग की शर्तें"
+    "terms": "उपयोग की शर्तें",
+    "username": "यूज़रनेम",
+    "usernamePlaceholder": "यूज़रनेम जोड़ें",
+    "usernameSaved": "यूज़रनेम अपडेट हो गया।",
+    "usernameInvalid": "2–32 अक्षर इस्तेमाल करें: अक्षर, अंक, स्पेस, बिंदु, डैश या अंडरस्कोर।",
+    "usernameMissing": "अभी सेट नहीं है। एक जोड़ें ताकि हम जानें आपको क्या कहें।"
   },
   "campaignDetail": {
     "backLink": "← सभी कैंपेन",

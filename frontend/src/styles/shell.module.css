@@ -163,8 +163,8 @@
   letter-spacing: -0.02em;
   text-transform: none;
 }
-.topbarBrand svg { width: 22px; height: 22px; color: var(--mos-accent); transition: transform 0.6s var(--mos-ease); }
-.topbarBrand:hover svg { transform: rotate(-90deg); }
+.topbarLogo { width: 30px; height: 30px; border-radius: 22%; object-fit: cover; flex: none; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08); transition: transform 0.5s var(--mos-ease); }
+.topbarBrand:hover .topbarLogo { transform: rotate(-6deg) scale(1.06); }
 .topbarSelect {
   background: transparent;
   border: none;
@@ -176,7 +176,44 @@
 }
 .topbarSelect:focus { outline: none; }
 .topbarSelect option { background: var(--nav-tile); color: var(--nav-text); }
-.topbarSignOut { text-transform: none; letter-spacing: normal; font-size: 13px; }
+/* Account cell: username + dropdown (Settings, Sign out). Opens on hover,
+   keyboard focus, or tap (.accountOpen, toggled in App.tsx). */
+.account { position: relative; display: flex; }
+.accountButton { gap: 10px; text-transform: none; letter-spacing: normal; font-size: 13.5px; max-width: 240px; }
+.accountButton :global(.link-wipe) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avatar {
+  width: 26px; height: 26px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 12px; font-weight: 700;
+  background: var(--mos-accent); color: #111316;
+}
+.chevron { width: 14px; height: 14px; flex: none; transition: transform 0.3s var(--mos-ease); }
+.menu {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; min-width: 220px;
+  display: flex; flex-direction: column; padding: 6px;
+  background: var(--nav-tile); border: 1px solid var(--nav-gap); border-radius: 14px;
+  box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.7);
+  opacity: 0; visibility: hidden; transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.25s var(--mos-ease), visibility 0s linear 0.25s;
+}
+/* Invisible bridge over the 8px gap so moving the pointer down doesn't close it. */
+.menu::before { content: ''; position: absolute; left: 0; right: 0; top: -10px; height: 10px; }
+.account:hover .menu, .account:focus-within .menu, .accountOpen .menu {
+  opacity: 1; visibility: visible; transform: none; transition-delay: 0s;
+}
+.account:hover .chevron, .account:focus-within .chevron, .accountOpen .chevron { transform: rotate(180deg); }
+.menuEmail {
+  margin: 0; padding: 8px 10px 10px; font-size: 12px; color: var(--mos-text-muted);
+  border-bottom: 1px solid var(--nav-gap); margin-bottom: 4px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.menuItem {
+  display: block; width: 100%; padding: 9px 10px; border: none; border-radius: 9px; cursor: pointer; text-align: left;
+  font: inherit; font-size: 13.5px; color: var(--nav-text); background: transparent; text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.menuItem:hover, .menuItem:focus-visible { background: color-mix(in srgb, var(--nav-text) 8%, var(--nav-tile)); outline: none; }
+.menuDanger { color: var(--mos-danger); }
+.menuDanger:hover, .menuDanger:focus-visible { background: color-mix(in srgb, var(--mos-danger) 14%, var(--nav-tile)); }
 
 .themeToggle { width: 60px; padding: 0; }
 .themeToggle svg { width: 17px; height: 17px; transition: transform 0.6s var(--mos-ease), color 0.3s ease; }

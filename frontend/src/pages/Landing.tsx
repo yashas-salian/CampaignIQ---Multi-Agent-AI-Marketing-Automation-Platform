@@ -333,7 +333,7 @@ export default function Landing() {
 
           <div className={styles.heroMediaWrap}>
             <div className={styles.heroMedia} ref={heroMediaRef}>
-              {/* 6.4 s looping simulation of one campaign round (animated WebP, rendered
+              {/* 17 s looping simulation of one campaign round (animated WebP, rendered
                   from frontend/scripts/render_demo.py). Reduced-motion visitors get the still poster. */}
               <picture className={styles.demo}>
                 <source media="(prefers-reduced-motion: reduce)" srcSet="/media/demo-loop-poster.webp" />
@@ -345,17 +345,6 @@ export default function Landing() {
                   decoding="async"
                 />
               </picture>
-              <div className={`${styles.floatChip} ${styles.chipA}`}>
-                <span className={styles.chipKicker}>Feasibility</span>
-                <strong>78</strong>/100
-              </div>
-              <div className={`${styles.floatChip} ${styles.chipB}`}>
-                <span className={styles.chipKicker}>Arm selected</span>
-                lifestyle × humorous
-              </div>
-              <div className={`${styles.floatChip} ${styles.chipC}`}>
-                Gate 2 awaiting you
-              </div>
             </div>
           </div>
         </section>

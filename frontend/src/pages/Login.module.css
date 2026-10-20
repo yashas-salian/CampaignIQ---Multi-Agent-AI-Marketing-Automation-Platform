@@ -23,7 +23,8 @@
   display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: inherit;
   font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: -0.02em;
 }
-.logo svg { width: 24px; height: 24px; color: var(--mos-accent); }
+.logo img { width: 32px; height: 32px; border-radius: 22%; object-fit: cover; flex: none; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08); transition: transform 0.5s var(--mos-ease); }
+.logo:hover img { transform: rotate(-6deg) scale(1.06); }
 /* Text color + underline come from the shared .link-wipe (index.css). */
 .back { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
 .back svg { width: 16px; height: 16px; transition: transform 0.35s var(--mos-ease), color 0.5s var(--mos-ease); }
@@ -195,20 +196,18 @@
 .visualInner > p { color: var(--mos-text-muted); font-size: 16px; line-height: 1.6; margin-top: 16px; max-width: 46ch; }
 
 .mediaFrame { position: relative; margin-top: 40px; }
-.media { aspect-ratio: 4 / 3; transition: transform 0.6s var(--mos-ease); }
-.mediaFrame:hover .media { transform: translateY(-6px) rotate(-0.6deg); }
-
-.chip {
-  position: absolute; display: flex; align-items: center; gap: 8px;
-  padding: 12px 16px; border-radius: 14px; font-size: 14px; white-space: nowrap;
-  background: color-mix(in srgb, var(--mos-surface) 85%, transparent);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--mos-surface-border);
-  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.5);
-  animation: bob 6s ease-in-out infinite;
+/* The emblem, large: a floating app-icon tile with an orange glow behind it. */
+.media { position: relative; width: min(100%, 380px); aspect-ratio: 1; margin: 0 auto; animation: drift-y 6s ease-in-out infinite; }
+.media::before {
+  content: ''; position: absolute; inset: 8%; border-radius: 28%; z-index: 0;
+  background: var(--mos-accent); filter: blur(60px); opacity: 0.35; transition: opacity 0.6s ease;
 }
-.chip strong { font-family: var(--font-display); font-size: 22px; }
-.chipKicker { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mos-text-muted); margin-right: 4px; }
-.chipA { top: -18px; right: -14px; }
-.chipB { bottom: 22px; left: -22px; animation-delay: -3s; }
-@keyframes bob { 50% { transform: translateY(-10px); } }
+.heroLogo {
+  position: relative; z-index: 1; width: 100%; height: 100%; display: block; border-radius: 22%; object-fit: cover;
+  box-shadow: 0 40px 80px -36px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: transform 0.7s var(--mos-ease);
+}
+.mediaFrame:hover .heroLogo { transform: rotate(-3deg) scale(1.03); }
+.mediaFrame:hover .media::before { opacity: 0.55; }
+@keyframes drift-y { 50% { transform: translateY(-10px); } }
+

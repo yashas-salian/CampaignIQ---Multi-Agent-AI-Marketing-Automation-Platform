@@ -36,7 +36,10 @@
     "continueGoogle": "Continue with Google",
     "continueGithub": "Continue with GitHub",
     "or": "or use email",
-    "agree": "By continuing you agree to the <terms>Terms</terms> and <privacy>Privacy Policy</privacy>."
+    "agree": "By continuing you agree to the <terms>Terms</terms> and <privacy>Privacy Policy</privacy>.",
+    "usernameLabel": "Username",
+    "usernamePlaceholder": "What should we call you?",
+    "usernameHint": "2–32 characters. You can change it later in Settings."
   },
   "dashboard": {
     "title": "Campaigns",
@@ -54,6 +57,7 @@
     "greetingAfternoon": "Good afternoon",
     "greetingEvening": "Good evening",
     "subtitle": "Here’s how your campaigns are doing.",
+    "addUsername": "Add your username",
     "newCampaign": "New campaign",
     "live": "Live",
     "attention_one": "{{count}} campaign is waiting for your approval",
@@ -234,7 +238,12 @@
     "imageSaved": "Image template saved.",
     "emailSaved": "Email template saved.",
     "privacy": "Privacy policy",
-    "terms": "Terms of use"
+    "terms": "Terms of use",
+    "username": "Username",
+    "usernamePlaceholder": "Add a username",
+    "usernameSaved": "Username updated.",
+    "usernameInvalid": "Use 2–32 characters: letters, numbers, spaces, dots, dashes or underscores.",
+    "usernameMissing": "Not set yet. Add one so we know what to call you."
   },
   "campaignDetail": {
     "backLink": "← All campaigns",

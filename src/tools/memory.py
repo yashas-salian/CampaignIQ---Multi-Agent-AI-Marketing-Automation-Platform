@@ -22,6 +22,12 @@ def embed_text(text: str) -> list[float]:
     return _model().encode(text, convert_to_numpy=True).tolist()
 
 
+def embed_texts(texts: list[str]):
+    """Batch-embed and L2-normalize, so cosine similarity is a plain dot product.
+    Returns a numpy array (n, 384). Used by the M7 dataset de-duplication."""
+    return _model().encode(texts, convert_to_numpy=True, normalize_embeddings=True, batch_size=64)
+
+
 def write_embedding(
     user_id: str,
     campaign_id: str,

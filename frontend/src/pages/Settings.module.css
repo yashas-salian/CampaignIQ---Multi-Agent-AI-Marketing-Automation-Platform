@@ -16,10 +16,13 @@
 .account div:first-child { border-top: none; }
 .account dt { color: var(--mos-text-muted); }
 .account dd { margin: 0; min-width: 0; }
-.idRow { display: flex; align-items: center; gap: 10px; }
-.idRow code { font-family: var(--font-mono); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.copy { flex: none; padding: 4px 10px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 12px; color: var(--mos-text); background: var(--mos-bg-raised); border: 1px solid var(--mos-surface-border); transition: border-color 0.25s ease; }
-.copy:hover { border-color: var(--mos-accent); }
+.account dt label { cursor: pointer; }
+/* Username editor: field + save on one line, notices underneath. */
+.nameRow { display: flex; gap: 10px; }
+.nameRow input { flex: 1; min-width: 0; }
+.nameHint { margin-top: 8px !important; font-size: 12.5px; color: var(--mos-text-muted); }
+.account dd > p[role] { margin-top: 10px !important; }
+@media (max-width: 520px) { .nameRow { flex-direction: column; } }
 .accountFoot { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
 .legalLinks { display: flex; gap: 20px; font-size: 13.5px; }
 .legalLinks a { --wipe-base: var(--mos-text-muted); }

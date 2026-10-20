@@ -11,7 +11,11 @@ MODEL = "openai/gpt-oss-120b"
 
 class GroqLLMProvider(LLMProvider):
     def __init__(self) -> None:
-        self._client = Groq(api_key=os.environ["GROQ_API_KEY"])
+        # The free tier caps gpt-oss-120b at 8,000 tokens/minute per account, so
+        # 429s are routine (eval CI, workers and scripts share the budget). The
+        # SDK honours Groq's retry-after and backs off between attempts; 8
+        # retries rides out a busy minute instead of crashing the run.
+        self._client = Groq(api_key=os.environ["GROQ_API_KEY"], max_retries=8)
 
     def generate(self, prompt: str, *, system: str | None = None) -> str:
         messages = []

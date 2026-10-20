@@ -2,9 +2,11 @@ import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } fr
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
+import LogoMark from '../components/LogoMark'
 import RewardChart, { type RewardPoint } from '../components/RewardChart'
 import { CAMPAIGN_LANGUAGES } from '../lib/languages'
 import { supabase } from '../lib/supabaseClient'
+import { displayName } from '../lib/profile'
 import { useSession } from '../lib/useAuth'
 import type { Campaign, CampaignStatus, Metric } from '../lib/types'
 import styles from './Dashboard.module.css'
@@ -414,7 +416,8 @@ export default function Dashboard() {
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? t('dash.greetingMorning') : hour < 18 ? t('dash.greetingAfternoon') : t('dash.greetingEvening')
-  const name = session?.user.email?.split('@')[0]
+  // Username (or the name Google/GitHub gave us); never the email address.
+  const name = displayName(session?.user)
   const roundsCap = tier === 'subscribed' ? PAID_ROUNDS : FREE_ROUNDS
 
   function selectPipeline(status: string) {
@@ -432,7 +435,17 @@ export default function Dashboard() {
             {greeting}
             {name ? <span className={styles.name}>, {name}</span> : null}
           </h1>
-          <p className={styles.subtitle}>{t('dash.subtitle')}</p>
+          <p className={styles.subtitle}>
+            {t('dash.subtitle')}
+            {!name && (
+              <>
+                {' '}
+                <Link to="/settings#account" className={`${styles.addName} link-wipe`}>
+                  {t('dash.addUsername')} →
+                </Link>
+              </>
+            )}
+          </p>
         </div>
         <div className={styles.headerActions}>
           <span className={styles.live}>
@@ -672,10 +685,7 @@ export default function Dashboard() {
           ) : campaigns.length === 0 ? (
             <div className={styles.empty}>
               <div className={styles.emptyArt} aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                  <path d="M12 3v5l4-2.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <LogoMark />
               </div>
               <h3>{t('dash.emptyTitle')}</h3>
               <p>{t('dash.emptyBody')}</p>

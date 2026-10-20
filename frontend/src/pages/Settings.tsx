@@ -2,6 +2,7 @@ import type { CSSProperties, DragEvent, ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { isValidUsername, normalizeUsername, saveUsername, usernameOf } from '../lib/profile'
 import { supabase } from '../lib/supabaseClient'
 import { useSession } from '../lib/useAuth'
 import styles from '../styles/app.module.css'
@@ -65,7 +66,15 @@ export default function Settings() {
   const [templateNotice, setTemplateNotice] = useState<Notice>(null)
   const [savingTemplate, setSavingTemplate] = useState<'image' | 'email' | null>(null)
   const [dragging, setDragging] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const savedUsername = usernameOf(session?.user)
+  const [usernameDraft, setUsernameDraft] = useState('')
+  const [savingName, setSavingName] = useState(false)
+  const [nameNotice, setNameNotice] = useState<Notice>(null)
+
+  // Fill the field once the session (and so the saved username) has loaded.
+  useEffect(() => {
+    setUsernameDraft(savedUsername ?? '')
+  }, [savedUsername])
 
   const load = useCallback(async () => {
     const [{ data }, { data: sub }] = await Promise.all([
@@ -161,15 +170,17 @@ export default function Settings() {
     if (file) uploadImageTemplate(file)
   }
 
-  async function copyUserId() {
-    if (!session) return
-    try {
-      await navigator.clipboard.writeText(session.user.id)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
-    } catch {
-      // Clipboard blocked: the ID is still selectable.
+  async function submitUsername() {
+    if (!isValidUsername(usernameDraft)) {
+      setNameNotice({ kind: 'error', text: t('st.usernameInvalid') })
+      return
     }
+    setSavingName(true)
+    setNameNotice(null)
+    const { error } = await saveUsername(usernameDraft)
+    setSavingName(false)
+    // On success Supabase emits USER_UPDATED, so every useSession() (greeting, etc.) picks up the new name.
+    setNameNotice(error ? { kind: 'error', text: t('st.failed', { message: error.message }) } : { kind: 'ok', text: t('st.usernameSaved') })
   }
 
   // The backend swaps "{{copy}}" for the ad copy (distribution_email.py); preview the same way.
@@ -219,12 +230,37 @@ export default function Settings() {
                 <dd>{session?.user.email ?? '—'}</dd>
               </div>
               <div>
-                <dt>{t('st.userId')}</dt>
-                <dd className={local.idRow}>
-                  <code>{session?.user.id ?? '—'}</code>
-                  <button type="button" className={local.copy} onClick={copyUserId}>
-                    {copied ? '✓' : 'Copy'}
-                  </button>
+                <dt>
+                  <label htmlFor="username">{t('st.username')}</label>
+                </dt>
+                <dd>
+                  <form
+                    className={local.nameRow}
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      submitUsername()
+                    }}
+                  >
+                    <input
+                      id="username"
+                      className={styles.input}
+                      maxLength={32}
+                      autoComplete="nickname"
+                      placeholder={t('st.usernamePlaceholder')}
+                      value={usernameDraft}
+                      onChange={(e) => setUsernameDraft(e.target.value)}
+                    />
+                    <button
+                      type="submit"
+                      className={`${styles.btn} ${styles.primary}`}
+                      disabled={savingName || normalizeUsername(usernameDraft) === (savedUsername ?? '')}
+                    >
+                      {savingName && <span className={styles.spinner} aria-hidden="true" />}
+                      {savingName ? t('settings.saving') : t('settings.save')}
+                    </button>
+                  </form>
+                  {!savedUsername && !nameNotice && <p className={local.nameHint}>{t('st.usernameMissing')}</p>}
+                  <NoticeLine notice={nameNotice} onClose={() => setNameNotice(null)} />
                 </dd>
               </div>
               <div>

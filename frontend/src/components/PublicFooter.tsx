@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { CONTACT_EMAIL, REPO_URL } from '../lib/site'
-import { LogoMark } from './PublicNav'
+import LogoMark from './LogoMark'
 import styles from './public.module.css'
 
 

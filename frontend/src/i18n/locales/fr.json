@@ -36,7 +36,10 @@
     "continueGoogle": "Continuer avec Google",
     "continueGithub": "Continuer avec GitHub",
     "or": "ou par e-mail",
-    "agree": "En continuant, vous acceptez les <terms>Conditions</terms> et la <privacy>Politique de confidentialité</privacy>."
+    "agree": "En continuant, vous acceptez les <terms>Conditions</terms> et la <privacy>Politique de confidentialité</privacy>.",
+    "usernameLabel": "Nom d’utilisateur",
+    "usernamePlaceholder": "Comment doit-on vous appeler ?",
+    "usernameHint": "2 à 32 caractères. Modifiable ensuite dans les Paramètres."
   },
   "dashboard": {
     "title": "Campagnes",
@@ -54,6 +57,7 @@
     "greetingAfternoon": "Bon après-midi",
     "greetingEvening": "Bonsoir",
     "subtitle": "Voici où en sont vos campagnes.",
+    "addUsername": "Ajoutez votre nom d’utilisateur",
     "newCampaign": "Nouvelle campagne",
     "live": "En direct",
     "attention_one": "{{count}} campagne attend votre validation",
@@ -234,7 +238,12 @@
     "imageSaved": "Modèle d’image enregistré.",
     "emailSaved": "Modèle d’e-mail enregistré.",
     "privacy": "Politique de confidentialité",
-    "terms": "Conditions d’utilisation"
+    "terms": "Conditions d’utilisation",
+    "username": "Nom d’utilisateur",
+    "usernamePlaceholder": "Ajoutez un nom d’utilisateur",
+    "usernameSaved": "Nom d’utilisateur mis à jour.",
+    "usernameInvalid": "Utilisez 2 à 32 caractères : lettres, chiffres, espaces, points, tirets ou tirets bas.",
+    "usernameMissing": "Pas encore défini. Ajoutez-en un pour qu’on sache comment vous appeler."
   },
   "campaignDetail": {
     "backLink": "← Toutes les campagnes",

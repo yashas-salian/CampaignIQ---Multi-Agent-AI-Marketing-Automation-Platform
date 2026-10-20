@@ -1,4 +1,4 @@
-"""Render a ~6.4 s looping product-flow simulation of MarketingOS as an animated WebP.
+"""Render a ~17 s looping product-flow simulation of MarketingOS as an animated WebP.
 
 Scenes: idea typed -> feasibility scored -> personas -> Gate 2 approved ->
 published -> reward climbs. Drawn at 2x and downsampled for smooth edges.
@@ -7,13 +7,17 @@ Windows-only as written: it loads Segoe UI / Consolas from C:/Windows/Fonts.
 """
 import math
 import sys
+from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1280, 720
 S = 2  # supersample factor
-FPS = 25
-DURATION = 6.4
+FPS = 20
+DURATION = 17.0
+# Each scene's motion finishes in the first ACTION_SHARE of its time, then the
+# finished screen holds so viewers can read it.
+ACTION_SHARE = 0.65
 FRAMES = int(FPS * DURATION)
 
 BG = (12, 14, 16)
@@ -44,13 +48,22 @@ F = {
     "num": font("seguisb.ttf", 26),
 }
 
+LOGO_PX = 28  # logical size of the brand tile in the window chrome
+LOGO = (
+    Image.open(Path(__file__).resolve().parents[1] / "public" / "brand" / "logo-256.webp")
+    .convert("RGB")
+    .resize((LOGO_PX * S, LOGO_PX * S), Image.LANCZOS)
+)
+LOGO_MASK = Image.new("L", LOGO.size, 0)
+ImageDraw.Draw(LOGO_MASK).rounded_rectangle((0, 0, LOGO.width - 1, LOGO.height - 1), radius=int(LOGO.width * 0.22), fill=255)
+
 SCENES = [  # (start, end, step index)
-    (0.0, 1.2, 0),
-    (1.2, 2.4, 1),
-    (2.4, 3.4, 2),
-    (3.4, 4.4, 3),
-    (4.4, 5.2, 4),
-    (5.2, DURATION, 5),
+    (0.0, 3.0, 0),   # idea typed
+    (3.0, 5.8, 1),   # feasibility scored
+    (5.8, 8.6, 2),   # personas
+    (8.6, 11.6, 3),  # Gate 2 approved
+    (11.6, 14.0, 4),  # published
+    (14.0, DURATION, 5),  # reward climbs
 ]
 STEPS = ["Idea", "Feasibility", "Personas", "Gate 2", "Publish", "Learn"]
 IDEA = "Meal-prep subscription for night-shift nurses"
@@ -98,9 +111,9 @@ def draw_chrome(c: Canvas):
     for i, col in enumerate([(255, 95, 86), (255, 189, 46), (39, 201, 63)]):
         c.d.ellipse(P(24 + i * 22, 20, 36 + i * 22, 32), fill=col)
     c.text(110, 17, "marketingos.app / campaigns / new", "mono", MUTED)
-    # brand mark
-    c.d.arc(P(W - 190, 16, W - 170, 36), start=0, end=270, fill=ACCENT, width=3 * S)
-    c.text(W - 162, 15, "MarketingOS", "small", TEXT)
+    # brand mark: the real logo (public/brand/logo-256.webp) as a small rounded tile
+    c.img.paste(LOGO, (int((W - 200) * S), int(12 * S)), LOGO_MASK)
+    c.text(W - 166, 15, "MarketingOS", "small", TEXT)
 
 
 def draw_stepper(c: Canvas, step: int, local: float):
@@ -276,7 +289,7 @@ def scene_publish(c, x, y, a, lt):
         c.text(x + 96, ry + 24, name, "h2", mix(SURFACE, TEXT, p))
         c.d.ellipse(P(x + 96, ry + 62, x + 112, ry + 78), fill=mix(SURFACE, SUCCESS, p))
         c.text(x + 120, ry + 59, status, "small", mix(SURFACE, MUTED, p))
-        count = int(target * ease((lt - 0.3 - i * 0.15) / 0.6))
+        count = round(target * ease((lt - 0.3 - i * 0.15) / 0.6))
         c.text(x + 780, ry + 30, f"{count}", "num", mix(SURFACE, TEXT, p), anchor="ra")
         c.text(x + 780, ry + 64, unit, "tiny", mix(SURFACE, MUTED, p), anchor="ra")
 
@@ -329,13 +342,13 @@ def render(t: float) -> Image.Image:
     step, local, elapsed = scene_progress(t)
     draw_stepper(c, step, local)
     x, y, a = panel(c, elapsed / 0.3)
-    DRAW[step](c, x, y, a, local)
+    DRAW[step](c, x, y, a, min(1.0, local / ACTION_SHARE))
     img = c.img.resize((W, H), Image.LANCZOS)
-    # Fade the last 0.35 s into the first frame so the loop has no seam.
-    tail = DURATION - 0.35
+    # Fade the last 0.5 s into the first frame so the loop has no seam.
+    tail = DURATION - 0.5
     if t > tail:
         first = FIRST if FIRST is not None else img
-        img = Image.blend(img, first, ease((t - tail) / 0.35))
+        img = Image.blend(img, first, ease((t - tail) / 0.5))
     return img
 
 
@@ -345,5 +358,5 @@ if __name__ == "__main__":
     FIRST = render(0.0)
     frames = [render(i / FPS) for i in range(FRAMES)]
     frames[0].save(out, save_all=True, append_images=frames[1:], duration=int(1000 / FPS), loop=0, quality=80, method=4)
-    frames[int(FPS * 1.9)].save(out.replace(".webp", "-poster.webp"), quality=82)
+    frames[int(FPS * 5.2)].save(out.replace(".webp", "-poster.webp"), quality=82)
     print(f"{len(frames)} frames, {DURATION}s @ {FPS}fps -> {out}")

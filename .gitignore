@@ -7,3 +7,9 @@ __pycache__/
 *.egg-info/
 node_modules/
 dist/
+
+# M7: real campaign ideas are users' content -- never commit them. The
+# synthetic dataset in src/finetune/data/ IS committed for reproducibility.
+src/finetune/data/real_*.jsonl
+src/finetune/data/*_cache.jsonl
+src/finetune/models/
