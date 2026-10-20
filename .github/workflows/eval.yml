@@ -1,8 +1,19 @@
 name: Eval
 
+# Runs only when the Python pipeline or its config changes: every run spends
+# ~100 calls of the shared free Groq budget, so frontend-only pushes skip it.
 on:
   push:
+    paths:
+      - "src/**"
+      - "pyproject.toml"
+      - ".github/workflows/eval.yml"
   pull_request:
+    paths:
+      - "src/**"
+      - "pyproject.toml"
+      - ".github/workflows/eval.yml"
+  workflow_dispatch:
 
 jobs:
   eval:

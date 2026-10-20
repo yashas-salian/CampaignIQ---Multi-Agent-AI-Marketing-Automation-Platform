@@ -6,7 +6,8 @@ DEFAULT_INSTANCE = "https://mastodon.social"
 
 
 def search_mastodon(keyword: str, *, limit: int = 25) -> dict:
-    instance = os.environ.get("MASTODON_INSTANCE_URL", DEFAULT_INSTANCE).rstrip("/")
+    # `or`, not a get() default: GitHub Actions turns a missing secret into "", not "unset".
+    instance = (os.environ.get("MASTODON_INSTANCE_URL") or DEFAULT_INSTANCE).rstrip("/")
     headers = {}
     token = os.environ.get("MASTODON_ACCESS_TOKEN")
     if token:

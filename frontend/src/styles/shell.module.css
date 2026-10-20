@@ -219,8 +219,29 @@
 .themeToggle svg { width: 17px; height: 17px; transition: transform 0.6s var(--mos-ease), color 0.3s ease; }
 .themeToggle:hover svg { transform: rotate(40deg); color: var(--mos-accent); }
 
+/* The language picker inside the account menu is for phones only. */
+.menuLang { display: none; }
+
+/* Tablets/phones: two rows. Row 1 = logo + theme + account; row 2 = the three
+   page links sharing the full width. */
 @media (max-width: 900px) {
   .topbar { height: auto; flex-wrap: wrap; }
   .topbarCell { height: 52px; padding: 0 14px; }
-  .topbarBrand { flex-basis: 100%; }
+  .topbarBrand { flex: 1; min-width: 0; }
+  .topbarRight { order: 1; }
+  .topbarNav { order: 2; flex-basis: 100%; }
+  .topbarNav > a { flex: 1; }
 }
+/* Phones: language moves into the account dropdown; the name truncates. */
+@media (max-width: 600px) {
+  .topbarLang { display: none; }
+  .menuLang {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 8px 10px; margin-bottom: 4px; border-bottom: 1px solid var(--nav-gap);
+    font-size: 13px; color: var(--mos-text-muted);
+  }
+  .accountButton { max-width: 170px; padding: 0 12px; }
+  .topbarBrand { padding-left: 14px; font-size: 16px; }
+  .themeToggle { width: 52px; }
+}
+@media (max-width: 380px) { .accountButton :global(.link-wipe) { display: none; } }

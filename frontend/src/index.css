@@ -123,6 +123,12 @@ a { color: inherit; }
 
 ::selection { background: var(--mos-accent); color: var(--mos-on-accent); }
 
+/* iOS Safari zooms the page into any focused field whose text is under 16px.
+   !important because page modules set smaller sizes with class selectors. */
+@media (max-width: 640px) {
+  input, textarea, select { font-size: 16px !important; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

@@ -87,7 +87,7 @@ const APP_PREFIXES = ['/dashboard', '/campaigns', '/tools', '/settings']
  * click closes it.
  */
 function AccountMenu({ name, email }: { name: string | null; email: string }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -126,6 +126,17 @@ function AccountMenu({ name, email }: { name: string | null; email: string }) {
       </button>
       <div className={styles.menu} role="menu">
         <p className={styles.menuEmail}>{email}</p>
+        {/* Phones only (CSS): the language picker moves here from the top bar. */}
+        <label className={styles.menuLang}>
+          <span>Language</span>
+          <select value={i18n.language} onChange={(e) => i18n.changeLanguage(e.target.value)} className={styles.topbarSelect}>
+            {UI_LOCALES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <Link role="menuitem" to="/settings#account" className={styles.menuItem} onClick={() => setOpen(false)}>
           {t('common.settings')}
         </Link>
@@ -149,7 +160,7 @@ function TopBar() {
         <LogoMark className={styles.topbarLogo} />
         MarketingOS
       </Link>
-      <nav className={styles.topbarLinks}>
+      <nav className={`${styles.topbarLinks} ${styles.topbarNav}`}>
         {(
           [
             ['/dashboard', t('common.dashboard')],
@@ -162,8 +173,8 @@ function TopBar() {
           </NavLink>
         ))}
       </nav>
-      <div className={styles.topbarLinks}>
-        <label className={styles.topbarCell}>
+      <div className={`${styles.topbarLinks} ${styles.topbarRight}`}>
+        <label className={`${styles.topbarCell} ${styles.topbarLang}`}>
           <span className="sr-only">Language</span>
           <select value={i18n.language} onChange={(e) => i18n.changeLanguage(e.target.value)} className={styles.topbarSelect}>
             {UI_LOCALES.map((l) => (

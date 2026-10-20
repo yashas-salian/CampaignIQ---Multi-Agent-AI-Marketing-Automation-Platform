@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useAuthTargets } from '../lib/site'
 import LogoMark from './LogoMark'
 import { useTheme } from '../lib/useTheme'
@@ -25,6 +25,27 @@ export default function PublicNav() {
   const { theme, toggleTheme } = useTheme()
   const { authed, loginTo, signupTo } = useAuthTargets()
   const [hidden, setHidden] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const barRef = useRef<HTMLDivElement>(null)
+  const { pathname, hash } = useLocation()
+
+  // The phone menu closes on navigation, Esc, or a tap outside the bar.
+  useEffect(() => setMenuOpen(false), [pathname, hash])
+  useEffect(() => {
+    if (!menuOpen) return
+    const onDown = (e: PointerEvent) => {
+      if (!barRef.current?.contains(e.target as Node)) setMenuOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
 
   useEffect(() => {
     let lastY = window.scrollY
@@ -44,12 +65,12 @@ export default function PublicNav() {
   }, [])
 
   return (
-    <header className={`${styles.nav} ${hidden ? styles.navHidden : ''}`}>
-      <div className={styles.navBar}>
+    <header className={`${styles.nav} ${hidden && !menuOpen ? styles.navHidden : ''}`}>
+      <div className={styles.navBar} ref={barRef}>
         <Link to="/" className={`${styles.navCell} ${styles.navBrand}`}>
           <span className={styles.logo}>
             <LogoMark />
-            MarketingOS
+            <span className={styles.brandText}>MarketingOS</span>
           </span>
         </Link>
         <nav className={styles.navLinks}>
@@ -85,7 +106,34 @@ export default function PublicNav() {
             Get started
             <ArrowIcon className={styles.arrow} />
           </Link>
+          {/* Phones/tablets: the section links live behind this button. */}
+          <button
+            type="button"
+            className={`${styles.navCell} ${styles.menuBtn}`}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            aria-controls="public-menu"
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              {menuOpen ? (
+                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              ) : (
+                <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              )}
+            </svg>
+          </button>
         </div>
+        <nav id="public-menu" className={`${styles.mobileMenu} ${menuOpen ? styles.mobileMenuOpen : ''}`} aria-label="Site">
+          {LINKS.map((l) => (
+            <Link key={l.to} to={l.to} className={`${styles.mobileItem} wipe-host`}>
+              <span className="link-wipe">{l.label}</span>
+            </Link>
+          ))}
+          <Link to={loginTo} className={`${styles.mobileItem} wipe-host`}>
+            <span className="link-wipe">{authed ? 'Dashboard' : 'Log in'}</span>
+          </Link>
+        </nav>
       </div>
     </header>
   )
