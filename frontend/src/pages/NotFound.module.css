@@ -1,0 +1,10 @@
+.wrap { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 24px 0 40px; }
+.wrap p { margin-left: auto !important; margin-right: auto !important; }
+.code {
+  font-family: var(--font-display); font-weight: 700; letter-spacing: -0.08em; line-height: 0.85;
+  font-size: clamp(120px, 26vw, 300px); color: var(--mos-text);
+}
+.code span { display: inline-block; color: var(--mos-accent); animation: spinSlow 9s linear infinite; }
+@keyframes spinSlow { to { transform: rotate(1turn); } }
+.title { font-family: var(--font-display); font-size: clamp(26px, 3.4vw, 40px); font-weight: 600; letter-spacing: -0.03em; margin-top: 20px !important; }
+.path { font-family: var(--font-mono); font-size: 0.85em; padding: 2px 8px; border-radius: 8px; background: var(--mos-bg-raised); border: 1px solid var(--mos-surface-border); word-break: break-all; }

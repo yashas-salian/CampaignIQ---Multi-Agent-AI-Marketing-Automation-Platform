@@ -13,7 +13,7 @@
 // runs inside the graph), so this never touches the campaigns table itself.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-Deno.serve(async (req) => {
+async function handle(req: Request): Promise<Response> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
     return new Response("Missing Authorization header", { status: 401 });
@@ -70,4 +70,30 @@ Deno.serve(async (req) => {
   return new Response(JSON.stringify({ dispatched: true }), {
     headers: { "Content-Type": "application/json" },
   });
+}
+
+// Browsers call this through supabase.functions.invoke() from the website's own
+// origin, so it must answer the CORS preflight (an OPTIONS request that never
+// carries the Authorization header) and tag every response. "*" is safe here:
+// access is gated by the user's JWT bearer token, not by cookies.
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: CORS_HEADERS });
+  }
+  let res: Response;
+  try {
+    res = await handle(req);
+  } catch (err) {
+    // Without CORS headers the browser would hide this behind a CORS error.
+    res = new Response(`Internal error: ${err instanceof Error ? err.message : String(err)}`, { status: 500 });
+  }
+  const headers = new Headers(res.headers);
+  for (const [key, value] of Object.entries(CORS_HEADERS)) headers.set(key, value);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 });

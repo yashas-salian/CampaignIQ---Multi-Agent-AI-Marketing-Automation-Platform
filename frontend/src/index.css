@@ -1,83 +1,63 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: 'Fraunces';
-  src: url('/fonts/fraunces-var.ttf') format('truetype-variations');
-  font-weight: 300 900;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Fraunces';
-  src: url('/fonts/fraunces-italic-var.ttf') format('truetype-variations');
-  font-weight: 300 900;
-  font-style: italic;
-  font-display: swap;
-}
-
+/* "Signal" design tokens (see docs/redesign-plan.md). Pages only ever use the
+   --mos-* names, so swapping the palette here restyles the whole app. Fonts
+   are loaded in index.html. */
 :root {
-  --ink: #1a1611;
-  --ink-2: #241f17;
-  --parchment: #f1eadc;
-  --parchment-2: #e7ddc4;
-  --parchment-3: #d8cbab;
-  --brass: #c68a2e;
-  --brass-strong: #a86f1f;
-  --moss: #6d7a52;
-  --berry: #9c4a57;
-  --text-on-dark: #f1eadc;
-  --text-on-dark-muted: #c9bea7;
-  --text-on-light: #1a1611;
-  --text-on-light-muted: #5b5340;
+  --text-on-dark: #edf1f5;
+  --text-on-dark-muted: #8d97a5;
 
-  --mos-bg: var(--ink);
-  --mos-bg-raised: var(--ink-2);
-  --mos-surface: var(--ink-2);
-  --mos-surface-border: #3a3226;
-  --mos-text: var(--text-on-dark);
-  --mos-text-muted: var(--text-on-dark-muted);
-  --mos-accent: var(--brass);
-  --mos-accent-strong: #dba648;
-  --mos-on-accent: #1a1611;
-  --mos-card-bg: var(--parchment);
-  --mos-card-text: var(--text-on-light);
-  --mos-danger: var(--berry);
-  --mos-success: var(--moss);
+  --mos-bg: #0c0e10;
+  --mos-bg-raised: #12151a;
+  --mos-surface: #161a20;
+  --mos-surface-border: #242a33;
+  --mos-text: #edf1f5;
+  --mos-text-muted: #8d97a5;
+  --mos-accent: #ff6b3d;
+  --mos-accent-strong: #ff8a63;
+  --mos-on-accent: #140a05;
+  --mos-danger: #ff5470;
+  --mos-success: #3ecf8e;
 
-  --font-display: 'Fraunces', ui-serif, Georgia, serif;
-  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 
-  --mos-container: 1180px;
-  --mos-radius: 20px;
+  --mos-container: 1200px;
+  --mos-radius: 18px;
+  --mos-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root:not([data-theme='light']) { color-scheme: dark; }
 
 :root[data-theme='light'] {
-  --mos-bg: var(--parchment);
-  --mos-bg-raised: var(--parchment-2);
+  --mos-bg: #f7f6f3;
+  --mos-bg-raised: #efede8;
   --mos-surface: #ffffff;
-  --mos-surface-border: var(--parchment-3);
-  --mos-text: var(--text-on-light);
-  --mos-text-muted: var(--text-on-light-muted);
-  --mos-accent: var(--brass-strong);
-  --mos-accent-strong: #8a5a18;
-  --mos-on-accent: #f1eadc;
+  --mos-surface-border: #e2dfd8;
+  --mos-text: #111316;
+  --mos-text-muted: #5f6672;
+  --mos-accent: #e4521f;
+  --mos-accent-strong: #c2410c;
+  --mos-on-accent: #ffffff;
+  --mos-danger: #e0364f;
+  --mos-success: #16a36a;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme='dark']) {
-    --mos-bg: var(--parchment);
-    --mos-bg-raised: var(--parchment-2);
+    --mos-bg: #f7f6f3;
+    --mos-bg-raised: #efede8;
     --mos-surface: #ffffff;
-    --mos-surface-border: var(--parchment-3);
-    --mos-text: var(--text-on-light);
-    --mos-text-muted: var(--text-on-light-muted);
-    --mos-accent: var(--brass-strong);
-    --mos-accent-strong: #8a5a18;
-    --mos-on-accent: #f1eadc;
+    --mos-surface-border: #e2dfd8;
+    --mos-text: #111316;
+    --mos-text-muted: #5f6672;
+    --mos-accent: #e4521f;
+    --mos-accent-strong: #c2410c;
+    --mos-on-accent: #ffffff;
+    --mos-danger: #e0364f;
+    --mos-success: #16a36a;
     color-scheme: light;
   }
 }
@@ -85,6 +65,11 @@
 html, body {
   background: var(--mos-bg);
   color: var(--mos-text);
+}
+
+/* In-page links (#loop, #pricing…) glide instead of jumping. */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
 }
 
 body {
@@ -98,13 +83,50 @@ body {
 h1, h2, h3 {
   font-family: var(--font-display);
   font-weight: 600;
+  letter-spacing: -0.02em;
   text-wrap: balance;
 }
 
 a { color: inherit; }
 
+/* Site-wide link hover: the text fills with orange from left to right while
+   an orange underline draws in the same direction. Use .link-wipe on the text
+   itself; put .wipe-host on a larger clickable parent (e.g. a nav cell) to
+   trigger it from anywhere inside that parent. --wipe-base is the resting
+   text color. Icons inside follow the same color change. */
+.link-wipe {
+  --wipe-base: var(--mos-text-muted);
+  position: relative;
+  display: inline-block;
+  text-decoration: none;
+  color: transparent;
+  background-image: linear-gradient(90deg, var(--mos-accent) 0 50%, var(--wipe-base) 50% 100%);
+  background-size: 200% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  transition: background-position 0.5s var(--mos-ease);
+}
+.link-wipe::after {
+  content: '';
+  position: absolute; left: 0; right: 0; bottom: -3px; height: 1.5px;
+  background: var(--mos-accent);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.5s var(--mos-ease);
+}
+.link-wipe svg { color: var(--wipe-base); transition: color 0.5s var(--mos-ease); }
+.link-wipe:hover, .link-wipe:focus-visible,
+.wipe-host:hover .link-wipe, .wipe-host:focus-visible .link-wipe { background-position: 0 0; }
+.link-wipe:hover::after, .link-wipe:focus-visible::after,
+.wipe-host:hover .link-wipe::after, .wipe-host:focus-visible .link-wipe::after { transform: scaleX(1); }
+.link-wipe:hover svg, .wipe-host:hover .link-wipe svg { color: var(--mos-accent); }
+
 ::selection { background: var(--mos-accent); color: var(--mos-on-accent); }
 
 @media (prefers-reduced-motion: reduce) {
-  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -162,8 +162,8 @@ Single-tenant, no auth yet (M4 adds that). Setup:
    "service_role" secret — server-side only, never expose this one).
 3. `cd frontend && npm install && copy .env.example .env`, then fill in
    `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (same page, "anon
-   public" key — safe to expose in the browser since RLS is off and there's
-   nothing per-user yet).
+   public" key — safe to expose in the browser; from M4 on, row-level
+   security limits it to the logged-in user's own rows).
 4. `npm run dev` to run the frontend locally.
 
 Create a campaign from the Dashboard (see "Using the app" below) — it runs
@@ -256,4 +256,36 @@ The frontend's own UI chrome is separately localizable via `react-i18next`
 — a language switcher in the nav bar, independent of any campaign's
 `target_language`. Ships with 5 locales (English/Spanish/French/Hindi/
 Portuguese, `frontend/src/i18n/locales/`); add another by dropping in a new
-locale JSON with the same keys.
+locale JSON with the same keys. The public marketing page (`/`) is
+deliberately English-only; localization covers the logged-in app.
+
+## Deploying the frontend
+
+The frontend is a static Vite build, so any static host works. Vercel is the
+default (`frontend/vercel.json`); Netlify is covered by `frontend/public/_redirects`.
+Both send every route to `index.html`, so deep links like `/campaigns/<id>`
+survive a page reload.
+
+1. **Redeploy the four browser-facing Edge Functions** (`create-campaign`,
+   `resume-campaign`, `submit-provider-key`, `trigger-capability-run`) from
+   `supabase_setup/functions/`. They answer the browser's CORS preflight; the
+   earlier versions rejected it with a 401, which blocks every call made from
+   the website.
+2. **Import the repo on Vercel** with **Root Directory = `frontend`**. The
+   framework preset is Vite; build and output settings come from `vercel.json`.
+3. **Set the environment variables** in the Vercel project (Production and
+   Preview): `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Use the anon key
+   only, never the service-role key.
+4. **Tell Supabase about the new origin** (Authentication → URL Configuration):
+   - **Site URL**: the production URL, e.g. `https://marketingos.vercel.app`.
+     Email confirmation links land here.
+   - **Redirect URLs**: add `https://<your-domain>/**` (and keep
+     `http://localhost:5173/**` for local development). Google and GitHub
+     sign-in return to `/login` on whichever origin started them.
+5. **Google / GitHub sign-in (optional)**: the provider callback stays the
+   Supabase URL (`https://<project-ref>.supabase.co/auth/v1/callback`). For
+   Google's consent screen, use the deployed `/privacy` and `/terms` pages.
+
+Smoke check after deploying: open `/`, `/about` and a made-up URL (it should
+show the 404 page, not a host error), sign in, create a campaign from the
+Dashboard, and confirm no CORS errors appear in the browser console.

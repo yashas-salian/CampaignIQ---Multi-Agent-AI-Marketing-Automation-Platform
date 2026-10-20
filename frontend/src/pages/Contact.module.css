@@ -1,0 +1,54 @@
+/* Contact-page-only layout; shared pieces come from components/public.module.css. */
+.layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 56px; }
+@media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
+
+.form { display: flex; flex-direction: column; gap: 20px; padding: 32px; }
+.form:hover { translate: none; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 600px) { .row { grid-template-columns: 1fr; } .form { padding: 22px; } }
+.field { position: relative; display: flex; flex-direction: column; gap: 8px; }
+.field > span { font-size: 13px; font-weight: 500; color: var(--mos-text-muted); }
+.field input, .field textarea {
+  width: 100%; font: inherit; font-size: 15px; color: var(--mos-text);
+  background: var(--mos-bg); border: 1px solid var(--mos-surface-border); border-radius: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.field input { height: 50px; padding: 0 16px; }
+.field textarea { padding: 14px 16px 30px; line-height: 1.55; resize: vertical; }
+.field input::placeholder, .field textarea::placeholder { color: var(--mos-text-muted); }
+.field input:hover, .field textarea:hover { border-color: color-mix(in srgb, var(--mos-text) 22%, var(--mos-surface-border)); }
+.field input:focus, .field textarea:focus { outline: none; border-color: var(--mos-accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--mos-accent) 16%, transparent); }
+.count { position: absolute; right: 14px; bottom: 10px; font-size: 11.5px; color: var(--mos-text-muted); }
+
+.topics { display: flex; flex-wrap: wrap; gap: 8px; }
+.topic {
+  padding: 8px 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13.5px;
+  color: var(--mos-text); background: var(--mos-bg); border: 1px solid var(--mos-surface-border);
+  transition: border-color 0.25s ease, background 0.25s ease, color 0.25s ease, transform 0.35s var(--mos-ease);
+}
+.topic:hover { border-color: var(--mos-accent); transform: translateY(-1px); }
+.topic:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: 2px; }
+.topicActive { background: var(--mos-accent); border-color: var(--mos-accent); color: #111316; font-weight: 600; }
+
+.formFoot { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.note { font-size: 13px; color: var(--mos-text-muted); max-width: 40ch; line-height: 1.5; }
+.sent {
+  padding: 12px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5;
+  background: color-mix(in srgb, var(--mos-success) 12%, transparent); border: 1px solid color-mix(in srgb, var(--mos-success) 35%, transparent);
+  animation: pop 0.45s var(--mos-ease) both;
+}
+@keyframes pop { from { opacity: 0; transform: translateY(8px); } }
+
+.side { display: flex; flex-direction: column; gap: 16px; }
+.email { font-size: 18px !important; word-break: break-all; }
+.actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 8px; font-size: 14px; }
+.actions a { --wipe-base: var(--mos-text); }
+.copy {
+  padding: 7px 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px;
+  color: var(--mos-text); background: var(--mos-bg-raised); border: 1px solid var(--mos-surface-border);
+  transition: border-color 0.25s ease;
+}
+.copy:hover { border-color: var(--mos-accent); }
+.inlineLink { margin-top: 12px; font-size: 14px; --wipe-base: var(--mos-text); }
+.quick { display: flex; gap: 18px; margin-top: 12px; font-size: 14px; }
+.quick a { --wipe-base: var(--mos-text); }

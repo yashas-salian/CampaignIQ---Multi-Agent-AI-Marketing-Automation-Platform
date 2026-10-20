@@ -22,11 +22,15 @@
 .card {
   background: var(--mos-surface);
   border: 1px solid var(--mos-surface-border);
-  border-radius: 14px;
+  border-radius: var(--mos-radius);
 }
 
-.cardHover { transition: background 0.15s ease, border-color 0.15s ease; }
-.cardHover:hover { background: var(--mos-bg-raised); border-color: color-mix(in srgb, var(--mos-text) 24%, var(--mos-surface-border)); }
+.cardHover { transition: translate 0.4s var(--mos-ease), border-color 0.25s ease, box-shadow 0.4s var(--mos-ease); }
+.cardHover:hover {
+  translate: 0 -3px;
+  border-color: color-mix(in srgb, var(--mos-text) 24%, var(--mos-surface-border));
+  box-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.5);
+}
 
 .highlight {
   border-color: color-mix(in srgb, var(--mos-accent) 55%, var(--mos-surface-border));
@@ -38,10 +42,11 @@
   background: var(--mos-surface);
   color: var(--mos-text);
   border: 1px solid var(--mos-surface-border);
-  border-radius: 10px;
-  padding: 8px 10px;
+  border-radius: 12px;
+  padding: 10px 12px;
   font-size: 14px;
   font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .input::placeholder, .textarea::placeholder { color: var(--mos-text-muted); }
 .input:focus, .textarea:focus, .select:focus {
@@ -63,10 +68,11 @@
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.35s var(--mos-ease), box-shadow 0.35s var(--mos-ease), opacity 0.15s ease;
 }
 .btn:disabled { opacity: 0.5; cursor: default; }
-.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:hover:not(:disabled) { transform: translateY(-2px); }
+.btnPrimary:hover:not(:disabled) { box-shadow: 0 10px 26px -10px var(--mos-accent); }
 .btn:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: 2px; }
 
 .btnPrimary { background: var(--mos-accent); color: var(--mos-on-accent); }
@@ -104,34 +110,80 @@
 .table th { text-align: left; font-weight: 400; color: var(--mos-text-muted); }
 .table tr + tr td { border-top: 1px solid var(--mos-surface-border); }
 
-/* TopBar (App.tsx) */
+/* TopBar (App.tsx): segmented tile bar matching the Landing nav. The bar's
+   own background shows through the 4px gaps as the tile dividers. */
 .topbar {
-  border-bottom: 1px solid var(--mos-surface-border);
-  background: color-mix(in srgb, var(--mos-bg) 92%, transparent);
-}
-.topbarInner {
-  max-width: 60rem;
-  margin: 0 auto;
-  padding: 16px 32px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  height: 64px;
+  --nav-tile: #0c0e10;
+  --nav-gap: #2a3039;
+  --nav-text: #edf1f5;
+  background: var(--nav-gap);
+  border-bottom: 1px solid var(--nav-gap);
 }
-.topbarLinks { display: flex; gap: 20px; align-items: center; font-size: 14px; }
-.topbarLink { color: var(--mos-text-muted); text-decoration: none; transition: color 0.15s ease; }
-.topbarLink:hover { color: var(--mos-text); }
-
-.themeToggle {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--mos-text) 20%, transparent);
+.topbarLinks { display: flex; gap: 4px; }
+.topbarCell {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  color: var(--mos-text);
+  gap: 10px;
+  height: 100%;
+  padding: 0 22px;
+  border: none;
+  background: var(--nav-tile);
+  color: var(--nav-text);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
-  flex: none;
+  transition: background 0.3s ease;
 }
-.themeToggle svg { width: 15px; height: 15px; }
+.topbarCell:hover { background: color-mix(in srgb, var(--nav-text) 6%, var(--nav-tile)); }
+.topbarCell:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: -2px; }
+.topbarCell :global(.link-wipe) { --wipe-base: var(--nav-text); }
+/* Current page: orange underline bar, text held in the wiped (orange) state. */
+.topbarActive { box-shadow: inset 0 -2px 0 var(--mos-accent); }
+.topbarActive :global(.link-wipe) { background-position: 0 0; }
+.topbarBrand {
+  flex: 1;
+  justify-content: flex-start;
+  padding-left: 24px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+.topbarBrand svg { width: 22px; height: 22px; color: var(--mos-accent); transition: transform 0.6s var(--mos-ease); }
+.topbarBrand:hover svg { transform: rotate(-90deg); }
+.topbarSelect {
+  background: transparent;
+  border: none;
+  color: var(--nav-text);
+  font: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+.topbarSelect:focus { outline: none; }
+.topbarSelect option { background: var(--nav-tile); color: var(--nav-text); }
+.topbarSignOut { text-transform: none; letter-spacing: normal; font-size: 13px; }
+
+.themeToggle { width: 60px; padding: 0; }
+.themeToggle svg { width: 17px; height: 17px; transition: transform 0.6s var(--mos-ease), color 0.3s ease; }
+.themeToggle:hover svg { transform: rotate(40deg); color: var(--mos-accent); }
+
+@media (max-width: 900px) {
+  .topbar { height: auto; flex-wrap: wrap; }
+  .topbarCell { height: 52px; padding: 0 14px; }
+  .topbarBrand { flex-basis: 100%; }
+}

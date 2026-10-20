@@ -39,7 +39,7 @@ The parts of this system that differentiate it from a generic "LLM wrapper" port
 
 | Concern | Choice | Why free/why this one |
 |---|---|---|
-| LLM (agents/copy/reasoning) | Groq free tier (Llama 3.3 70B) | Fast, generous free rate limits, great for multi-agent loops |
+| LLM (agents/copy/reasoning) | Groq free tier (`openai/gpt-oss-120b`; was Llama 3.3 70B until Groq retired it in 2026-10) | Fast, generous free rate limits, great for multi-agent loops |
 | LLM (fallback/vision if needed) | Google Gemini 1.5 Flash free tier | Free quota, multimodal |
 | Image generation | Pollinations.ai (no key needed) | Fully free, zero rate-limit friction for a portfolio demo |
 | Market/trend signal | `pytrends` (Google Trends, unofficial) | Free, no key |
@@ -70,7 +70,7 @@ Every capability below has a common interface (a small Protocol/ABC) plus a regi
 
 | Capability | Free default (tier 1) | Paid upgrade (tier 2/3) |
 |---|---|---|
-| Core reasoning LLM | Groq Llama 3.3 70B | OpenAI GPT-4o / Anthropic Claude |
+| Core reasoning LLM | Groq `openai/gpt-oss-120b` | OpenAI GPT-4o / Anthropic Claude |
 | Image generation | Pollinations.ai | OpenAI image gen / Ideogram / Stability |
 | Embeddings | `sentence-transformers` (local) | OpenAI `text-embedding-3` / Cohere embed |
 | News/market signal | NewsAPI free tier | NewsAPI paid tier / SerpApi |

@@ -4,7 +4,9 @@ from groq import Groq
 
 from src.providers.base import LLMProvider
 
-MODEL = "llama-3.3-70b-versatile"
+# Groq retired llama-3.3-70b-versatile (404 model_not_found, 2026-10); this is
+# the largest model left on its free tier.
+MODEL = "openai/gpt-oss-120b"
 
 
 class GroqLLMProvider(LLMProvider):

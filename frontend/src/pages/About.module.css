@@ -1,0 +1,39 @@
+/* About-page-only layout; shared pieces come from components/public.module.css. */
+.heroMedia { margin: 56px 0 0; }
+.heroMedia img {
+  display: block; width: 100%; aspect-ratio: 21 / 9; object-fit: cover; object-position: center 35%;
+  border-radius: 24px; border: 1px solid var(--mos-surface-border); background: var(--mos-bg-raised);
+  transition: transform 1.2s var(--mos-ease), filter 0.6s ease;
+}
+.heroMedia:hover img { transform: scale(1.01); }
+.heroMedia figcaption { margin-top: 12px; font-size: 13px; color: var(--mos-text-muted); }
+.heroMedia figcaption a { color: var(--mos-text); }
+@media (max-width: 640px) { .heroMedia img { aspect-ratio: 4 / 3; } }
+.gapTop { margin-top: 40px; }
+
+.principle { display: grid; grid-template-columns: 48px 1fr; gap: 16px; align-items: start; }
+.principle h3 { margin-top: 0 !important; }
+.num { font-family: var(--font-display); font-size: 28px; font-weight: 600; color: var(--mos-accent); line-height: 1; letter-spacing: -0.03em; }
+
+.timeline { list-style: none; margin: 40px 0 0; padding: 0; position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; }
+.timeline li { display: grid; grid-template-columns: 56px 1fr; gap: 16px; padding: 22px 0; border-top: 1px solid var(--mos-surface-border); transition: transform 0.4s var(--mos-ease); }
+.timeline li:hover { transform: translateX(4px); }
+.timeline h3 { font-family: var(--font-display); font-size: 19px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 6px !important; }
+.timeline p { color: var(--mos-text-muted); font-size: 15px; line-height: 1.6; }
+.tag {
+  display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px;
+  font-family: var(--font-mono); font-size: 14px; font-weight: 600;
+  background: var(--mos-accent); color: #111316;
+}
+@media (max-width: 860px) { .timeline { grid-template-columns: 1fr; } }
+
+.builder { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 56px; align-items: center; }
+.portrait { aspect-ratio: 4 / 5; }
+@media (max-width: 900px) { .builder { grid-template-columns: 1fr; gap: 32px; } .portrait { max-width: 360px; } }
+.stack { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+.stack span {
+  padding: 6px 12px; border-radius: 999px; font-size: 13px;
+  background: var(--mos-surface); border: 1px solid var(--mos-surface-border);
+  transition: border-color 0.25s ease, color 0.25s ease;
+}
+.stack span:hover { border-color: var(--mos-accent); color: var(--mos-accent); }

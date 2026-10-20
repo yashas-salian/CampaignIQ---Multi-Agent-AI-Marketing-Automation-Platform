@@ -25,6 +25,7 @@ export interface Campaign {
   campaign_summary: Record<string, unknown> | null
   distributed_at: string | null
   stop_requested: boolean
+  target_language: string
   created_at: string
   updated_at: string
 }

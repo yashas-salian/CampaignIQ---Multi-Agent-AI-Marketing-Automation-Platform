@@ -1,10 +1,16 @@
-import { useEffect, useState } from 'react'
+import type { CSSProperties, DragEvent, ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
-import styles from '../styles/shell.module.css'
 import { useSession } from '../lib/useAuth'
+import styles from '../styles/app.module.css'
+import local from './Settings.module.css'
 
 const CAPABILITIES = ['llm', 'image', 'judge'] as const
+type KeyCapability = (typeof CAPABILITIES)[number]
+const FREE_ROUNDS = 3
+const PAID_ROUNDS = 10
 
 interface MaskedKey {
   capability: string
@@ -19,62 +25,119 @@ interface Template {
   updated_at: string
 }
 
+type Notice = { kind: 'ok' | 'error'; text: string } | null
+
+const KEY_ICONS: Record<KeyCapability, ReactNode> = {
+  llm: <path d="M4 6h16M4 12h10M4 18h7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />,
+  image: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="2" />
+      <path d="M3 15l5-5 4 4 3-3 6 6" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </>
+  ),
+  judge: <path d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.4 6.7 19.1l1-5.8L3.5 9.2l5.9-.9z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />,
+}
+
+function NoticeLine({ notice, onClose }: { notice: Notice; onClose: () => void }) {
+  if (!notice) return null
+  return (
+    <p className={`${styles.toast} ${notice.kind === 'ok' ? styles.toastOk : styles.toastError}`} role={notice.kind === 'ok' ? 'status' : 'alert'}>
+      {notice.text}
+      <button type="button" onClick={onClose} aria-label="Dismiss">
+        ×
+      </button>
+    </p>
+  )
+}
+
 export default function Settings() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { session } = useSession()
   const [keys, setKeys] = useState<Record<string, MaskedKey>>({})
   const [inputs, setInputs] = useState<Record<string, string>>({})
+  const [reveal, setReveal] = useState<Record<string, boolean>>({})
   const [submitting, setSubmitting] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+  const [keyNotice, setKeyNotice] = useState<Notice>(null)
+  const [tier, setTier] = useState<'free' | 'subscribed'>('free')
 
   const [templates, setTemplates] = useState<Record<string, Template>>({})
   const [emailHtml, setEmailHtml] = useState('')
-  const [templateMessage, setTemplateMessage] = useState<string | null>(null)
+  const [templateNotice, setTemplateNotice] = useState<Notice>(null)
   const [savingTemplate, setSavingTemplate] = useState<'image' | 'email' | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const [copied, setCopied] = useState(false)
 
-  async function load() {
-    const { data } = await supabase.from('provider_keys_masked').select('*')
+  const load = useCallback(async () => {
+    const [{ data }, { data: sub }] = await Promise.all([
+      supabase.from('provider_keys_masked').select('*'),
+      supabase.from('subscriptions').select('status').maybeSingle(),
+    ])
     const byCapability: Record<string, MaskedKey> = {}
-    for (const row of (data as MaskedKey[]) ?? []) {
-      byCapability[row.capability] = row
-    }
+    for (const row of (data as MaskedKey[]) ?? []) byCapability[row.capability] = row
     setKeys(byCapability)
-  }
+    setTier(sub?.status === 'subscribed' ? 'subscribed' : 'free')
+  }, [])
 
-  async function loadTemplates() {
+  const loadTemplates = useCallback(async () => {
     const { data } = await supabase.from('templates').select('*')
     const byType: Record<string, Template> = {}
-    for (const row of (data as Template[]) ?? []) {
-      byType[row.template_type] = row
-    }
+    for (const row of (data as Template[]) ?? []) byType[row.template_type] = row
     setTemplates(byType)
     setEmailHtml(byType.email?.email_html ?? '')
-  }
+  }, [])
 
   useEffect(() => {
     load()
     loadTemplates()
-  }, [])
+  }, [load, loadTemplates])
+
+  // Notices clear themselves.
+  useEffect(() => {
+    if (!keyNotice) return
+    const id = setTimeout(() => setKeyNotice(null), 7000)
+    return () => clearTimeout(id)
+  }, [keyNotice])
+  useEffect(() => {
+    if (!templateNotice) return
+    const id = setTimeout(() => setTemplateNotice(null), 7000)
+    return () => clearTimeout(id)
+  }, [templateNotice])
+
+  async function submit(capability: KeyCapability) {
+    const apiKey = inputs[capability]?.trim()
+    if (!apiKey) return
+    setSubmitting(capability)
+    setKeyNotice(null)
+    const { data, error } = await supabase.functions.invoke('submit-provider-key', {
+      body: { capability, api_key: apiKey },
+    })
+    setSubmitting(null)
+    if (error) {
+      setKeyNotice({ kind: 'error', text: t('st.failed', { message: error.message }) })
+      return
+    }
+    setKeyNotice({ kind: 'ok', text: t('st.saved', { capability: t(`st.cap_${capability}`), masked: data.masked_key }) })
+    setInputs((prev) => ({ ...prev, [capability]: '' }))
+    setReveal((prev) => ({ ...prev, [capability]: false }))
+    await load()
+  }
 
   async function uploadImageTemplate(file: File) {
     const userId = session?.user.id
-    if (!userId) return
+    if (!userId || !file.type.startsWith('image/')) return
     setSavingTemplate('image')
-    setTemplateMessage(null)
-
+    setTemplateNotice(null)
     const base64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = () => resolve((reader.result as string).split(',')[1])
       reader.onerror = reject
       reader.readAsDataURL(file)
     })
-
     const { error } = await supabase
       .from('templates')
       .upsert({ user_id: userId, template_type: 'image', image_base64: base64 }, { onConflict: 'user_id,template_type' })
-
     setSavingTemplate(null)
-    setTemplateMessage(error ? `Failed: ${error.message}` : 'Image template saved.')
+    setTemplateNotice(error ? { kind: 'error', text: t('st.failed', { message: error.message }) } : { kind: 'ok', text: t('st.imageSaved') })
     if (!error) await loadTemplates()
   }
 
@@ -82,117 +145,282 @@ export default function Settings() {
     const userId = session?.user.id
     if (!userId) return
     setSavingTemplate('email')
-    setTemplateMessage(null)
-
+    setTemplateNotice(null)
     const { error } = await supabase
       .from('templates')
       .upsert({ user_id: userId, template_type: 'email', email_html: emailHtml }, { onConflict: 'user_id,template_type' })
-
     setSavingTemplate(null)
-    setTemplateMessage(error ? `Failed: ${error.message}` : 'Email template saved.')
+    setTemplateNotice(error ? { kind: 'error', text: t('st.failed', { message: error.message }) } : { kind: 'ok', text: t('st.emailSaved') })
     if (!error) await loadTemplates()
   }
 
-  async function submit(capability: string) {
-    const apiKey = inputs[capability]
-    if (!apiKey) return
-    setSubmitting(capability)
-    setMessage(null)
-
-    const { data, error } = await supabase.functions.invoke('submit-provider-key', {
-      body: { capability, api_key: apiKey },
-    })
-
-    setSubmitting(null)
-    if (error) {
-      setMessage(`Failed: ${error.message}`)
-      return
-    }
-    setMessage(`Saved ${capability} key (${data.masked_key})`)
-    setInputs((prev) => ({ ...prev, [capability]: '' }))
-    await load()
+  function onDrop(e: DragEvent<HTMLLabelElement>) {
+    e.preventDefault()
+    setDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) uploadImageTemplate(file)
   }
 
+  async function copyUserId() {
+    if (!session) return
+    try {
+      await navigator.clipboard.writeText(session.user.id)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch {
+      // Clipboard blocked: the ID is still selectable.
+    }
+  }
+
+  // The backend swaps "{{copy}}" for the ad copy (distribution_email.py); preview the same way.
+  const previewDoc = useMemo(() => {
+    const sample = `<p style="margin:0;padding:12px 14px;border:1px dashed #e4521f;border-radius:8px;font-family:sans-serif">${t('st.previewSample')}</p>`
+    return emailHtml.trim() ? emailHtml.split('{{copy}}').join(sample) : ''
+  }, [emailHtml, t])
+
+  const fmt = (iso: string) => new Date(iso).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' })
+  const sections = [
+    { id: 'account', label: t('st.navAccount') },
+    { id: 'keys', label: t('st.navKeys') },
+    { id: 'templates', label: t('st.navTemplates') },
+  ]
+
   return (
-    <div className={`max-w-2xl mx-auto p-8 space-y-6 ${styles.shell}`}>
-      <h1 className="text-2xl">{t('settings.title')}</h1>
-      <p className={`text-sm ${styles.muted}`}>{t('settings.subtitle')}</p>
-
-      {message && <p className="text-sm" style={{ color: 'var(--mos-accent)' }}>{message}</p>}
-
-      {CAPABILITIES.map((capability) => (
-        <div key={capability} className={`${styles.card} p-4`}>
-          <div className="flex justify-between items-center mb-2">
-            <span className="font-medium capitalize">{capability}</span>
-            <span className={`text-sm ${styles.muted} ${styles.mono}`}>
-              {keys[capability]?.masked_key ?? t('settings.notSet')}
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="password"
-              placeholder={t('settings.keyPlaceholder')}
-              value={inputs[capability] ?? ''}
-              onChange={(e) => setInputs((prev) => ({ ...prev, [capability]: e.target.value }))}
-              className={`flex-1 ${styles.input}`}
-            />
-            <button
-              onClick={() => submit(capability)}
-              disabled={submitting === capability}
-              className={`${styles.btn} ${styles.btnPrimary}`}
-            >
-              {submitting === capability ? t('settings.saving') : t('settings.save')}
-            </button>
-          </div>
+    <div className={styles.page}>
+      <header className={`${styles.header} ${styles.enter}`}>
+        <div>
+          <span className={styles.eyebrow}>{t('common.settings')}</span>
+          <h1 className={styles.title}>{t('st.title')}</h1>
+          <p className={styles.subtitle}>{t('st.subtitle')}</p>
         </div>
-      ))}
+      </header>
 
-      <div className={`${styles.divider} pt-6 space-y-4`}>
-        <h2 className="text-xl">{t('settings.templatesTitle')}</h2>
-        <p className={`text-sm ${styles.muted}`}>{t('settings.templatesSubtitle')}</p>
+      <div className={local.layout}>
+        <nav className={local.side} aria-label={t('st.title')}>
+          {sections.map((s) => (
+            <a key={s.id} href={`#${s.id}`} className="link-wipe">
+              {s.label}
+            </a>
+          ))}
+        </nav>
 
-        {templateMessage && <p className="text-sm" style={{ color: 'var(--mos-accent)' }}>{templateMessage}</p>}
+        <div className={styles.stack}>
+          {/* Account */}
+          <section id="account" className={`${styles.panel} ${local.section} ${styles.enter}`} style={{ '--i': 1 } as CSSProperties}>
+            <div className={styles.panelHead}>
+              <h2>{t('st.navAccount')}</h2>
+              <span className={`${local.tier} ${tier === 'subscribed' ? local.tierPaid : ''}`}>
+                {tier === 'subscribed' ? t('dash.planSubscribed') : t('dash.planFree')}
+              </span>
+            </div>
+            <dl className={local.account}>
+              <div>
+                <dt>{t('st.email')}</dt>
+                <dd>{session?.user.email ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>{t('st.userId')}</dt>
+                <dd className={local.idRow}>
+                  <code>{session?.user.id ?? '—'}</code>
+                  <button type="button" className={local.copy} onClick={copyUserId}>
+                    {copied ? '✓' : 'Copy'}
+                  </button>
+                </dd>
+              </div>
+              <div>
+                <dt>{t('st.plan')}</dt>
+                <dd>{t('dash.planRounds', { rounds: tier === 'subscribed' ? PAID_ROUNDS : FREE_ROUNDS })}</dd>
+              </div>
+            </dl>
+            <div className={local.accountFoot}>
+              <button type="button" className={`${styles.btn} ${styles.danger}`} onClick={() => supabase.auth.signOut()}>
+                {t('st.signOut')}
+              </button>
+              <nav className={local.legalLinks} aria-label="Legal">
+                <Link className="link-wipe" to="/privacy">
+                  {t('st.privacy')}
+                </Link>
+                <Link className="link-wipe" to="/terms">
+                  {t('st.terms')}
+                </Link>
+              </nav>
+            </div>
+          </section>
 
-        <div className={`${styles.card} p-4`}>
-          <div className="flex justify-between items-center mb-2">
-            <span className="font-medium">{t('settings.imageTemplateLabel')}</span>
-            <span className={`text-sm ${styles.muted}`}>{templates.image ? t('settings.set') : t('settings.notSet')}</span>
-          </div>
-          {templates.image?.image_base64 && (
-            <img
-              src={`data:image/png;base64,${templates.image.image_base64}`}
-              alt="Current image template"
-              className="max-h-32 rounded mb-2"
-            />
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => e.target.files?.[0] && uploadImageTemplate(e.target.files[0])}
-            disabled={savingTemplate === 'image'}
-            className="text-sm"
-          />
-        </div>
+          {/* API keys */}
+          <section id="keys" className={`${styles.panel} ${local.section} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties}>
+            <div className={styles.panelHead}>
+              <div>
+                <h2>{t('st.keysTitle')}</h2>
+                <p className={styles.panelSub}>{t('settings.subtitle')}</p>
+              </div>
+            </div>
+            <p className={local.security}>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="2" />
+                <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="2" />
+              </svg>
+              {t('st.securityNote')}
+            </p>
+            <NoticeLine notice={keyNotice} onClose={() => setKeyNotice(null)} />
+            <div className={local.keys}>
+              {CAPABILITIES.map((capability) => {
+                const existing = keys[capability]
+                return (
+                  <article key={capability} className={local.key}>
+                    <div className={local.keyHead}>
+                      <span className={local.keyIcon}>
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          {KEY_ICONS[capability]}
+                        </svg>
+                      </span>
+                      <div className={local.keyTitle}>
+                        <strong>{t(`st.cap_${capability}`)}</strong>
+                        <span>{t(`st.cap_${capability}_desc`)}</span>
+                      </div>
+                      {existing ? (
+                        <span className={`${styles.pill} ${styles.pillDone}`}>
+                          <span className={styles.pillDot} aria-hidden="true" />
+                          {t('st.active')}
+                        </span>
+                      ) : (
+                        <span className={styles.pill}>{t('settings.notSet')}</span>
+                      )}
+                    </div>
+                    {existing && (
+                      <p className={local.masked}>
+                        <code>{existing.masked_key}</code>
+                        <span>{t('st.updated', { time: fmt(existing.updated_at) })}</span>
+                      </p>
+                    )}
+                    <div className={styles.inputRow}>
+                      <div className={local.secret}>
+                        <input
+                          type={reveal[capability] ? 'text' : 'password'}
+                          className={styles.input}
+                          placeholder={t('settings.keyPlaceholder')}
+                          autoComplete="off"
+                          spellCheck={false}
+                          value={inputs[capability] ?? ''}
+                          onChange={(e) => setInputs((prev) => ({ ...prev, [capability]: e.target.value }))}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') submit(capability)
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className={local.eye}
+                          aria-label={reveal[capability] ? t('login.hidePassword') : t('login.showPassword')}
+                          onClick={() => setReveal((prev) => ({ ...prev, [capability]: !prev[capability] }))}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z" stroke="currentColor" strokeWidth="1.8" />
+                            {reveal[capability] ? (
+                              <path d="M4 4l16 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                            ) : (
+                              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+                            )}
+                          </svg>
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.primary}`}
+                        onClick={() => submit(capability)}
+                        disabled={submitting === capability || !inputs[capability]?.trim()}
+                      >
+                        {submitting === capability && <span className={styles.spinner} aria-hidden="true" />}
+                        {submitting === capability ? t('settings.saving') : t('settings.save')}
+                      </button>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          </section>
 
-        <div className={`${styles.card} p-4`}>
-          <div className="flex justify-between items-center mb-2">
-            <span className="font-medium">{t('settings.emailTemplateLabel')}</span>
-            <span className={`text-sm ${styles.muted}`}>{templates.email ? t('settings.set') : t('settings.notSet')}</span>
-          </div>
-          <textarea
-            placeholder={t('settings.emailTemplatePlaceholder', { placeholder: '{{copy}}' })}
-            value={emailHtml}
-            onChange={(e) => setEmailHtml(e.target.value)}
-            rows={6}
-            className={`${styles.textarea} ${styles.mono} mb-2`}
-          />
-          <button
-            onClick={saveEmailTemplate}
-            disabled={savingTemplate === 'email'}
-            className={`${styles.btn} ${styles.btnPrimary}`}
-          >
-            {savingTemplate === 'email' ? t('settings.saving') : t('settings.save')}
-          </button>
+          {/* Templates */}
+          <section id="templates" className={`${styles.panel} ${local.section} ${styles.enter}`} style={{ '--i': 3 } as CSSProperties}>
+            <div className={styles.panelHead}>
+              <div>
+                <h2>{t('st.navTemplates')}</h2>
+                <p className={styles.panelSub}>{t('settings.templatesSubtitle')}</p>
+              </div>
+            </div>
+            <NoticeLine notice={templateNotice} onClose={() => setTemplateNotice(null)} />
+
+            <div className={local.templates}>
+              <div className={local.tplBlock}>
+                <div className={local.tplHead}>
+                  <strong>{t('settings.imageTemplateLabel')}</strong>
+                  <span className={styles.pill}>{templates.image ? t('settings.set') : t('settings.notSet')}</span>
+                </div>
+                <label
+                  className={`${local.drop} ${dragging ? local.dropActive : ''}`}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setDragging(true)
+                  }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={onDrop}
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={savingTemplate === 'image'}
+                    onChange={(e) => e.target.files?.[0] && uploadImageTemplate(e.target.files[0])}
+                  />
+                  {templates.image?.image_base64 ? (
+                    <img src={`data:image/png;base64,${templates.image.image_base64}`} alt={t('settings.imageTemplateLabel')} />
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                  <span>
+                    {savingTemplate === 'image' ? t('settings.saving') : templates.image ? t('st.replace') : t('st.dropHint')}
+                  </span>
+                </label>
+              </div>
+
+              <div className={local.tplBlock}>
+                <div className={local.tplHead}>
+                  <strong>{t('settings.emailTemplateLabel')}</strong>
+                  <span className={styles.pill}>{templates.email ? t('settings.set') : t('settings.notSet')}</span>
+                </div>
+                <div className={local.editor}>
+                  <textarea
+                    className={`${styles.textarea} ${local.code}`}
+                    rows={10}
+                    spellCheck={false}
+                    placeholder={t('settings.emailTemplatePlaceholder', { placeholder: '{{copy}}' })}
+                    value={emailHtml}
+                    onChange={(e) => setEmailHtml(e.target.value)}
+                  />
+                  <div className={local.preview}>
+                    <span className={local.previewLabel}>{t('st.preview')}</span>
+                    {previewDoc ? (
+                      // Sandboxed: user HTML renders without scripts or same-origin access.
+                      <iframe title={t('st.preview')} sandbox="" srcDoc={previewDoc} />
+                    ) : (
+                      <div className={`${styles.placeholder} ${local.previewEmpty}`}>
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                          <path d="M3.5 6.5L12 13l8.5-6.5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className={local.tplFoot}>
+                  <button type="button" className={`${styles.btn} ${styles.primary}`} onClick={saveEmailTemplate} disabled={savingTemplate === 'email'}>
+                    {savingTemplate === 'email' && <span className={styles.spinner} aria-hidden="true" />}
+                    {savingTemplate === 'email' ? t('settings.saving') : t('settings.save')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
