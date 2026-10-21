@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient'
 import { useOrg } from '../lib/useOrg'
 import styles from '../styles/app.module.css'
 import local from './AuditLog.module.css'
+import Select from './Select'
 
 interface AuditRow {
   id: number
@@ -107,14 +108,12 @@ export default function AuditLog() {
   return (
     <div className={local.audit}>
       <div className={local.toolbar}>
-        <select className={styles.select} value={area} onChange={(e) => setArea(e.target.value)} aria-label={t('audit.filter')}>
-          <option value="">{t('audit.all')}</option>
-          {AREAS.map((a) => (
-            <option key={a} value={a}>
-              {a.replace('_', ' ')}
-            </option>
-          ))}
-        </select>
+        <Select
+          aria-label={t('audit.filter')}
+          value={area}
+          onChange={setArea}
+          options={[{ value: '', label: t('audit.all') }, ...AREAS.map((a) => ({ value: a, label: a.replace('_', ' ') }))]}
+        />
         <button type="button" className={`${styles.btn} ${styles.ghost}`} disabled={busy} onClick={() => exportAs('csv')}>
           {t('audit.exportCsv')}
         </button>

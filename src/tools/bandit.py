@@ -76,17 +76,20 @@ def select_arm_for_campaign(
     UCB score across them -- this is what lets "channel" stay part of the
     fixed context vector even though there's no per-channel creative.
     """
+    return select_arms_for_campaign(age_bracket, income_tier, domain_category, active_channels, k=1)[0]
+
+
+def select_arms_for_campaign(
+    age_bracket: str, income_tier: str, domain_category: str, active_channels: list[str], *, k: int = 2
+) -> list[tuple[int, str, str]]:
+    """The k best arms by summed UCB score (k=2 gives an A/B test its variant B)."""
     arms = _get_all_arms()
     contexts = [build_context_vector(age_bracket, income_tier, channel, domain_category) for channel in active_channels]
-
-    best_index, best_score = 0, float("-inf")
-    for arm in arms:
-        total_score = sum(_ucb_score(arm, context) for context in contexts)
-        if total_score > best_score:
-            best_index, best_score = arm["arm_index"], total_score
-
-    image_style, copy_tone = ARMS[best_index]
-    return best_index, image_style, copy_tone
+    scored = sorted(
+        ((sum(_ucb_score(arm, context) for context in contexts), arm["arm_index"]) for arm in arms),
+        key=lambda pair: (-pair[0], pair[1]),
+    )
+    return [(index, *ARMS[index]) for _, index in scored[:k]]
 
 
 def update_arm(arm_index: int, context: np.ndarray, reward: float) -> None:

@@ -48,12 +48,14 @@ def test_gate_decisions_and_membership_changes(db, new_user, act_as, as_admin):
     cid = db.execute(
         "insert into campaigns (idea, domain_category, user_id, org_id) values ('i', 'other', %s, %s) returning id", (owner, org)
     ).fetchone()[0]
-    db.execute("insert into gate_decisions (campaign_id, user_id, gate_number) values (%s, %s, 1)", (cid, owner))
+    gate = db.execute(
+        "insert into gate_decisions (campaign_id, user_id, gate_number) values (%s, %s, 1) returning id", (cid, owner)
+    ).fetchone()[0]
     act_as(member)
-    db.execute("update gate_decisions set decision = 'approve', comment = 'ship it' where campaign_id = %s", (cid,))
+    db.execute("insert into gate_approvals (gate_decision_id, decision, comment) values (%s, 'approve', 'ship it')", (gate,))
     as_admin()
     actions = [r[0] for r in events(db, since=start)]
-    assert actions == ["membership.added", "membership.role_changed", "campaign.created", "gate.decided"]
+    assert actions == ["membership.added", "membership.role_changed", "campaign.created", "gate.vote", "gate.decided"]
 
 
 def test_secrets_never_reach_the_log(db, new_user):

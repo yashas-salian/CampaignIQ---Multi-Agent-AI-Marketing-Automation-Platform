@@ -2,13 +2,21 @@ from langgraph.types import interrupt
 
 from src.capabilities.audience import Persona
 from src.capabilities.idea_intake import DOMAIN_CATEGORIES
-from src.db.supabase_client import create_pending_gate, get_campaign, get_primary_persona, update_campaign_status
+from src.db.supabase_client import (
+    create_pending_gate,
+    get_campaign,
+    get_iteration,
+    get_primary_persona,
+    update_campaign_status,
+)
 from src.graph.state import CampaignState
+from src.notifications import notify_gate_opened
 
 
 def gate_1_node(state: CampaignState) -> CampaignState:
     create_pending_gate(state["campaign_id"], state["user_id"], gate_number=1, round_number=state["round_id"])
     update_campaign_status(state["campaign_id"], "awaiting_gate_1")
+    notify_gate_opened(state["campaign_id"], 1, state["round_id"])
 
     decision = interrupt({"gate_number": 1, "campaign_id": state["campaign_id"]})
 
@@ -46,6 +54,7 @@ def gate_1_node(state: CampaignState) -> CampaignState:
 def gate_2_node(state: CampaignState) -> CampaignState:
     create_pending_gate(state["campaign_id"], state["user_id"], gate_number=2, round_number=state["round_id"])
     update_campaign_status(state["campaign_id"], "awaiting_gate_2")
+    notify_gate_opened(state["campaign_id"], 2, state["round_id"])
 
     decision = interrupt({"gate_number": 2, "campaign_id": state["campaign_id"]})
 
@@ -53,4 +62,15 @@ def gate_2_node(state: CampaignState) -> CampaignState:
         update_campaign_status(state["campaign_id"], "rejected")
         return {"rejected": True}
 
-    return {"rejected": False}
+    # Approvers may have edited the copy at the gate (edit_round_copy, with a
+    # version history): send what they approved, not the pre-gate draft.
+    # Distribution re-runs the brand-safety check on the final text.
+    iteration = get_iteration(state["campaign_id"], state["round_id"]) or {}
+    update: dict = {"rejected": False}
+    creative = state.get("creative")
+    if creative is not None and iteration.get("copy_text") and iteration["copy_text"] != creative.copy_text:
+        update["creative"] = creative.model_copy(update={"copy_text": iteration["copy_text"]})
+    variant = state.get("creative_b")
+    if variant is not None and iteration.get("copy_text_b") and iteration["copy_text_b"] != variant.copy_text:
+        update["creative_b"] = variant.model_copy(update={"copy_text": iteration["copy_text_b"]})
+    return update

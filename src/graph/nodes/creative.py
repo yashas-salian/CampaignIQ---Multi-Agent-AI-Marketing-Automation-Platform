@@ -1,3 +1,4 @@
+from src.capabilities.brand import brand_kit_for_campaign
 from src.capabilities.creative import generate_creative
 from src.constants import active_channels
 from src.graph.state import CampaignState
@@ -15,5 +16,6 @@ def creative_node(state: CampaignState) -> CampaignState:
             revision_directive=state.get("revision_directive"),
             target_language=state.get("target_language", "en"),
             cta_url=state.get("cta_url"),
+            brand=brand_kit_for_campaign(state.get("campaign_id")),
         )
     }

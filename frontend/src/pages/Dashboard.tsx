@@ -5,12 +5,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import LogoMark from '../components/LogoMark'
 import RewardChart, { type RewardPoint } from '../components/RewardChart'
 import { CAMPAIGN_LANGUAGES } from '../lib/languages'
+import Onboarding from '../components/Onboarding'
 import { useOrg } from '../lib/useOrg'
 import { supabase } from '../lib/supabaseClient'
 import { displayName } from '../lib/profile'
 import { useSession } from '../lib/useAuth'
 import type { Campaign, CampaignStatus, Metric } from '../lib/types'
 import styles from './Dashboard.module.css'
+import Select from '../components/Select'
 
 // Only the iteration fields the dashboard needs (arm per round).
 interface IterationArm {
@@ -263,6 +265,7 @@ export default function Dashboard() {
 
   const [idea, setIdea] = useState('')
   const [targetLanguage, setTargetLanguage] = useState('en')
+  const [abTest, setAbTest] = useState(false)
   const [creating, setCreating] = useState(false)
   const [toast, setToast] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
 
@@ -327,7 +330,7 @@ export default function Dashboard() {
     setCreating(true)
     setToast(null)
     const { error, response } = await supabase.functions.invoke('create-campaign', {
-      body: { idea: idea.trim(), target_language: targetLanguage, org_id: orgId },
+      body: { idea: idea.trim(), target_language: targetLanguage, org_id: orgId, ab_test: abTest },
     })
     setCreating(false)
     if (error) {
@@ -513,6 +516,8 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {!firstLoad && <Onboarding campaignCount={campaigns.length} />}
+
       {/* Needs-your-approval banner */}
       {needsYou.length > 0 && (
         <div className={`${styles.attention} ${styles.enter}`} role="status">
@@ -594,13 +599,16 @@ export default function Dashboard() {
           <div className={styles.composerFoot}>
             <label className={styles.langPick}>
               <span>{t('dashboard.languageLabel')}</span>
-              <select value={targetLanguage} onChange={(e) => setTargetLanguage(e.target.value)} className={styles.select}>
-                {CAMPAIGN_LANGUAGES.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.label}
-                  </option>
-                ))}
-              </select>
+              <Select
+                aria-label={t('dashboard.languageLabel')}
+                value={targetLanguage}
+                onChange={setTargetLanguage}
+                options={CAMPAIGN_LANGUAGES.map((l) => ({ value: l.code, label: l.label }))}
+              />
+            </label>
+            <label className={styles.langPick} title={t('ab.hint')}>
+              <input type="checkbox" checked={abTest} onChange={(e) => setAbTest(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--mos-accent)' }} />
+              <span>{t('ab.toggle')}</span>
             </label>
             <button type="button" className={styles.primaryBtn} onClick={createCampaign} disabled={creating || !idea.trim() || !canCreate} title={canCreate ? undefined : t('org.cantCreate')}>
               {creating && <span className={styles.spinner} aria-hidden="true" />}

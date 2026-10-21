@@ -5,6 +5,7 @@ import { CAMPAIGN_LANGUAGES } from '../lib/languages'
 import { supabase } from '../lib/supabaseClient'
 import styles from '../styles/app.module.css'
 import local from './Tools.module.css'
+import Select from '../components/Select'
 
 const CAPABILITIES = ['feasibility', 'personas', 'image'] as const
 type Capability = (typeof CAPABILITIES)[number]
@@ -275,13 +276,12 @@ export default function Tools() {
               {capability !== 'image' ? (
                 <label className={local.lang}>
                   <span>{t('cd.language')}</span>
-                  <select className={styles.select} value={language} onChange={(e) => setLanguage(e.target.value)}>
-                    {CAMPAIGN_LANGUAGES.map((l) => (
-                      <option key={l.code} value={l.code}>
-                        {l.label}
-                      </option>
-                    ))}
-                  </select>
+                  <Select
+                    aria-label={t('cd.language')}
+                    value={language}
+                    onChange={setLanguage}
+                    options={CAMPAIGN_LANGUAGES.map((l) => ({ value: l.code, label: l.label }))}
+                  />
                 </label>
               ) : (
                 <span />

@@ -1,0 +1,127 @@
+openapi: 3.1.0
+info:
+  title: MarketingOS API
+  version: 1.0.0
+  description: |
+    Read and start campaigns for one organisation. Create a key in
+    Settings → API & webhooks (owners/admins); it's shown once.
+
+    Authenticate every request with `Authorization: Bearer mos_...`.
+    Limits: 60 requests per minute per key (429 + `Retry-After`), and the
+    organisation's plan limits for new campaigns (429 with the reason).
+servers:
+  - url: https://{project}.supabase.co/functions/v1/api
+    variables:
+      project:
+        default: jpytagvsjovzylyfssfm
+security:
+  - apiKey: []
+components:
+  securitySchemes:
+    apiKey:
+      type: http
+      scheme: bearer
+      bearerFormat: mos_<48 hex>
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            status: { type: integer }
+            message: { type: string }
+    Campaign:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        idea: { type: string }
+        domain_category: { type: string }
+        status:
+          type: string
+          enum: [created, awaiting_gate_1, awaiting_gate_2, awaiting_metrics, awaiting_next_round, completed, rejected]
+        feasibility_score: { type: [integer, "null"] }
+        current_round: { type: integer }
+        max_rounds: { type: [integer, "null"] }
+        target_language: { type: string }
+        ab_test: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+paths:
+  /v1/campaigns:
+    get:
+      summary: List campaigns (newest first)
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: status, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Campaigns
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/Campaign" } }
+        "401": { description: Missing or invalid key, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "429": { description: Rate limited }
+    post:
+      summary: Start a campaign (scope `write`)
+      description: |
+        Dispatches a run; the campaign appears in the list within a minute or
+        two and then waits at Gate 1 for a human in the app.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idea]
+              properties:
+                idea: { type: string, minLength: 5, maxLength: 2000 }
+                target_language: { type: string, default: en }
+                email_to: { type: array, items: { type: string, format: email }, maxItems: 500 }
+                ab_test: { type: boolean, default: false }
+      responses:
+        "202": { description: Accepted }
+        "403": { description: Key lacks the write scope }
+        "429": { description: Plan limit reached (message says which) }
+  /v1/campaigns/{id}:
+    get:
+      summary: One campaign with its rounds and metrics
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Campaign, rounds (copy, pre-flight score, style/tone) and metrics per channel }
+        "404": { description: Not found in this organisation }
+  /v1/usage:
+    get:
+      summary: Plan, limits and today's usage
+      responses:
+        "200": { description: "{ plan, limits, used }" }
+webhooks:
+  auditEvent:
+    post:
+      summary: An event in your organisation
+      description: |
+        Configure endpoints in Settings → API & webhooks, choosing events
+        (`*`, an exact action like `gate.decided`, or a prefix like `delivery.*`).
+        Headers: `X-MarketingOS-Event`, `X-MarketingOS-Delivery` (unique id:
+        de-duplicate on it), `X-MarketingOS-Signature: sha256=<hex>` =
+        HMAC-SHA256(your webhook secret, raw body). Failed deliveries are retried
+        with backoff for about 10 hours (6 attempts).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id: { type: integer }
+                event: { type: string, examples: [campaign.created, campaign.status_changed, gate.decided, delivery.sent, delivery.dead] }
+                created_at: { type: string, format: date-time }
+                organization_id: { type: string, format: uuid }
+                actor: { type: string, description: "user id, or 'system' for workers" }
+                target: { type: object, properties: { type: { type: string }, id: { type: string } } }
+                data: { type: object }
+      responses:
+        "2XX": { description: Delivered }

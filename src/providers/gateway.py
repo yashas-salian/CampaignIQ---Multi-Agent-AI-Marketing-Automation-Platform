@@ -15,7 +15,10 @@ import logging
 import re
 import time
 
+from src.observability import generation
+from src.prompts import current_prompt
 from src.providers.base import LLMProvider
+from src.usage import current_org
 
 logger = logging.getLogger("providers.gateway")
 
@@ -61,9 +64,19 @@ class LLMGateway(LLMProvider):
         for provider in candidates or self.providers:
             name = _name(provider)
             started = time.monotonic()
-            try:
-                text = provider.generate(prompt, system=system)
-            except Exception as exc:
+            with generation(name, getattr(provider, "model", None), prompt=prompt, system=system,
+                            user_id=self.user_id, org_id=current_org.get(), prompt_ref=current_prompt.get(),
+                            fallback=bool(errors)) as trace:
+                try:
+                    text = provider.generate(prompt, system=system)
+                except Exception as exc:
+                    trace.failed(_short(exc))
+                    failure = exc
+                else:
+                    trace.done(text, getattr(provider, "last_usage", None))
+                    failure = None
+            if failure is not None:
+                exc = failure
                 cooldown = _cooldown_seconds(exc)
                 if cooldown:
                     _benched_until[name] = time.monotonic() + cooldown
@@ -95,11 +108,10 @@ def _record(user_id: str | None, provider: LLMProvider, started: float, *, ok: b
     if time.monotonic() < _recording_paused_until:
         return
     usage = getattr(provider, "last_usage", None) if ok else None
-    from src.usage import current_org
-
     row = {
         "user_id": user_id,
         "org_id": current_org.get(),
+        "prompt": current_prompt.get(),
         "provider": _name(provider),
         "model": getattr(provider, "model", None),
         "prompt_tokens": getattr(usage, "prompt_tokens", None),

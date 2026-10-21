@@ -1,13 +1,17 @@
+from src.capabilities.brand import brand_kit_for_campaign, with_required_phrase
 from src.capabilities.distribution import post_bluesky
-from src.capabilities.guardrails import prepare_for_channel
+from src.capabilities.guardrails import BLUESKY_MAX_CHARS, prepare_for_channel
 from src.db.supabase_client import upsert_iteration
 from src.graph.state import CampaignState
 
 
 def distribution_bluesky_node(state: CampaignState) -> CampaignState:
     creative = state["creative"]
+    kit = brand_kit_for_campaign(state["campaign_id"])
+    copy = with_required_phrase(creative.copy_text, kit, max_len=BLUESKY_MAX_CHARS)
     text, blocked = prepare_for_channel(
-        creative.copy_text, "bluesky", domain_category=state.get("domain_category", "other"), cta_url=state.get("cta_url")
+        copy, "bluesky", domain_category=state.get("domain_category", "other"), cta_url=state.get("cta_url"),
+        banned_terms=kit.forbidden_words if kit else (),
     )
     if blocked:
         uri = f"dead: {blocked}"

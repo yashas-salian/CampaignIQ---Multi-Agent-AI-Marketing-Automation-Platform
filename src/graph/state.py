@@ -25,6 +25,8 @@ class CampaignState(TypedDict, total=False):
     personas: list[Persona]
     primary_persona: Persona
     creative: Creative
+    ab_test: bool
+    creative_b: Optional[Creative]
     novelty_attempt: int
     best_novel_creative: Creative
     best_novelty_score: float

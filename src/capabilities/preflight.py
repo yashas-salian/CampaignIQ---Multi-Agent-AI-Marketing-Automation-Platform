@@ -5,7 +5,8 @@ from src.capabilities.creative import Creative
 from src.languages import language_name
 from src.llm_json import generate_json
 from src.providers.registry import get_llm
-from src.security.prompt_guard import fence, guarded
+from src.prompts import PROMPTS
+from src.security.prompt_guard import fence
 
 PREFLIGHT_PASS_THRESHOLD = 50
 
@@ -20,20 +21,13 @@ def score_preflight(
     creative: Creative, personas: list[Persona], *, user_id: str | None = None, target_language: str = "en"
 ) -> PreflightResult:
     panel_text = "\n".join(f"- {p.name}: {p.demographics} | {p.psychographics}" for p in personas)
-    parsed = generate_json(
-        get_llm(user_id),
-        f"Ad copy:\n{fence(creative.copy_text, 'ad_copy')}\n"
-        f"Image description:\n{fence(creative.image_prompt, 'image_prompt')}\n\n"
-        f"You are simulating how this panel of target personas would honestly react:\n{fence(panel_text, 'personas')}\n\n"
-        "Estimate an overall predicted engagement score (0-100, where 100 = extremely likely to "
-        "engage/click/share, 0 = would ignore or dislike it). Respond with ONLY a JSON object, no "
-        'prose, with exactly two keys: "predicted_engagement" (integer 0-100) and "panel_feedback" '
-        f"(one or two sentences summarizing the panel's honest reaction, written in {language_name(target_language)}).",
-        system=guarded(
-            "You are a panel of skeptical target-audience consumers giving honest, critical ad "
-            "feedback. You output only valid JSON, never prose or markdown fences."
-        ),
+    prompt, system = PROMPTS["preflight.panel"].render(
+        copy=fence(creative.copy_text, "ad_copy"),
+        image_prompt=fence(creative.image_prompt, "image_prompt"),
+        panel=fence(panel_text, "personas"),
+        language=language_name(target_language),
     )
+    parsed = generate_json(get_llm(user_id), prompt, system=system)
     predicted_engagement = parsed["predicted_engagement"]
     return PreflightResult(
         predicted_engagement=predicted_engagement,

@@ -178,7 +178,15 @@ def promote(candidate: str, report_path: Path, prepare_meta_path: Path) -> None:
         "previous_metrics": report["current"],
     }
     api.upload_file(path_or_fileobj=candidate, path_in_repo=DEFAULT_FILE, repo_id=repo, commit_message="Weekly retrain: promote candidate")
-    api.upload_file(path_or_fileobj=json.dumps(meta, indent=2).encode(), path_in_repo=META_FILE, repo_id=repo, commit_message="Weekly retrain: training metadata")
+    commit = api.upload_file(path_or_fileobj=json.dumps(meta, indent=2).encode(), path_in_repo=META_FILE, repo_id=repo, commit_message="Weekly retrain: training metadata")
+    # Pin the new commit as active (the previous one stays one command away:
+    # `python -m src.finetune.deployments rollback`).
+    try:
+        from src.finetune.deployments import record_promotion
+
+        record_promotion(commit.oid)
+    except Exception as exc:
+        print(f"model registry not updated ({exc}); the latest commit is served by default")
     _summary(f"- **published** to `{repo}` as `{DEFAULT_FILE}`")
 
 

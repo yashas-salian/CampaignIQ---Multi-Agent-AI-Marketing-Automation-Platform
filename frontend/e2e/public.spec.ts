@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const PUBLIC_PAGES = ['/', '/about', '/contact', '/privacy', '/terms', '/login', '/signup', '/no-such-page']
+const PUBLIC_PAGES = ['/', '/about', '/contact', '/privacy', '/terms', '/docs', '/status', '/login', '/signup', '/no-such-page']
 
 async function expectNoSidewaysScroll(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)

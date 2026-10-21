@@ -20,12 +20,16 @@ def _checkpointer():
 
 def main() -> None:
     load_dotenv()
+    from src.observability import init
+
+    init("campaign-run")
     parser = argparse.ArgumentParser(description="Trigger or resume one campaign run.")
     parser.add_argument("idea", nargs="?", help="New campaign idea (omit when resuming --campaign-id)")
     parser.add_argument("--campaign-id", default=None, help="Resume an existing campaign instead of creating one")
     parser.add_argument("--user-id", default=None, help="Owning user's Supabase Auth id (required for a new campaign)")
     parser.add_argument("--org-id", default=None, help="Organisation the campaign belongs to (default: the user's personal one)")
     parser.add_argument("--email-to", default="", help="Comma-separated recipient list")
+    parser.add_argument("--ab-test", action="store_true", help="Email A/B test: two variants per round, list split in half")
     parser.add_argument("--reddit-subreddit", default=None)
     parser.add_argument("--cta-url", default=None)
     parser.add_argument("--use-image-template", action="store_true", help="Use this user's stored image template instead of generating one")
@@ -71,6 +75,7 @@ def main() -> None:
             initial_state = {
                 "idea": args.idea, "campaign_id": campaign_id, "user_id": args.user_id, "round_id": 1,
                 "org_id": org_id,
+                "ab_test": args.ab_test,
                 "email_to": args.email_to.split(",") if args.email_to else [os.environ["RESEND_TEST_TO_EMAIL"]],
                 "reddit_subreddit": args.reddit_subreddit, "cta_url": args.cta_url,
                 "use_image_template": args.use_image_template, "use_email_template": args.use_email_template,

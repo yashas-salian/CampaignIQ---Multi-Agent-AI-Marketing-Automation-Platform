@@ -2,7 +2,12 @@ import type { CSSProperties, DragEvent, ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import ApiSettings from '../components/ApiSettings'
 import AuditLog from '../components/AuditLog'
+import BillingSettings from '../components/BillingSettings'
+import BrandKitSettings from '../components/BrandKitSettings'
+import UsageStats from '../components/UsageStats'
+import PrivacySettings from '../components/PrivacySettings'
 import TeamSettings from '../components/TeamSettings'
 import { useOrg } from '../lib/useOrg'
 import { isValidUsername, normalizeUsername, saveUsername, usernameOf } from '../lib/profile'
@@ -198,9 +203,12 @@ export default function Settings() {
   const sections = [
     { id: 'account', label: t('st.navAccount') },
     { id: 'team', label: t('org.team') },
-    ...(canManage ? [{ id: 'audit', label: t('audit.title') }] : []),
+    { id: 'brand', label: t('brand.title') },
+    { id: 'billing', label: t('billing.title') },
+    ...(canManage ? [{ id: 'usage', label: t('obs.title') }, { id: 'api', label: t('api.title') }, { id: 'audit', label: t('audit.title') }] : []),
     { id: 'keys', label: t('st.navKeys') },
     { id: 'templates', label: t('st.navTemplates') },
+    { id: 'privacy', label: t('privacy.title') },
   ]
 
   return (
@@ -300,6 +308,50 @@ export default function Settings() {
             </div>
             <TeamSettings />
           </section>
+
+          <section id="brand" className={`${styles.panel} ${local.section} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties}>
+            <div className={styles.panelHead}>
+              <div>
+                <h2>{t('brand.title')}</h2>
+                <p className={styles.panelSub}>{t('brand.sub')}</p>
+              </div>
+            </div>
+            <BrandKitSettings />
+          </section>
+
+          <section id="billing" className={`${styles.panel} ${local.section} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties}>
+            <div className={styles.panelHead}>
+              <div>
+                <h2>{t('billing.title')}</h2>
+                <p className={styles.panelSub}>{t('billing.sub')}</p>
+              </div>
+            </div>
+            <BillingSettings />
+          </section>
+
+          {canManage && (
+            <section id="usage" className={`${styles.panel} ${local.section} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties}>
+              <div className={styles.panelHead}>
+                <div>
+                  <h2>{t('obs.title')}</h2>
+                  <p className={styles.panelSub}>{t('obs.sub')}</p>
+                </div>
+              </div>
+              <UsageStats />
+            </section>
+          )}
+
+          {canManage && (
+            <section id="api" className={`${styles.panel} ${local.section} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties}>
+              <div className={styles.panelHead}>
+                <div>
+                  <h2>{t('api.title')}</h2>
+                  <p className={styles.panelSub}>{t('api.sub')}</p>
+                </div>
+              </div>
+              <ApiSettings />
+            </section>
+          )}
 
           {canManage && (
             <section id="audit" className={`${styles.panel} ${local.section} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties}>
@@ -485,6 +537,16 @@ export default function Settings() {
                 </div>
               </div>
             </div>
+          </section>
+
+          <section id="privacy" className={`${styles.panel} ${local.section} ${styles.enter}`} style={{ '--i': 4 } as CSSProperties}>
+            <div className={styles.panelHead}>
+              <div>
+                <h2>{t('privacy.title')}</h2>
+                <p className={styles.panelSub}>{t('privacy.sub')}</p>
+              </div>
+            </div>
+            <PrivacySettings />
           </section>
         </div>
       </div>

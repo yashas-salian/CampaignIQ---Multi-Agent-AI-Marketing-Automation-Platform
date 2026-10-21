@@ -17,6 +17,8 @@ const COLUMNS: { title: string; links: { label: string; to: string; external?: b
   {
     title: 'Company',
     links: [
+      { label: 'Docs', to: '/docs' },
+      { label: 'Status', to: '/status' },
       { label: 'About', to: '/about' },
       { label: 'Contact', to: '/contact' },
       { label: 'Source on GitHub', to: REPO_URL, external: true },

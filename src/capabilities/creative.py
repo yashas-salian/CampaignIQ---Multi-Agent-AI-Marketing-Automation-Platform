@@ -3,11 +3,13 @@ import base64
 from pydantic import BaseModel
 
 from src.capabilities.audience import Persona
+from src.capabilities.brand import BrandKit
 from src.capabilities.guardrails import GuardrailResult, check_creative, rewrite_directive
 from src.languages import language_name
 from src.llm_json import generate_json
 from src.providers.registry import get_image_generator, get_llm
-from src.security.prompt_guard import fence, guarded
+from src.prompts import PROMPTS
+from src.security.prompt_guard import fence
 from src.tools.bandit import select_arm_for_campaign
 from src.tools.image_compositing import overlay_template
 
@@ -38,8 +40,10 @@ def generate_creative(
     target_language: str = "en",
     cta_url: str | None = None,
     banned_terms: tuple[str, ...] | list[str] = (),
+    brand: BrandKit | None = None,
+    arm: tuple[int, str, str] | None = None,
 ) -> Creative:
-    arm_index, image_style, copy_tone = select_arm_for_campaign(
+    arm_index, image_style, copy_tone = arm or select_arm_for_campaign(
         persona.age_bracket, persona.income_tier, domain_category, active_channels
     )
     directive_text = (
@@ -50,26 +54,20 @@ def generate_creative(
     safety_text = ""
     best: tuple[dict, GuardrailResult] | None = None
     for _ in range(1 + MAX_GUARDRAIL_REWRITES):
-        parsed = generate_json(
-            get_llm(user_id),
-            f"Ad campaign idea:\n{fence(idea, 'user_idea')}\n"
-            f"Target persona:\n{fence(persona.model_dump(), 'persona')}\n"
-            f"Required image style archetype: {image_style}\n"
-            f"Required copy tone archetype: {copy_tone}\n"
-            f"{directive_text}{safety_text}\n"
-            "Write ad creative for this persona, executed within the required style/tone archetypes above "
-            "(don't invent a different style). Never include links, email addresses or phone numbers in the "
-            "copy (the call-to-action link is added separately). Respond with ONLY a JSON object, no prose, "
-            'with exactly two keys: "copy" (a short ad copy, 2-3 sentences, written in '
-            f'{language_name(target_language)} since that is this campaign\'s target-audience language) and '
-            '"image_prompt" (a vivid, concrete visual description suitable for an image generation model, '
-            "matching the copy -- always written in English regardless of the copy's language, since image "
-            "generation models are English-prompt-optimized).",
-            system=guarded("You are an ad creative director. You output only valid JSON, never prose or markdown fences."),
+        prompt, system = PROMPTS["creative.generate"].render(
+            idea=fence(idea, "user_idea"),
+            persona=fence(persona.model_dump(), "persona"),
+            brand=brand.prompt_section() if brand else "",
+            image_style=image_style,
+            copy_tone=copy_tone,
+            directive=directive_text,
+            safety=safety_text,
+            language=language_name(target_language),
         )
+        parsed = generate_json(get_llm(user_id), prompt, system=system)
         checks = check_creative(
             str(parsed.get("copy", "")), domain_category=domain_category, channels=active_channels,
-            cta_url=cta_url, banned_terms=banned_terms,
+            cta_url=cta_url, banned_terms=[*banned_terms, *(brand.forbidden_words if brand else [])],
         )
         if best is None or len(checks.blocked) < len(best[1].blocked):
             best = (parsed, checks)

@@ -25,5 +25,6 @@ def feasibility_node(state: CampaignState) -> CampaignState:
         max_duration_minutes=max_duration_minutes_for(max_rounds),
         target_language=target_language,
         org_id=state.get("org_id"),
+        ab_test=bool(state.get("ab_test")),
     )
     return {"feasibility": result}

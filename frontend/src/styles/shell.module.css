@@ -165,17 +165,8 @@
 }
 .topbarLogo { width: 30px; height: 30px; border-radius: 22%; object-fit: cover; flex: none; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08); transition: transform 0.5s var(--mos-ease); }
 .topbarBrand:hover .topbarLogo { transform: rotate(-6deg) scale(1.06); }
-.topbarSelect {
-  background: transparent;
-  border: none;
-  color: var(--nav-text);
-  font: inherit;
-  text-transform: none;
-  letter-spacing: normal;
-  cursor: pointer;
-}
-.topbarSelect:focus { outline: none; }
-.topbarSelect option { background: var(--nav-tile); color: var(--nav-text); }
+/* The language picker (components/Select, "tile" variant) fills its cell. */
+.topbarLang { padding: 0; }
 /* Account cell: username + dropdown (Settings, Sign out). Opens on hover,
    keyboard focus, or tap (.accountOpen, toggled in App.tsx). */
 .account { position: relative; display: flex; }
@@ -240,6 +231,7 @@
     padding: 8px 10px; margin-bottom: 4px; border-bottom: 1px solid var(--nav-gap);
     font-size: 13px; color: var(--mos-text-muted);
   }
+  .menuLang > div { height: 36px; }
   .accountButton { max-width: 170px; padding: 0 12px; }
   .topbarBrand { padding-left: 14px; font-size: 16px; }
   .themeToggle { width: 52px; }

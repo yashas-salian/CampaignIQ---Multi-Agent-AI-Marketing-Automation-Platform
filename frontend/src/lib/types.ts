@@ -58,6 +58,19 @@ export interface Iteration {
   copy_tone: string | null
   arm_index: number | null
   guardrail_flags: GuardrailFlags | null
+  copy_text_b?: string | null
+  image_style_b?: string | null
+  copy_tone_b?: string | null
+}
+
+/** Email A/B test outcome (src/capabilities/experiments.py), stored on the variant-B metric. */
+export interface AbTestResult {
+  rate_a: number
+  rate_b: number
+  lift: number | null
+  p_value: number | null
+  significant: boolean
+  winner: 'a' | 'b' | null
 }
 
 /** Brand-safety result for a round's creative (src/capabilities/guardrails.py). */
@@ -80,8 +93,8 @@ export interface Metric {
   id: string
   campaign_id: string
   round_number: number
-  channel: 'bluesky' | 'reddit' | 'email'
-  raw_metrics: Record<string, number>
+  channel: 'bluesky' | 'reddit' | 'email' | 'email_b'
+  raw_metrics: Record<string, number | AbTestResult>
   reward: number
   collected_at: string
 }

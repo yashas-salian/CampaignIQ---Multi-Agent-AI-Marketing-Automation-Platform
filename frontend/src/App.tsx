@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { UI_LOCALES } from './i18n'
 import LogoMark from './components/LogoMark'
+import Select from './components/Select'
 import OrgProvider from './lib/OrgProvider'
 import { NEXT_KEY } from './lib/site'
 import { useOrg } from './lib/useOrg'
@@ -19,6 +20,8 @@ import styles from './styles/shell.module.css'
 // Landing page doesn't download the whole app.
 const CampaignDetail = lazy(() => import('./pages/CampaignDetail'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Calendar = lazy(() => import('./pages/Calendar'))
+const Admin = lazy(() => import('./pages/Admin'))
 const Metrics = lazy(() => import('./pages/Metrics'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Tools = lazy(() => import('./pages/Tools'))
@@ -28,6 +31,8 @@ const Contact = lazy(() => import('./pages/Contact'))
 const Privacy = lazy(() => import('./pages/Privacy'))
 const Terms = lazy(() => import('./pages/Terms'))
 const NotFound = lazy(() => import('./pages/NotFound'))
+const Docs = lazy(() => import('./pages/Docs'))
+const Status = lazy(() => import('./pages/Status'))
 const AcceptInvite = lazy(() => import('./pages/AcceptInvite'))
 
 
@@ -92,7 +97,7 @@ function ThemeToggle() {
 
 // The app bar belongs to the logged-in app only; public pages (and the 404)
 // render their own header even for a logged-in visitor.
-const APP_PREFIXES = ['/dashboard', '/campaigns', '/tools', '/settings']
+const APP_PREFIXES = ['/dashboard', '/calendar', '/campaigns', '/tools', '/settings', '/admin']
 
 /**
  * Username cell with a dropdown (account email, Settings, Sign out). Opens on
@@ -102,6 +107,10 @@ const APP_PREFIXES = ['/dashboard', '/campaigns', '/tools', '/settings']
 function AccountMenu({ name, email }: { name: string | null; email: string }) {
   const { t, i18n } = useTranslation()
   const { orgs, active, setActive } = useOrg()
+  const [isAdmin, setIsAdmin] = useState(false)
+  useEffect(() => {
+    supabase.rpc('is_platform_admin').then(({ data }) => setIsAdmin(Boolean(data)))
+  }, [])
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -162,13 +171,13 @@ function AccountMenu({ name, email }: { name: string | null; email: string }) {
         {/* Phones only (CSS): the language picker moves here from the top bar. */}
         <label className={styles.menuLang}>
           <span>Language</span>
-          <select value={i18n.language} onChange={(e) => i18n.changeLanguage(e.target.value)} className={styles.topbarSelect}>
-            {UI_LOCALES.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.label}
-              </option>
-            ))}
-          </select>
+          <Select
+            variant="tile"
+            aria-label="Language"
+            value={i18n.language}
+            onChange={(v) => i18n.changeLanguage(v)}
+            options={UI_LOCALES.map((l) => ({ value: l.code, label: l.label }))}
+          />
         </label>
         <Link role="menuitem" to="/settings#account" className={styles.menuItem} onClick={() => setOpen(false)}>
           {t('common.settings')}
@@ -176,6 +185,11 @@ function AccountMenu({ name, email }: { name: string | null; email: string }) {
         <Link role="menuitem" to="/settings#team" className={styles.menuItem} onClick={() => setOpen(false)}>
           {t('org.team')}
         </Link>
+        {isAdmin && (
+          <Link role="menuitem" to="/admin" className={styles.menuItem} onClick={() => setOpen(false)}>
+            {t('admin.title')}
+          </Link>
+        )}
         <button role="menuitem" type="button" className={`${styles.menuItem} ${styles.menuDanger}`} onClick={() => supabase.auth.signOut()}>
           {t('st.signOut')}
         </button>
@@ -200,6 +214,7 @@ function TopBar() {
         {(
           [
             ['/dashboard', t('common.dashboard')],
+            ['/calendar', t('cal.nav')],
             ['/tools', t('common.tools')],
             ['/settings', t('common.settings')],
           ] as const
@@ -212,13 +227,13 @@ function TopBar() {
       <div className={`${styles.topbarLinks} ${styles.topbarRight}`}>
         <label className={`${styles.topbarCell} ${styles.topbarLang}`}>
           <span className="sr-only">Language</span>
-          <select value={i18n.language} onChange={(e) => i18n.changeLanguage(e.target.value)} className={styles.topbarSelect}>
-            {UI_LOCALES.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.label}
-              </option>
-            ))}
-          </select>
+          <Select
+            variant="tile"
+            aria-label="Language"
+            value={i18n.language}
+            onChange={(v) => i18n.changeLanguage(v)}
+            options={UI_LOCALES.map((l) => ({ value: l.code, label: l.label }))}
+          />
         </label>
         <ThemeToggle />
         <AccountMenu name={displayName(session.user)} email={session.user.email ?? ''} />
@@ -242,6 +257,8 @@ function App() {
           <Route path="/contact" element={<Lazy><Contact /></Lazy>} />
           <Route path="/privacy" element={<Lazy><Privacy /></Lazy>} />
           <Route path="/terms" element={<Lazy><Terms /></Lazy>} />
+          <Route path="/docs" element={<Lazy><Docs /></Lazy>} />
+          <Route path="/status" element={<Lazy><Status /></Lazy>} />
           <Route
             path="/dashboard"
             element={
@@ -263,6 +280,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <Metrics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/calendar"
+            element={
+              <ProtectedRoute>
+                <Calendar />
               </ProtectedRoute>
             }
           />

@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabaseClient'
 import { useSession } from '../lib/useAuth'
 import styles from '../styles/app.module.css'
 import local from './TeamSettings.module.css'
+import Select from './Select'
 
 interface Member {
   user_id: string
@@ -112,13 +113,15 @@ export default function TeamSettings() {
       <div className={local.orgRow}>
         <label className={styles.field}>
           <span>{t('org.current')}</span>
-          <select className={styles.select} value={active.id} onChange={(e) => setActive(e.target.value)}>
-            {orgs.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.personal ? t('org.personal') : o.name} · {t(`org.role_${o.role}`)}
-              </option>
-            ))}
-          </select>
+          <Select
+            value={active.id}
+            onChange={setActive}
+            aria-label={t('org.current')}
+            options={orgs.map((o) => ({
+              value: o.id,
+              label: `${o.personal ? t('org.personal') : o.name} · ${t(`org.role_${o.role}`)}`,
+            }))}
+          />
         </label>
         <form className={local.inline} onSubmit={createOrg}>
           <label className={styles.field}>
@@ -146,19 +149,14 @@ export default function TeamSettings() {
                     {m.username && <span className={styles.muted}>{m.email}</span>}
                   </div>
                   {canEdit ? (
-                    <select
-                      className={`${styles.select} ${local.roleSelect}`}
+                    <Select
+                      className={local.roleSelect}
                       value={m.role}
                       disabled={busy}
                       aria-label={t('org.roleFor', { who: m.email })}
-                      onChange={(e) => run(() => supabase.rpc('set_member_role', { p_org: active.id, p_user: m.user_id, p_role: e.target.value }))}
-                    >
-                      {assignable.map((r) => (
-                        <option key={r} value={r}>
-                          {t(`org.role_${r}`)}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(role) => run(() => supabase.rpc('set_member_role', { p_org: active.id, p_user: m.user_id, p_role: role }))}
+                      options={assignable.map((r) => ({ value: r, label: t(`org.role_${r}`) }))}
+                    />
                   ) : (
                     <span className={styles.chip}>{t(`org.role_${m.role}`)}</span>
                   )}
@@ -185,15 +183,12 @@ export default function TeamSettings() {
               </label>
               <label className={styles.field}>
                 <span>{t('org.inviteRole')}</span>
-                <select className={styles.select} value={inviteRole} onChange={(e) => setInviteRole(e.target.value as Role)}>
-                  {assignable
-                    .filter((r) => r !== 'owner')
-                    .map((r) => (
-                      <option key={r} value={r}>
-                        {t(`org.role_${r}`)}
-                      </option>
-                    ))}
-                </select>
+                <Select
+                  value={inviteRole}
+                  aria-label={t('org.inviteRole')}
+                  onChange={(r) => setInviteRole(r as Role)}
+                  options={assignable.filter((r) => r !== 'owner').map((r) => ({ value: r, label: t(`org.role_${r}`) }))}
+                />
               </label>
               <button className={`${styles.btn} ${styles.primary}`} disabled={busy}>
                 {t('org.invite')}
@@ -240,6 +235,8 @@ export default function TeamSettings() {
         </>
       )}
 
+      {manage && <ApprovalPolicy orgId={active.id} />}
+
       {!roleCan(active.role, 'create') && <p className={styles.muted}>{t('org.readOnlyNote', { role: t(`org.role_${active.role}`) })}</p>}
       {error && (
         <p className={local.error} role="alert">
@@ -247,5 +244,83 @@ export default function TeamSettings() {
         </p>
       )}
     </div>
+  )
+}
+
+interface Policy {
+  required_approvals: number
+  forbid_self_approval: boolean
+  approval_sla_hours: number | null
+  slack_webhook_url: string | null
+}
+
+/** How gates are decided in this organisation (owners and admins). */
+function ApprovalPolicy({ orgId }: { orgId: string }) {
+  const { t } = useTranslation()
+  const [policy, setPolicy] = useState<Policy>({ required_approvals: 1, forbid_self_approval: false, approval_sla_hours: null, slack_webhook_url: null })
+  const [saved, setSaved] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase
+      .from('org_settings')
+      .select('required_approvals,forbid_self_approval,approval_sla_hours,slack_webhook_url')
+      .eq('org_id', orgId)
+      .maybeSingle()
+      .then(({ data }) => data && setPolicy(data as Policy))
+  }, [orgId])
+
+  async function save(e: FormEvent) {
+    e.preventDefault()
+    const { error } = await supabase
+      .from('org_settings')
+      .upsert({ org_id: orgId, ...policy, slack_webhook_url: policy.slack_webhook_url?.trim() || null, updated_at: new Date().toISOString() })
+    setSaved(error ? error.message : t('approvals.saved'))
+  }
+
+  return (
+    <form className={local.policy} onSubmit={save}>
+      <h3 className={local.subhead}>{t('approvals.policy')}</h3>
+      <div className={local.policyGrid}>
+        <label className={styles.field}>
+          <span>{t('approvals.required')}</span>
+          <Select
+            value={policy.required_approvals}
+            aria-label={t('approvals.required')}
+            onChange={(n) => setPolicy({ ...policy, required_approvals: n })}
+            options={[1, 2, 3, 4, 5].map((n) => ({ value: n, label: String(n) }))}
+          />
+        </label>
+        <label className={styles.field}>
+          <span>{t('approvals.sla')}</span>
+          <input
+            className={styles.input}
+            type="number"
+            min={1}
+            max={720}
+            placeholder={t('approvals.slaNone')}
+            value={policy.approval_sla_hours ?? ''}
+            onChange={(e) => setPolicy({ ...policy, approval_sla_hours: e.target.value ? Number(e.target.value) : null })}
+          />
+        </label>
+      </div>
+      <label className={local.check}>
+        <input type="checkbox" checked={policy.forbid_self_approval} onChange={(e) => setPolicy({ ...policy, forbid_self_approval: e.target.checked })} />
+        <span>{t('approvals.forbidSelf')}</span>
+      </label>
+      <label className={styles.field}>
+        <span>{t('approvals.slack')}</span>
+        <input
+          className={styles.input}
+          type="url"
+          placeholder="https://hooks.slack.com/services/..."
+          value={policy.slack_webhook_url ?? ''}
+          onChange={(e) => setPolicy({ ...policy, slack_webhook_url: e.target.value })}
+        />
+      </label>
+      <div className={local.inline}>
+        <button className={`${styles.btn} ${styles.primary}`}>{t('approvals.save')}</button>
+        {saved && <span className={styles.muted}>{saved}</span>}
+      </div>
+    </form>
   )
 }

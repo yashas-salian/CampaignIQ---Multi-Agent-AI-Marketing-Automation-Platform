@@ -6,7 +6,8 @@ from pydantic import BaseModel
 from src.languages import language_name, newsapi_language, trends_hl
 from src.llm_json import generate_json
 from src.providers.registry import get_llm
-from src.security.prompt_guard import drop_suspicious, fence, guarded
+from src.prompts import PROMPTS
+from src.security.prompt_guard import drop_suspicious, fence
 from src.tools.bluesky_client import search_bluesky
 from src.tools.mastodon_client import search_mastodon
 from src.tools.news import get_news_volume
@@ -38,17 +39,10 @@ def _extract_search_keywords(idea: str, user_id: str | None, target_language: st
     # reflect the target market's language, not always English -- one LLM
     # call produces both, since the English phrase is a useful anchor even
     # when target_language != "en".
-    parsed = generate_json(
-        get_llm(user_id),
-        f"Campaign idea:\n{fence(idea, 'user_idea')}\n\n"
-        "Extract a short 2-4 word search keyword phrase capturing the core product/topic — suitable "
-        "as a Google Trends / news search query, not a full sentence. Respond with ONLY a JSON object, "
-        'no prose, with exactly two keys: "keywords_en" (the phrase in English) and "keywords_localized" '
-        f'(the same phrase translated into {language_name(target_language)}).',
-        system=guarded(
-            "You are a precise translator and keyword extractor. You output only valid JSON, never prose or markdown fences."
-        ),
+    prompt, system = PROMPTS["feasibility.keywords"].render(
+        idea=fence(idea, "user_idea"), language=language_name(target_language)
     )
+    parsed = generate_json(get_llm(user_id), prompt, system=system)
     if target_language == "en":
         return str(parsed["keywords_en"]).strip().strip('"')
     return str(parsed["keywords_localized"]).strip().strip('"')
@@ -118,14 +112,13 @@ def score_feasibility(idea: str, *, user_id: str | None = None, target_language:
             examples = "\n".join(f"- {m['content_text']} (outcome reward: {m.get('outcome_reward')})" for m in similar)
             similar_text = f"\nSimilar past campaigns from this user's own history:\n{fence(examples, 'campaign_history')}\n"
 
-    rationale = get_llm(user_id).generate(
-        f"An ad campaign idea is:\n{fence(idea, 'user_idea')}\n"
-        f"Research signals gathered:\n{fence(signals, 'research_signals', max_len=4000)}\n"
-        f"{similar_text}"
-        f"The computed feasibility score (0-100) is {composite}.\n"
-        "Write a 2-3 sentence rationale explaining what these signals suggest "
-        f"about this campaign's real-world momentum and feasibility. Write it in {language_name(target_language)}.",
-        system=guarded("You are a marketing analyst writing terse, evidence-grounded feasibility rationales."),
+    prompt, system = PROMPTS["feasibility.rationale"].render(
+        idea=fence(idea, "user_idea"),
+        signals=fence(signals, "research_signals", max_len=4000),
+        similar=similar_text,
+        score=composite,
+        language=language_name(target_language),
     )
+    rationale = get_llm(user_id).generate(prompt, system=system)
 
     return FeasibilityResult(score=composite, rationale=rationale, signals=signals)

@@ -14,6 +14,66 @@ GitHub Release notes.
 ## [Unreleased]
 
 ### Added
+- **Onboarding checklist** on the Dashboard: 6 steps worked out from real data, dismissible.
+- **Public docs** (`/docs`).
+- **Public status page** (`/status`): fed by an `uptime.yml` workflow that probes the site, database API, sign-in and Edge Functions every 15 minutes, showing 24-hour and 7-day uptime and 48-hour hourly bars.
+- **Internal admin console** (`/admin`, platform operators added with `python -m src.admin.make_admin`):
+  - **What's there:** a health overview, organisations with plan overrides, a dead-letter retry, feature flags and audit-chain verification.
+  - **Safeguards:** every action is audited, and there's no impersonation.
+- **Stripe billing** (test mode until live keys are set):
+  - **Upgrade:** owners upgrade through Stripe Checkout and manage billing in the customer portal.
+  - **Webhook:** a signature-verified `stripe-webhook` drives plans through `apply_billing()`.
+  - **Settings:** a new Plan & billing section.
+- **Public REST API** (`api` Edge Function, `docs/openapi.yaml`):
+  - **Keys:** organisation API keys with read/write scopes, stored hashed, with a 60/min rate limit.
+  - **Endpoints:** list, read and start campaigns, and read usage.
+- **Webhooks:**
+  - **What's sent:** any audit event can go to HTTPS endpoints, HMAC-SHA256 signed.
+  - **Delivery:** the first attempt goes out instantly from the database (`pg_net`), and the sweep retries for about 10 hours.
+  - **UI:** Settings → API & webhooks, with a test button and recent deliveries.
+- **Campaign calendar** (`/calendar`):
+  - **Month grid:** starts, sent rounds and results due for the active organisation.
+  - **Waiting on approval:** the list of open gates.
+  - **Portfolio:** a table with status, rounds, best reward and last activity.
+- **Collaboration:**
+  - **Discussion:** a live comment thread on each campaign, optionally tied to a round.
+  - **Copy editing:** approvers can edit variant A or B at Gate 2, with a version history that keeps the AI draft and allows restoring any version. What's sent is what was approved.
+- **Email A/B tests:**
+  - **Opt-in** per campaign, from a composer toggle.
+  - **Two variants per round:** each round writes variant B with the bandit's second-best style, in its own graph step before Gate 2.
+  - **Split send:** the recipient list is split deterministically in two, with separate click tracking for each half.
+  - **Significance:** a two-proportion z-test picks a winner only when p < 0.05.
+  - **Learning:** the bandit learns from both arms. Results appear on the Metrics page.
+- **Brand kit** per organisation (Settings → Brand kit):
+  - **Creative:** generation follows the kit's voice and preferred words. The creative prompt moves to 1.1.0, unchanged when no kit is set.
+  - **Guardrails:** forbidden words act as banned terms.
+  - **Sending:** the required sign-off or hashtag is added to posts and emails.
+- **Model registry for the domain classifier:**
+  - **Pinned version:** the live Hugging Face revision is recorded, and the retrain registers each promotion.
+  - **One-command rollback** to the previous revision.
+  - **Shadow mode:** a candidate runs alongside the live model, with only content-free agreement logged.
+  - **Canary:** a stable percentage of ideas use the candidate.
+  - **CLI:** `python -m src.finetune.deployments`.
+- **Prompt registry** (`src/prompts`):
+  - **Versioned prompts:** all 8 production prompts are in one place with IDs and semantic versions, moved over word for word. A test fails if a prompt's text changes without a version bump.
+  - **Recorded per call:** each LLM call stores its prompt version in `llm_usage.prompt` and Langfuse.
+  - **Eval regression gate:** the eval now also fails when any metric falls more than 5 points below the accepted baseline (`src/eval/baseline.json`).
+- **Observability:**
+  - **Sentry** error tracking for the workers and the browser, with a crash-recovery screen.
+  - **Langfuse** tracing: each run shows every graph step as a span and every LLM call as a generation with tokens, latency and fallbacks. Prompt text is excluded unless opted in.
+  - **In-app panel:** "AI usage & reliability" for managers.
+  - All of it is optional and switches on only when keys are set.
+- **GDPR self-service** (Settings → Privacy & data):
+  - **Export:** a full JSON download of your data (`export_my_data()`).
+  - **Deletion:** account deletion through the `delete-account` Edge Function. Team campaigns pass to another owner, and the last owner of a team with other members is blocked.
+  - **Retention:** an automatic job (`apply_retention()`, hourly sweep).
+  - The privacy policy is updated to match.
+- **Approval flows:**
+  - **Votes:** approvers vote on each gate, and the database decides it once the organisation's required number of approvals (1–5) is reached; any reject rejects it. Direct gate updates are removed, so the quorum can't be bypassed.
+  - **Org policy:** an optional ban on approving your own campaign, plus approval deadlines with an escalation to managers.
+  - **Notifications:** Slack webhook and email (opt-in) when a gate opens.
+- **Themed dropdowns** (`components/Select`) replace every native `<select>`, whose open list was drawn by the operating system. Keyboard and screen-reader support follow the WAI-ARIA combobox pattern.
+- **Signed-in end-to-end tests** with a mocked backend (`e2e/app.spec.ts`).
 - **Plans and usage limits** per organisation (free / pro / enterprise):
   - **Hard limits,** enforced by database triggers: campaigns per day, active campaigns, team size and Tools runs per day. `create-campaign` checks them before dispatching.
   - **Daily AI token budget,** measured from `llm_usage`: the worker pauses an organisation's runs for the day once it's spent.

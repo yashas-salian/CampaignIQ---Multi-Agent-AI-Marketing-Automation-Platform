@@ -3,11 +3,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { CAMPAIGN_LANGUAGES } from '../lib/languages'
+import { useSession } from '../lib/useAuth'
 import { useOrg } from '../lib/useOrg'
+import CampaignComments from '../components/CampaignComments'
+import CopyEditor from '../components/CopyEditor'
 import { supabase } from '../lib/supabaseClient'
 import type { Campaign, CampaignStatus, GateDecision, Iteration, Persona } from '../lib/types'
 import styles from '../styles/app.module.css'
 import local from './CampaignDetail.module.css'
+import Select from '../components/Select'
 
 const GATE_NUMBER_BY_STATUS: Partial<Record<CampaignStatus, 1 | 2>> = {
   awaiting_gate_1: 1,
@@ -158,6 +162,13 @@ function ScoreRing({ score }: { score: number | null }) {
   )
 }
 
+interface GateVote {
+  user_id: string
+  decision: 'approve' | 'edit' | 'reject'
+  comment: string | null
+  created_at: string
+}
+
 export default function CampaignDetail() {
   const { t, i18n } = useTranslation()
   const { can } = useOrg()
@@ -167,6 +178,10 @@ export default function CampaignDetail() {
   const [personas, setPersonas] = useState<Persona[]>([])
   const [iterations, setIterations] = useState<Iteration[]>([])
   const [pendingGate, setPendingGate] = useState<GateDecision | null>(null)
+  const [votes, setVotes] = useState<GateVote[]>([])
+  const [required, setRequired] = useState(1)
+  const [voters, setVoters] = useState<Record<string, string>>({})
+  const { session } = useSession()
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [stopping, setStopping] = useState(false)
@@ -199,8 +214,20 @@ export default function CampaignDetail() {
         .eq('round_number', (campaignData as Campaign).current_round)
         .maybeSingle()
       setPendingGate((gateData as GateDecision) ?? null)
+      if (gateData) {
+        const orgId = (campaignData as Campaign).org_id
+        const [{ data: voteData }, { data: policy }, { data: members }] = await Promise.all([
+          supabase.from('gate_approvals').select('user_id,decision,comment,created_at').eq('gate_decision_id', gateData.id),
+          supabase.rpc('org_approval_policy', { p_org: orgId }),
+          supabase.rpc('org_members', { p_org: orgId }),
+        ])
+        setVotes((voteData as GateVote[]) ?? [])
+        setRequired(Number((policy as { required_approvals?: number } | null)?.required_approvals ?? 1))
+        setVoters(Object.fromEntries(((members as { user_id: string; email: string; username: string | null }[] | null) ?? []).map((m) => [m.user_id, m.username || m.email])))
+      }
     } else {
       setPendingGate(null)
+      setVotes([])
     }
   }, [id])
 
@@ -269,10 +296,16 @@ export default function CampaignDetail() {
       if (correctionError) console.warn('domain correction not recorded:', correctionError.message)
       if (decision === 'approve') decision = 'edit'
     }
-    await supabase
-      .from('gate_decisions')
-      .update({ decision, comment: comment || null, decided_at: new Date().toISOString() })
-      .eq('id', pendingGate.id)
+    // A vote, not the decision: the database decides the gate once the
+    // organisation's required approvals are in (any reject rejects it).
+    const { error: voteError } = await supabase
+      .from('gate_approvals')
+      .insert({ gate_decision_id: pendingGate.id, decision, comment: comment || null })
+    if (voteError) {
+      setSubmitting(false)
+      setNotice(voteError.message)
+      return
+    }
     await resumeNow()
     setSubmitting(false)
     setComment('')
@@ -346,6 +379,7 @@ export default function CampaignDetail() {
   // The database enforces these; the UI only hides what the role can't do.
   const canApprove = can('approve', campaign?.org_id)
   const canCreate = can('create', campaign?.org_id)
+  const alreadyVoted = votes.some((v) => v.user_id === session?.user.id)
   const created = new Date(campaign.created_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' })
   const summaryEntries = campaign.campaign_summary
     ? Object.entries(campaign.campaign_summary).filter(([, v]) => ['string', 'number', 'boolean'].includes(typeof v))
@@ -416,21 +450,22 @@ export default function CampaignDetail() {
             </div>
           </div>
           {pendingGate.gate_number === 2 && <BrandSafety flags={rounds[0]?.guardrail_flags ?? null} />}
+          {pendingGate.gate_number === 2 && canApprove && !alreadyVoted && rounds[0]?.copy_text && (
+            <CopyEditor campaignId={campaign.id} round={rounds[0].round_number} variant="a" text={rounds[0].copy_text} people={voters} onSaved={load} />
+          )}
+          {pendingGate.gate_number === 2 && canApprove && !alreadyVoted && rounds[0]?.copy_text_b && (
+            <CopyEditor campaignId={campaign.id} round={rounds[0].round_number} variant="b" text={rounds[0].copy_text_b} people={voters} onSaved={load} />
+          )}
           {pendingGate.gate_number === 1 && (
             <label className={styles.field}>
               <span>{t('cd.categoryLabel')}</span>
-              <select
-                className={`${styles.select} ${local.categorySelect}`}
+              <Select
+                className={local.categorySelect}
+                aria-label={t('cd.categoryLabel')}
                 value={category || campaign.domain_category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                {DOMAINS.map((d) => (
-                  <option key={d} value={d}>
-                    {humanize(d)}
-                    {d === campaign.domain_category ? ' ✓' : ''}
-                  </option>
-                ))}
-              </select>
+                onChange={setCategory}
+                options={DOMAINS.map((d) => ({ value: d, text: humanize(d), label: `${humanize(d)}${d === campaign.domain_category ? ' ✓' : ''}` }))}
+              />
               <small className={local.hint}>{t('cd.categoryHint')}</small>
             </label>
           )}
@@ -445,17 +480,31 @@ export default function CampaignDetail() {
             />
           </label>
           {!canApprove && <p className={local.hint}>{t('org.cantApprove')}</p>}
+          {(required > 1 || votes.length > 0) && (
+            <div className={local.votes}>
+              <strong>{t('approvals.progress', { count: votes.filter((v) => v.decision !== 'reject').length, required })}</strong>
+              <ul>
+                {votes.map((v) => (
+                  <li key={v.user_id}>
+                    <span className={local.voteWho}>{voters[v.user_id] ?? v.user_id.slice(0, 8)}</span>
+                    <span className={styles.chip}>{t(`approvals.${v.decision}`)}</span>
+                    {v.comment && <q>{v.comment}</q>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className={local.gateActions}>
-            <button type="button" disabled={submitting || !canApprove} onClick={() => submitDecision('approve')} className={`${styles.btn} ${styles.primary}`}>
+            <button type="button" disabled={submitting || !canApprove || alreadyVoted} onClick={() => submitDecision('approve')} className={`${styles.btn} ${styles.primary}`}>
               {submitting && <span className={styles.spinner} aria-hidden="true" />}
               {t('campaignDetail.approve')}
             </button>
-            <button type="button" disabled={submitting || !canApprove} onClick={() => submitDecision('edit')} className={`${styles.btn} ${styles.ghost}`}>
+            <button type="button" disabled={submitting || !canApprove || alreadyVoted} onClick={() => submitDecision('edit')} className={`${styles.btn} ${styles.ghost}`}>
               {t('campaignDetail.approveEdits')}
             </button>
             <button
               type="button"
-              disabled={submitting || !canApprove}
+              disabled={submitting || !canApprove || alreadyVoted}
               onClick={() => submitDecision('reject')}
               className={`${styles.btn} ${confirm === 'reject' ? styles.dangerSolid : styles.danger}`}
             >
@@ -580,6 +629,12 @@ export default function CampaignDetail() {
                       <RoundImage key={it.id} seedFrom={it.id} prompt={it.image_prompt} />
                       <div className={local.creativeText}>
                         {it.copy_text && <blockquote className={local.copy}>{it.copy_text}</blockquote>}
+                        {it.copy_text_b && (
+                          <>
+                            <span className={styles.chip}>{t('ab.variantB')}{it.image_style_b && it.copy_tone_b ? ` · ${humanize(it.image_style_b)} × ${it.copy_tone_b.replace(/_/g, ' ')}` : ''}</span>
+                            <blockquote className={local.copy}>{it.copy_text_b}</blockquote>
+                          </>
+                        )}
                         {!gateOpen && <BrandSafety flags={it.guardrail_flags} />}
                         {it.image_prompt && (
                           <p className={local.prompt}>
@@ -644,6 +699,15 @@ export default function CampaignDetail() {
           </details>
         </section>
       )}
+      <section className={`${styles.panel} ${styles.enter}`} style={{ '--i': 8 } as CSSProperties}>
+        <div className={styles.panelHead}>
+          <div>
+            <h2>{t('collab.title')}</h2>
+            <p className={styles.panelSub}>{t('collab.sub')}</p>
+          </div>
+        </div>
+        <CampaignComments campaignId={campaign.id} orgId={campaign.org_id} rounds={rounds.map((r) => r.round_number).sort((a, b) => a - b)} />
+      </section>
     </div>
   )
 }

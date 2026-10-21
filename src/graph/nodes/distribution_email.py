@@ -1,6 +1,8 @@
 import html as html_lib
 
+from src.capabilities.brand import brand_kit_for_campaign, with_required_phrase
 from src.capabilities.distribution import send_campaign_email
+from src.capabilities.experiments import split_recipients
 from src.capabilities.guardrails import DISCLAIMERS, prepare_for_channel
 from src.db.supabase_client import get_template, upsert_iteration
 from src.graph.state import CampaignState
@@ -20,22 +22,41 @@ def _render_email_html(copy_text: str, state: CampaignState) -> str:
 def distribution_email_node(state: CampaignState) -> CampaignState:
     creative = state["creative"]
     domain = state.get("domain_category", "other")
-    text, blocked = prepare_for_channel(creative.copy_text, "email", domain_category=domain, cta_url=state.get("cta_url"))
+    kit = brand_kit_for_campaign(state["campaign_id"])
+    disclaimer = DISCLAIMERS.get(domain)
+    text, blocked = prepare_for_channel(
+        with_required_phrase(creative.copy_text, kit), "email", domain_category=domain, cta_url=state.get("cta_url"),
+        banned_terms=kit.forbidden_words if kit else (),
+    )
     if blocked:
         email_id = f"dead: {blocked}"
     else:
         body = _render_email_html(text, state)
-        disclaimer = DISCLAIMERS.get(domain)
         if disclaimer:
             body += f'<p style="font-size:12px;color:#666">{html_lib.escape(disclaimer)}</p>'
+        variant = state.get("creative_b")
+        recipients_a, recipients_b = split_recipients(state["email_to"]) if variant else (state["email_to"], [])
         email_id = send_campaign_email(
             state["campaign_id"],
             state["round_id"],
-            state["email_to"],
+            recipients_a,
             subject=state["idea"][:78],
             html=body,
             cta_url=state.get("cta_url"),
             user_id=state["user_id"],
         )
+        if variant and recipients_b:
+            text_b, blocked_b = prepare_for_channel(
+                with_required_phrase(variant.copy_text, kit), "email", domain_category=domain,
+                cta_url=state.get("cta_url"), banned_terms=kit.forbidden_words if kit else (),
+            )
+            body_b = _render_email_html(text_b, state) if not blocked_b else None
+            if body_b and disclaimer:
+                body_b += f'<p style="font-size:12px;color:#666">{html_lib.escape(disclaimer)}</p>'
+            email_id_b = f"dead: {blocked_b}" if blocked_b else send_campaign_email(
+                state["campaign_id"], state["round_id"], recipients_b, subject=state["idea"][:78], html=body_b,
+                cta_url=state.get("cta_url"), user_id=state["user_id"], channel="email_b",
+            )
+            upsert_iteration(state["campaign_id"], state["user_id"], state["round_id"], email_id_b=email_id_b)
     upsert_iteration(state["campaign_id"], state["user_id"], state["round_id"], email_id=email_id)
     return {"email_id": email_id}

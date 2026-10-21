@@ -1,0 +1,34 @@
+{
+  "audience.personas": {
+    "fingerprint": "81e70dcfe038bdd6",
+    "version": "1.0.0"
+  },
+  "creative.generate": {
+    "fingerprint": "c21e2f1b381b3d7c",
+    "version": "1.1.0"
+  },
+  "eval.judge_personas": {
+    "fingerprint": "e6a1c0f528eb4595",
+    "version": "1.0.0"
+  },
+  "feasibility.keywords": {
+    "fingerprint": "b104c8c21447a88d",
+    "version": "1.0.0"
+  },
+  "feasibility.rationale": {
+    "fingerprint": "23b0822b19162b7f",
+    "version": "1.0.0"
+  },
+  "feedback.decide": {
+    "fingerprint": "20da48f3a0d9e3e2",
+    "version": "1.0.0"
+  },
+  "idea_intake.classify": {
+    "fingerprint": "09b55e90abd11c3a",
+    "version": "1.0.0"
+  },
+  "preflight.panel": {
+    "fingerprint": "adcc701f4525ed30",
+    "version": "1.0.0"
+  }
+}

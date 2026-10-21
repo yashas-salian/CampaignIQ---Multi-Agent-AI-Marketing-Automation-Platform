@@ -4,7 +4,8 @@ from src.capabilities.metrics import MetricsResult
 from src.languages import language_name
 from src.llm_json import generate_json
 from src.providers.registry import get_llm
-from src.security.prompt_guard import fence, guarded
+from src.prompts import PROMPTS
+from src.security.prompt_guard import fence
 
 
 class RevisionDirective(BaseModel):
@@ -30,23 +31,15 @@ def run_feedback_correction(
             adjustments="",
         )
 
-    parsed = generate_json(
-        get_llm(user_id),
-        f"Ad campaign idea:\n{fence(idea, 'user_idea')}\n"
-        f"Round {current_round} results: overall_reward={metrics.overall_reward:.2f} (0-1 scale), "
-        f"per-channel rewards: {metrics.channel_rewards}\n"
-        f"Stakeholder feedback:\n{fence(stakeholder_comment or 'none', 'stakeholder_comment')}\n\n"
-        "Decide whether this campaign should continue to another round, and if so, what should "
-        "be adjusted (tone, image style, channel emphasis, etc.) for the next round's creative. "
-        "Respond with ONLY a JSON object, no prose, with exactly three keys: "
-        '"continue_campaign" (boolean), "reasoning" (one sentence), "adjustments" (a short '
-        "directive to feed into the next round's creative generation, empty string if not continuing). "
-        f"Write \"reasoning\" and \"adjustments\" in {language_name(target_language)}.",
-        system=guarded(
-            "You are a marketing performance analyst deciding whether a campaign is working. "
-            "You output only valid JSON, never prose or markdown fences."
-        ),
+    prompt, system = PROMPTS["feedback.decide"].render(
+        idea=fence(idea, "user_idea"),
+        round=current_round,
+        reward=f"{metrics.overall_reward:.2f}",
+        channel_rewards=metrics.channel_rewards,
+        comment=fence(stakeholder_comment or "none", "stakeholder_comment"),
+        language=language_name(target_language),
     )
+    parsed = generate_json(get_llm(user_id), prompt, system=system)
     return RevisionDirective(**parsed)
 
 

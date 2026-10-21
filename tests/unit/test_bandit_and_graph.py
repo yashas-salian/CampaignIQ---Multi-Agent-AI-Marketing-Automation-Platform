@@ -106,3 +106,18 @@ class TestGate1:
     def test_reject(self, monkeypatch):
         self._patch(monkeypatch, {}, decision="reject")
         assert human_gate.gate_1_node(self.STATE) == {"rejected": True}
+
+
+def test_gate_2_sends_the_copy_the_approvers_edited(monkeypatch):
+    from src.capabilities.creative import Creative
+
+    monkeypatch.setattr(human_gate, "create_pending_gate", lambda *a, **k: None)
+    monkeypatch.setattr(human_gate, "update_campaign_status", lambda *a: None)
+    monkeypatch.setattr(human_gate, "notify_gate_opened", lambda *a: None)
+    monkeypatch.setattr(human_gate, "interrupt", lambda payload: {"decision": "approve"})
+    monkeypatch.setattr(human_gate, "get_iteration", lambda cid, r: {"copy_text": "Edited A", "copy_text_b": "Draft B"})
+    draft = Creative(copy_text="Draft A", image_prompt="i", image_bytes=b"", image_style="s", copy_tone="t", arm_index=1)
+    draft_b = draft.model_copy(update={"copy_text": "Draft B"})
+    out = human_gate.gate_2_node({"campaign_id": "c1", "user_id": "u1", "round_id": 1, "creative": draft, "creative_b": draft_b})
+    assert out["creative"].copy_text == "Edited A" and out["creative"].arm_index == 1
+    assert "creative_b" not in out  # unchanged variant isn't rewritten

@@ -61,6 +61,9 @@ def process_campaign(app, campaign_id: str) -> None:
 
 def main() -> None:
     load_dotenv()
+    from src.observability import init
+
+    init("campaign-sweep")
     parser = argparse.ArgumentParser(description="Reliability sweep (no args) or resume-one (--campaign-id) for the autonomous campaign loop.")
     parser.add_argument("--campaign-id", default=None)
     args = parser.parse_args()

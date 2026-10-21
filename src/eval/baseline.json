@@ -1,0 +1,10 @@
+{
+  "accepted": "2026-10-21",
+  "note": "Smoke test #5 (openai/gpt-oss-120b via Groq). Update with `python -m src.eval.run_eval --update-baseline` after an intended change.",
+  "metrics": {
+    "domain_accuracy": 0.83,
+    "feasibility_accuracy": 0.28,
+    "persona_quality": 0.89,
+    "overall": 0.67
+  }
+}

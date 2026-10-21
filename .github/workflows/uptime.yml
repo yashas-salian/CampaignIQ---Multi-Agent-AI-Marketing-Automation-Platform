@@ -1,0 +1,31 @@
+name: Uptime
+
+# Probes the site, the Supabase APIs and the Edge Functions every 15 minutes
+# and records the results for the public status page (/status). Free: a few
+# HTTP requests per run, no LLM calls.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: uptime
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install requests python-dotenv "supabase>=2.9,<3"
+      - run: python -m src.scheduler.uptime
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          APP_BASE_URL: ${{ vars.APP_BASE_URL || 'https://campaign-iq-multi-agent-ai-marketin.vercel.app' }}

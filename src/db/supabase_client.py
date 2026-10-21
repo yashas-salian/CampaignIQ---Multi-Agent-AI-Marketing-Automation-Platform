@@ -28,6 +28,7 @@ def create_campaign(
     max_duration_minutes: int | None = None,
     target_language: str = "en",
     org_id: str | None = None,
+    ab_test: bool = False,
 ) -> None:
     row = {
         "id": campaign_id,
@@ -44,6 +45,7 @@ def create_campaign(
         "max_rounds": max_rounds,
         "max_duration_minutes": max_duration_minutes,
         "target_language": target_language,
+        "ab_test": ab_test,
         "status": "created",
     }
     if org_id:
@@ -162,10 +164,10 @@ def get_all_metrics(campaign_id: str) -> list[dict]:
     return result.data
 
 
-def get_click_count(campaign_id: str, round_number: int) -> int:
+def get_click_count(campaign_id: str, round_number: int, channel: str = "email") -> int:
     result = (
         get_client().table("click_log").select("id", count="exact")
-        .eq("campaign_id", campaign_id).eq("round_id", round_number).eq("channel", "email")
+        .eq("campaign_id", campaign_id).eq("round_id", round_number).eq("channel", channel)
         .execute()
     )
     return result.count or 0

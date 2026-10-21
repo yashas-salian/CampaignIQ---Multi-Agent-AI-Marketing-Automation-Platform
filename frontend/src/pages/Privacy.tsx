@@ -91,11 +91,22 @@ const SECTIONS: LegalSection[] = [
     id: 'retention',
     title: 'Keeping and deleting data',
     body: (
-      <p>
-        Data is kept while your account exists. To delete your account and everything linked to it, email{' '}
-        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. Deleting an account removes its campaigns, results,
-        keys and templates. Posts already published on Bluesky must be removed there separately.
-      </p>
+      <>
+        <p>
+          <strong>Download or delete it yourself:</strong> Settings → Privacy &amp; data. The download is a JSON file
+          with your account, the campaigns you created with their results, your votes and corrections, templates,
+          masked API keys, Tools runs, AI usage and private memory. Deleting your account removes all of it, including
+          your stored API keys and the category corrections future classifier training would use. Campaigns you created
+          inside a team organisation belong to that team and stay with it. Posts already published on Bluesky must be
+          removed there separately. Questions: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+        </p>
+        <p>
+          <strong>How long we keep things:</strong> your data stays while your account exists. Some operational data is
+          pruned automatically: Tools results after 90 days, per-request AI usage after 180 days, the recipient list and
+          content of delivered emails after 30 days, and raw click events after a year. A security audit log of account
+          and team actions is kept; it refers to people only by an internal id.
+        </p>
+      </>
     ),
   },
   {

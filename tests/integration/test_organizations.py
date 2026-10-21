@@ -72,21 +72,26 @@ def test_everyone_in_the_org_sees_its_campaigns_and_nobody_else_does(db, team, a
 def test_permissions_by_role(db, team, act_as, as_admin, role, can_create, can_decide):
     org, users, _ = team
     cid = campaign_in(db, org, users["owner"])
-    db.execute("insert into gate_decisions (campaign_id, user_id, gate_number) values (%s, %s, 1)", (cid, users["owner"]))
+    gate = db.execute(
+        "insert into gate_decisions (campaign_id, user_id, gate_number) values (%s, %s, 1) returning id", (cid, users["owner"])
+    ).fetchone()[0]
     act_as(users[role])
     created = attempt(
         db, "insert into campaigns (idea, domain_category, user_id, org_id) values ('x', 'other', %s, %s)", (users[role], org)
     )
     assert (created == 1) is can_create
-    decided = attempt(db, "update gate_decisions set decision = 'approve', decided_at = now() where campaign_id = %s", (cid,))
-    assert (decided == 1) is can_decide
+    voted = attempt(db, "insert into gate_approvals (gate_decision_id, decision) values (%s, 'approve')", (gate,))
+    assert (voted == 1) is can_decide
 
 
 def test_marketers_cannot_approve_their_own_campaign(db, team, act_as):
     org, users, _ = team
     cid = campaign_in(db, org, users["marketer"])
-    db.execute("insert into gate_decisions (campaign_id, user_id, gate_number) values (%s, %s, 2)", (cid, users["marketer"]))
+    gate = db.execute(
+        "insert into gate_decisions (campaign_id, user_id, gate_number) values (%s, %s, 2) returning id", (cid, users["marketer"])
+    ).fetchone()[0]
     act_as(users["marketer"])
+    assert attempt(db, "insert into gate_approvals (gate_decision_id, decision) values (%s, 'approve')", (gate,)) == "denied"
     assert attempt(db, "update gate_decisions set decision = 'approve' where campaign_id = %s", (cid,)) == 0
 
 

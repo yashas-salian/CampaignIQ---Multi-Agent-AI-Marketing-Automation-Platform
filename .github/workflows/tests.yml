@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -e ".[dev,mcp]"
+      - run: pip install -e ".[dev,mcp,observability]"
       - uses: supabase/setup-cli@v1
         with:
           version: 2.121.0
@@ -25,7 +25,7 @@ jobs:
         run: supabase db start
       - name: Unit + integration tests
         # Coverage floor: raise it as coverage grows, never lower it.
-        run: pytest --cov --cov-report=term-missing:skip-covered --cov-fail-under=55
+        run: pytest --cov --cov-report=term-missing:skip-covered --cov-fail-under=60
 
   frontend:
     runs-on: ubuntu-latest
@@ -41,6 +41,13 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - name: Edge Function helper tests (Stripe signatures; Node runs TypeScript natively)
+        run: node --test ../supabase/functions/_shared/stripe.test.ts
+      - name: Dropdowns use the themed Select (native <select> popups ignore the site theme)
+        run: |
+          if grep -rn "<select" src --include=*.tsx | grep -v "components/Select.tsx"; then
+            echo "::error::Use components/Select instead of a native <select>"; exit 1
+          fi
       - run: npx playwright install --with-deps chromium
       - name: End-to-end tests (builds the site, desktop + phone)
         run: npx playwright test

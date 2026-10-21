@@ -32,7 +32,10 @@ class Scripted(LLMProvider):
 
 @pytest.fixture(autouse=True)
 def isolated(monkeypatch):
+    from src.prompts import current_prompt
+
     gateway.reset_bench()
+    current_prompt.set(None)
     rows = []
 
     class Table:
@@ -53,7 +56,7 @@ def test_first_healthy_provider_answers(isolated):
     assert LLMGateway([groq, cerebras], user_id="u1").generate("p") == "hi"
     assert cerebras.calls == 0
     assert isolated == [
-        {"user_id": "u1", "org_id": None, "provider": "groq", "model": "groq-model", "prompt_tokens": 11, "completion_tokens": 7,
+        {"user_id": "u1", "org_id": None, "prompt": None, "provider": "groq", "model": "groq-model", "prompt_tokens": 11, "completion_tokens": 7,
          "latency_ms": isolated[0]["latency_ms"], "ok": True, "error": None}
     ]
 

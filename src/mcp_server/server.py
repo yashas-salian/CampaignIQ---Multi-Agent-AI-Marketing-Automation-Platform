@@ -315,6 +315,9 @@ def main() -> None:
     parser.add_argument("--http", type=int, metavar="PORT", help="serve streamable HTTP on 127.0.0.1:PORT instead of stdio")
     args = parser.parse_args()
     _preload()
+    from src.observability import init
+
+    init("mcp-server")
     if args.http:
         mcp.settings.host, mcp.settings.port = "127.0.0.1", args.http
         mcp.run(transport="streamable-http")

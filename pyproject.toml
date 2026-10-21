@@ -34,6 +34,8 @@ mcp = ["mcp>=1.9,<2"]
 # Tests: pytest -m "not integration" (no network, no DB); integration tests need
 # a local Supabase Postgres (npx --prefix frontend supabase db start --workdir .).
 dev = ["pytest>=8,<9", "pytest-cov>=5,<7"]
+# Error tracking + LLM/graph tracing (src/observability.py); both no-ops without keys.
+observability = ["langfuse>=3,<4", "sentry-sdk>=2,<3"]
 
 [build-system]
 requires = ["hatchling"]

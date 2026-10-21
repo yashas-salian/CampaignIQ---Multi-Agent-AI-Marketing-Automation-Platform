@@ -4,7 +4,8 @@ from pydantic import BaseModel
 
 from src.llm_json import generate_json
 from src.providers.registry import get_llm
-from src.security.prompt_guard import fence, guarded
+from src.prompts import PROMPTS
+from src.security.prompt_guard import fence
 
 DomainCategory = Literal[
     "fitness_wellness",
@@ -46,13 +47,8 @@ def normalize_idea(raw_idea: str, *, user_id: str | None = None, use_local: bool
         label = classify_domain(idea)
         if label is not None:
             return NormalizedIdea(idea=idea, domain_category=label)
-    parsed = generate_json(
-        llm,
-        f"Campaign idea:\n{fence(idea, 'user_idea')}\n\n"
-        f"Classify this idea into exactly one of these domain/category tags: {list(DOMAIN_CATEGORIES)}. "
-        'Respond with ONLY a JSON object, no prose, with exactly one key: "domain_category".',
-        system=guarded("You are a strict classifier. You output only valid JSON, never prose or markdown fences."),
-    )
+    prompt, system = PROMPTS["idea_intake.classify"].render(idea=fence(idea, "user_idea"), categories=list(DOMAIN_CATEGORIES))
+    parsed = generate_json(llm, prompt, system=system)
     label = str(parsed.get("domain_category", "")).strip().lower()
     # An off-list answer (model drift, or an idea that talked the model into
     # inventing a label) must not crash the run.

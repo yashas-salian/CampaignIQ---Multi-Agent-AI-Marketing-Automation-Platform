@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import RewardChart, { type RewardPoint } from '../components/RewardChart'
 import { supabase } from '../lib/supabaseClient'
-import type { Campaign, Iteration, Metric } from '../lib/types'
+import type { AbTestResult, Campaign, Iteration, Metric } from '../lib/types'
 import styles from '../styles/app.module.css'
 import local from './Metrics.module.css'
 
@@ -28,6 +28,19 @@ function ChannelIcon({ channel }: { channel: Metric['channel'] }) {
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M4 12a8 8 0 1 1 3.3 6.5L4 20l1.4-3.4A8 8 0 0 1 4 12z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
     </svg>
+  )
+}
+
+function AbResult({ result }: { result: AbTestResult }) {
+  const { t } = useTranslation()
+  const pct = (r: number) => `${(r * 100).toFixed(1)}%`
+  const verdict = result.winner
+    ? t('ab.winner', { variant: result.winner.toUpperCase(), p: result.p_value })
+    : t('ab.noWinner', { p: result.p_value ?? '—' })
+  return (
+    <span className={styles.chip} title={t('ab.explain')}>
+      A {pct(result.rate_a)} · B {pct(result.rate_b)} · {verdict}
+    </span>
   )
 }
 
@@ -226,11 +239,14 @@ export default function Metrics() {
                           </span>
                           <span className={local.channelName}>{humanize(m.channel)}</span>
                           <span className={local.raw}>
-                            {Object.entries(m.raw_metrics).map(([k, v]) => (
-                              <span key={k} className={styles.chip}>
-                                {v} {metricLabel(k)}
-                              </span>
-                            ))}
+                            {Object.entries(m.raw_metrics)
+                              .filter(([, v]) => typeof v === 'number')
+                              .map(([k, v]) => (
+                                <span key={k} className={styles.chip}>
+                                  {v as number} {metricLabel(k)}
+                                </span>
+                              ))}
+                            {typeof m.raw_metrics.ab_test === 'object' && <AbResult result={m.raw_metrics.ab_test as AbTestResult} />}
                           </span>
                           <span className={local.bar}>
                             <span className={styles.track}>

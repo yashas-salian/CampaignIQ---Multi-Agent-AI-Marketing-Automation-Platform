@@ -16,7 +16,9 @@ from src.graph.nodes.metrics_collector import metrics_collector_node
 from src.graph.nodes.metrics_wait import metrics_wait_node
 from src.graph.nodes.novelty_check import novelty_check_node, route_after_novelty_check
 from src.graph.nodes.preflight import preflight_node, route_after_preflight
+from src.graph.nodes.variant_b import generate_variant_b_node
 from src.graph.state import CampaignState
+from src.observability import traced_node
 
 
 def route_after_gate_1(state: CampaignState) -> str:
@@ -37,21 +39,22 @@ def route_after_gate_2(state: CampaignState) -> list[str]:
 
 def build_graph(checkpointer=None):
     graph = StateGraph(CampaignState)
-    graph.add_node("idea_intake", idea_intake_node)
-    graph.add_node("score_feasibility", feasibility_node)
-    graph.add_node("audience", audience_node)
-    graph.add_node("gate_1", gate_1_node)
-    graph.add_node("generate_creative", creative_node)
-    graph.add_node("novelty_check", novelty_check_node)
-    graph.add_node("run_preflight", preflight_node)
-    graph.add_node("gate_2", gate_2_node)
-    graph.add_node("distribution_bluesky", distribution_bluesky_node)
-    graph.add_node("distribution_reddit", distribution_reddit_node)
-    graph.add_node("distribution_email", distribution_email_node)
-    graph.add_node("wait_for_metrics", metrics_wait_node)
-    graph.add_node("collect_metrics", metrics_collector_node)
-    graph.add_node("feedback_correction", feedback_correction_node)
-    graph.add_node("finalize", finalize_node)
+    graph.add_node("idea_intake", traced_node("idea_intake", idea_intake_node))
+    graph.add_node("score_feasibility", traced_node("score_feasibility", feasibility_node))
+    graph.add_node("audience", traced_node("audience", audience_node))
+    graph.add_node("gate_1", traced_node("gate_1", gate_1_node))
+    graph.add_node("generate_creative", traced_node("generate_creative", creative_node))
+    graph.add_node("novelty_check", traced_node("novelty_check", novelty_check_node))
+    graph.add_node("run_preflight", traced_node("run_preflight", preflight_node))
+    graph.add_node("generate_variant_b", traced_node("generate_variant_b", generate_variant_b_node))
+    graph.add_node("gate_2", traced_node("gate_2", gate_2_node))
+    graph.add_node("distribution_bluesky", traced_node("distribution_bluesky", distribution_bluesky_node))
+    graph.add_node("distribution_reddit", traced_node("distribution_reddit", distribution_reddit_node))
+    graph.add_node("distribution_email", traced_node("distribution_email", distribution_email_node))
+    graph.add_node("wait_for_metrics", traced_node("wait_for_metrics", metrics_wait_node))
+    graph.add_node("collect_metrics", traced_node("collect_metrics", metrics_collector_node))
+    graph.add_node("feedback_correction", traced_node("feedback_correction", feedback_correction_node))
+    graph.add_node("finalize", traced_node("finalize", finalize_node))
 
     graph.add_edge(START, "idea_intake")
     graph.add_edge("idea_intake", "score_feasibility")
@@ -67,8 +70,9 @@ def build_graph(checkpointer=None):
     graph.add_conditional_edges(
         "run_preflight",
         route_after_preflight,
-        {"gate_2": "gate_2", "generate_creative": "generate_creative"},
+        {"gate_2": "generate_variant_b", "generate_creative": "generate_creative"},
     )
+    graph.add_edge("generate_variant_b", "gate_2")
     graph.add_conditional_edges(
         "gate_2",
         route_after_gate_2,

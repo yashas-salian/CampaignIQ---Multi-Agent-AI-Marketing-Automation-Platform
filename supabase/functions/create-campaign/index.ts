@@ -28,7 +28,7 @@ async function handle(req: Request): Promise<Response> {
     return new Response("Invalid session", { status: 401 });
   }
 
-  const { idea, target_language, email_to, org_id } = await req.json();
+  const { idea, target_language, email_to, org_id, ab_test } = await req.json();
   if (!idea) {
     return new Response("Missing idea", { status: 400 });
   }
@@ -76,6 +76,7 @@ async function handle(req: Request): Promise<Response> {
           // body -- same pattern as ownership checks in resume-campaign.
           user_id: userData.user.id,
           org_id: org_id || "",
+          ab_test: ab_test === true,
           target_language: target_language || "en",
           email_to: email_to || "",
         },

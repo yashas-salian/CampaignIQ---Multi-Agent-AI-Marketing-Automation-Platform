@@ -431,3 +431,17 @@ verify_jwt = true
 
 [functions.create-campaign]
 verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+[functions.api]
+# Authenticated with organisation API keys (Authorization: Bearer mos_...), not user JWTs.
+verify_jwt = false
+
+[functions.billing]
+verify_jwt = true
+
+[functions.stripe-webhook]
+# Authenticated by the Stripe-Signature header, not a Supabase JWT.
+verify_jwt = false

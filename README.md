@@ -86,6 +86,23 @@ Without Supabase credentials (local scripts), a local JSON file stands in for th
 
 Healthcare, finance and fitness campaigns automatically get a disclaimer: the full text on emails, and a short form on Bluesky when it fits. Results are stored per round in `iterations.guardrail_flags`.
 
+### Email A/B tests
+
+Tick **A/B test emails** in the composer, which needs at least 2 recipients. Each round then works like this:
+1. **Variant B is written.** A `generate_variant_b` step between pre-flight and Gate 2 writes it with the LinUCB bandit's **second-best** arm. It runs once per round and outside the gate, which re-runs on resume, so the B the approver sees is the B that's sent.
+2. **The list is split.** It's sorted and divided in two, so the split is the same every time. Each half gets one variant: A on `email`, B on `email_b`, each with its own delivery and click tracking ([`capabilities/experiments.py`](./src/capabilities/experiments.py)).
+3. **Results are compared.** Click rates go through a two-sided two-proportion z-test, and a winner is declared only when p < 0.05. The result sits on the variant-B metric and shows on the Metrics page.
+4. **The bandit learns from both.** Each variant's reward updates its own arm, using the email context.
+
+### Brand kit
+
+Each organisation's kit (Settings → Brand kit, edited by owners and admins; [`capabilities/brand.py`](./src/capabilities/brand.py)) is applied in three places:
+- **Creative generation** follows the **voice**, which is fenced as user text, and the **preferred words**.
+- **Forbidden words** join the brand-safety banned terms, so a draft using one is rewritten and can never be sent.
+- **The required sign-off or hashtag** is appended to Bluesky posts (when it fits) and emails that don't already contain it.
+
+With no kit set, prompts are exactly what they were before.
+
 ### Prompt-injection protection
 
 Untrusted text reaches the prompts from two places:
@@ -188,6 +205,54 @@ Campaigns belong to an **organisation**. Every user has a personal one and can c
 - **Invites:** single-use links, bound to the invited email address, that expire after 7 days. Only a hash of the token is stored. If the invitee isn't signed in, the link survives the sign-in redirect.
 - **Still per user:** BYOK keys and templates.
 
+## Privacy and data (GDPR)
+
+- **Export (right of access and portability):** Settings → Privacy & data downloads `export_my_data()`. That covers the account, memberships, campaigns the user created (with personas, rounds, metrics, feedback and gates), votes, category corrections, templates, masked keys, Tools runs, AI usage, private memory and their own audit events. It never includes secrets.
+- **Erasure:** the [`delete-account`](./supabase/functions/delete-account/index.ts) Edge Function, which requires `{"confirm": "DELETE"}`, works in two steps:
+  1. `prepare_account_deletion()` (service role only) refuses while the user is the last owner of a team that has other members. Otherwise it hands their team campaigns to another owner or admin, and deletes organisations where they're the only member, including their personal one.
+  2. The auth user is deleted, and every personal table cascades from it. That includes BYOK secrets in Vault and the category corrections the weekly retrain would use.
+- **Retention:** `apply_retention()` runs in the hourly sweep:
+
+  | Data | Kept for |
+  |---|---|
+  | Tools results | 90 days |
+  | Per-call AI usage | 180 days |
+  | Delivered-send payloads (recipients, email HTML) | 30 days; failed sends keep theirs for retries |
+  | Raw click events | 1 year |
+
+  The audit log is kept, and refers to people only by ID.
+
+## Approval flows
+
+Gates are decided by **votes**: each owner, admin or approver adds one to `gate_approvals`. A database trigger then decides the gate:
+- **Reject:** any reject rejects it.
+- **Approve:** otherwise it's approved once the organisation's **required approvals** (1–5, default 1) are in; it's "approved with edits" if anyone edited.
+
+Users can't update `gate_decisions` directly any more, so the quorum can't be skipped. Every vote is recorded in the audit log.
+
+**Approval policy** (Settings → Team, owners and admins):
+- **Required approvals:** 1 to 5 per gate.
+- **No self-approval:** optionally, the campaign's creator can't vote on it.
+- **Deadline:** an approval deadline in hours. Gates past it are escalated once to owners and admins by the hourly sweep.
+- **Slack:** an incoming-webhook URL for notifications.
+
+**Notifications** go out when a gate opens, by Slack and, with `NOTIFY_EMAIL=true`, by email through Resend. They link to the campaign (`APP_BASE_URL`). Voting stays in the app, signed in, so role and quorum rules always apply. Approving straight from Slack would need a Slack app with request signing and user mapping, which is a possible follow-up.
+
+## Campaign calendar
+
+`/calendar` shows the active organisation at a glance:
+- **Month grid:** campaigns started, rounds sent (from the delivery ledger, so it reflects real sends) and results due (send time + `METRICS_WAIT_HOURS`), in the viewer's time zone. On phones the events collapse to coloured dots.
+- **Waiting on approval:** every open gate, with how long it has waited.
+- **Portfolio:** every campaign with status, round progress, best reward, start date and last activity.
+
+## Collaboration
+
+- **Discussion:** a live comment thread on each campaign page (`campaign_comments`), about the whole campaign or one round. Anyone in the organisation can read and comment; people edit their own comments, and managers can remove any.
+- **Copy editing at Gate 2:** owners, admins and approvers can rewrite variant A or B before voting.
+  - **Versions:** `edit_round_copy()` stores every version in `copy_revisions`, keeping the AI draft as version 1 so any version can be restored. Each edit goes in the audit log.
+  - **Timing:** edits are only accepted while that round's Gate 2 is open.
+  - **What's sent:** after approval, the Gate 2 step reloads the edited text, so the approved copy is what goes out, still subject to the send-time brand-safety check.
+
 ## Plans and usage limits
 
 Each organisation has a plan. A personal organisation follows its owner's subscription, and team plans are set by billing or the admin console; members can't change them. Limits live in `plan_limits`, where null means unlimited:
@@ -204,6 +269,68 @@ Each organisation has a plan. A personal organisation follows its owner's subscr
 - **Checked before spending anything:** `create-campaign` calls `campaign_quota_error()` before dispatching and returns 429, because the campaign row is only written after the first LLM calls.
 - **Token budget:** the gateway tags every LLM call with the run's organisation (`llm_usage.org_id`). Once the daily budget is spent, the worker skips that organisation's runs until the next day; the check fails open, so it can never block a run by mistake.
 - **Dashboard:** the plan card shows the active organisation's usage.
+
+## Prompt registry
+
+Every production prompt lives in [`src/prompts/catalog.py`](./src/prompts/catalog.py) with an id and a semantic version (`creative.generate@1.0.0`, …). Capabilities render them with already-fenced values; the registry adds the injection rule to the system prompt.
+
+- **Versions are locked to content.** [`fingerprints.json`](./src/prompts/fingerprints.json) records a hash of each prompt, and `tests/unit/test_prompts.py` fails if the text changes without a version bump. To change a prompt:
+  1. Edit it.
+  2. Bump its version (patch for wording, minor for new instructions, major for a new output format) and add a CHANGELOG line.
+  3. Run `python -m src.prompts --update-fingerprints`.
+- **Traceable.** Every LLM call records `id@version` in `llm_usage.prompt` and in its Langfuse generation, so a jump in failures, tokens or quality can be tied to the prompt change behind it. `python -m src.prompts` lists the current versions.
+- **Regression gate.** `python -m src.eval.run_eval` fails below the 60% overall threshold, or when any metric drops more than 5 points below [`src/eval/baseline.json`](./src/eval/baseline.json), the last accepted run. After an intended change, accept the new scores with `--update-baseline`. That records the prompt versions too.
+
+## Observability
+
+All optional and free-tier; each part switches on only when its keys are set ([`src/observability.py`](./src/observability.py)):
+
+| | What you get | Turn on with |
+|---|---|---|
+| **In-app** (always on) | Settings → AI usage & reliability: calls, failures, tokens and p50/p95 latency per provider per day for the organisation (`llm_usage_stats()`) | — |
+| **Langfuse** | A trace per run: a span per graph step (gate pauses are marked as pauses, not errors) and a generation per LLM call, with provider, model, tokens, latency, failures and fallbacks | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` (+ `LANGFUSE_HOST`) |
+| **Sentry, workers** | Uncaught errors with release and service tags | `SENTRY_DSN` |
+| **Sentry, browser** | Errors caught by the app's error boundary, which also shows a recovery screen. The SDK only downloads when configured. | `VITE_SENTRY_DSN` (Vercel env) |
+
+**Langfuse privacy:** prompts carry customers' campaign content, so traces hold metadata only. Set `LANGFUSE_CAPTURE_CONTENT=true` to include prompt and response text.
+
+The Python packages come from `pip install -e ".[observability]"`.
+
+## Billing (Stripe)
+
+Settings → Plan & billing: owners upgrade through **Stripe Checkout** and manage cards and invoices in Stripe's **customer portal**. There's no Stripe SDK; [`_shared/stripe.ts`](./supabase/functions/_shared/stripe.ts) calls the REST API.
+
+- [`billing`](./supabase/functions/billing/index.ts) creates the Checkout or portal session; only owners may.
+- [`stripe-webhook`](./supabase/functions/stripe-webhook/index.ts) verifies `Stripe-Signature` (HMAC, 5-minute replay window; unit-tested under Node) and calls `apply_billing()`. That's the only way billing changes a plan:
+  - **Statuses:** `active`, `trialing` and `past_due` mean Pro; anything else means free.
+  - **Personal organisations** flip the owner's subscription, which also unlocks paid providers.
+  - **Team organisations** flip the organisation's plan.
+
+**Setup (test mode):**
+1. In Stripe (test mode), create a recurring Price for "Pro".
+2. In Supabase Edge Function secrets, set `STRIPE_SECRET_KEY=sk_test_…`, `STRIPE_PRICE_PRO=price_…` and `APP_BASE_URL`.
+3. Add a webhook endpoint at `…/functions/v1/stripe-webhook` for `checkout.session.completed` and `customer.subscription.*`, and set its `STRIPE_WEBHOOK_SECRET=whsec_…`.
+4. Pay with the test card `4242 4242 4242 4242`.
+
+## Onboarding, docs and status
+
+- **Onboarding:** a Dashboard checklist with six steps, each worked out from real data, so it can't be ticked off by clicking: choose a username, start a campaign, approve a gate, set a brand kit, create a team, connect Slack or the API. It can be dismissed.
+- **Docs:** `/docs` is the product guide for users. This README remains the developer reference.
+- **Status:** [`uptime.yml`](./.github/workflows/uptime.yml) runs [`src/scheduler/uptime.py`](./src/scheduler/uptime.py) every 15 minutes to probe the website, database API, sign-in, Edge Functions and public API.
+  - **Where results go:** they're written to `status_checks` and kept 30 days.
+  - **The public page:** `/status` reads `status_summary()`, which anyone may call; it returns only up/down, latency and uptime percentages, and the raw rows stay private under RLS.
+  - **Secrets:** the workflow needs `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and optionally `SUPABASE_ANON_KEY`.
+
+## Admin console
+
+`/admin` is for **platform operators**, not organisation owners. Grant access with `python -m src.admin.make_admin you@example.com` (add `--revoke` to remove it). The page shows:
+- **Health tiles:** users, organisations, active and new campaigns, AI tokens and failures, dead sends, failed webhooks, paid organisations.
+- **Organisations:** searchable by name or owner email, with a plan override.
+- **The dead-letter queue:** give a dead send one more retry.
+- **Feature flags:** toggle and set rollout percentages.
+- **Audit chain:** one-click verification.
+
+Every admin function checks `is_platform_admin()` in the database and is written to the audit log under the operator's own user ID. There's deliberately no impersonation.
 
 ## Audit log
 
@@ -248,7 +375,7 @@ Free-tier LLM calls go through [`src/providers/gateway.py`](./src/providers/gate
 
 - **Install:** `pip install -e ".[dev,mcp]"`.
 - **Network guard:** a unit test that tries to open a non-loopback connection fails.
-- **Coverage floor:** 55%. Raise it as coverage grows.
+- **Coverage floor:** 60%. Raise it as coverage grows.
 
 ## Eval harness (M2)
 
@@ -412,6 +539,20 @@ The candidate was promoted. The same v1 file scored 83% / 75% on a Windows lapto
 
 Secrets: `KAGGLE_USERNAME`, `KAGGLE_KEY` (the Kaggle account must be phone-verified for GPU and internet), `SUPABASE_*`, `DOMAIN_MODEL_HF_REPO`, and `HF_WRITE_TOKEN` (a write-scoped HF token; falls back to `HF_TOKEN`).
 
+**Model registry** ([`src/finetune/deployments.py`](./src/finetune/deployments.py), `model_deployments` table). Each promoted model is a commit in the private Hugging Face repo, and the registry pins which commit serves traffic:
+
+| Command (`python -m src.finetune.deployments …`) | Effect |
+|---|---|
+| `list` | Promoted versions with their gate metrics; `*` marks the one being served |
+| `status` | What's deployed, plus shadow agreement so far |
+| `rollback` | Serve the previous version again |
+| `activate <rev>` | Serve any version |
+| `shadow <rev>` | Run `<rev>` on every idea next to the active model and log only whether they agree (an idea hash, no text) |
+| `canary <rev> <pct>` | `<pct>`% of ideas, picked stably by a hash of the idea, use `<rev>` |
+| `off` | End shadow or canary |
+
+The weekly retrain records each promotion and keeps the previous version, so rollback is always one command. Changes are written to the audit log. If the registry can't be read, the latest model is served.
+
 **In the app** (`src/providers/free/local_domain_classifier.py`): free-tier
 campaigns use the local model; BYOK and subscribed users keep their paid LLM.
 If the model is missing, can't load, or returns an invalid label, the call falls
@@ -424,6 +565,28 @@ runs, keyed on the Hugging Face repo's current revision. Locally:
 pip install -e ".[local-model]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
 # put the GGUF at src/finetune/models/marketingos-domain-q4_k_m.gguf
 ```
+
+## Public API and webhooks
+
+**REST API:** the [`api`](./supabase/functions/api/index.ts) Edge Function, documented in [`docs/openapi.yaml`](./docs/openapi.yaml). Authenticate with an organisation key: `Authorization: Bearer mos_…`.
+
+| | |
+|---|---|
+| `GET /v1/campaigns` | List campaigns (`limit`, `status`) |
+| `GET /v1/campaigns/{id}` | One campaign, with its rounds and metrics |
+| `POST /v1/campaigns` | Start a campaign (scope `write`; plan limits apply, 429 with the reason) |
+| `GET /v1/usage` | Plan, limits and usage |
+
+- **Keys** are created by owners and admins in Settings → API & webhooks. A key is shown once and stored as a SHA-256 hash, and every key action goes in the audit log.
+- **Rate limit:** 60 requests per minute per key (429 with `Retry-After`).
+- **Org scope:** every query is pinned to the key's organisation.
+
+**Webhooks:** any audit event (`*`, an exact action, or a prefix such as `gate.*`) can be POSTed to the organisation's HTTPS endpoints. Each request carries:
+- `X-MarketingOS-Event`, the event name;
+- `X-MarketingOS-Delivery`, a unique ID to de-duplicate on;
+- `X-MarketingOS-Signature: sha256=<HMAC-SHA256(secret, raw body)>`.
+
+The **first attempt is sent by the database the moment the event happens** (`pg_net`, from the audit-log trigger). [`src/scheduler/webhooks.py`](./src/scheduler/webhooks.py), in the hourly sweep, confirms responses and retries failures with backoff (1 min → 8 h, 6 attempts in all). "Send test" fires a `ping`.
 
 ## MCP server (M8)
 

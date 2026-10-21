@@ -63,6 +63,9 @@ CAPABILITY_DISPATCH = {
 
 def main() -> None:
     load_dotenv()
+    from src.observability import init
+
+    init("tools-run")
     parser = argparse.ArgumentParser(description="GitHub Actions entrypoint for a single Tools-page capability run.")
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--user-id", required=True)

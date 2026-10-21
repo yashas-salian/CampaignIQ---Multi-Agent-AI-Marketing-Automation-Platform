@@ -127,3 +127,10 @@
 .safetyGroup ul { margin: 0; padding-left: 18px; }
 .safetyBlock { color: var(--mos-text); background: color-mix(in srgb, #e5484d 10%, var(--mos-surface)); border-color: color-mix(in srgb, #e5484d 45%, transparent); }
 .safetyReview { color: var(--mos-text); background: color-mix(in srgb, #f5a524 12%, var(--mos-surface)); border-color: color-mix(in srgb, #f5a524 45%, transparent); }
+
+/* Multi-approver gate votes */
+.votes { display: grid; gap: 6px; font-size: 13.5px; }
+.votes ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.votes li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.votes q { color: var(--mos-text-muted); font-size: 13px; }
+.voteWho { font-weight: 600; }

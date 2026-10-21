@@ -16,6 +16,7 @@ export const ArrowIcon = ({ className }: { className?: string }) => (
 const LINKS: { to: string; label: string; page?: boolean }[] = [
   { to: '/#loop', label: 'The loop' },
   { to: '/#pricing', label: 'Pricing' },
+  { to: '/docs', label: 'Docs', page: true },
   { to: '/about', label: 'About', page: true },
   { to: '/contact', label: 'Contact', page: true },
 ]

@@ -51,17 +51,18 @@ def send_campaign_email(
     *,
     cta_url: str | None = None,
     user_id: str | None = None,
+    channel: str = "email",  # "email_b" for an A/B test's variant B
 ) -> str:
     if cta_url:
         link = (
-            wrap_tracked_url(cta_url, campaign_id=campaign_id, round_id=round_id, channel="email")
+            wrap_tracked_url(cta_url, campaign_id=campaign_id, round_id=round_id, channel=channel)
             if os.environ.get("TRACK_CLICK_BASE_URL")
             else cta_url
         )
         html = f'{html}<p><a href="{link}">Learn more</a></p>'
 
     return deliver(
-        "email",
+        channel,
         campaign_id,
         round_id,
         {"to": to, "subject": subject, "html": html},
@@ -78,7 +79,9 @@ def resend_from_payload(channel: str, campaign_id: str, round_id: int, payload: 
         return post_bluesky(campaign_id, round_id, payload["copy_text"], image, user_id=user_id)
     if channel == "reddit":
         return post_reddit(campaign_id, round_id, payload["subreddit"], payload["title"], payload["body"], user_id=user_id)
-    if channel == "email":
+    if channel in ("email", "email_b"):
         # The stored html already carries the (tracked) CTA link.
-        return send_campaign_email(campaign_id, round_id, payload["to"], payload["subject"], payload["html"], user_id=user_id)
+        return send_campaign_email(
+            campaign_id, round_id, payload["to"], payload["subject"], payload["html"], user_id=user_id, channel=channel
+        )
     raise ValueError(f"unknown channel {channel}")

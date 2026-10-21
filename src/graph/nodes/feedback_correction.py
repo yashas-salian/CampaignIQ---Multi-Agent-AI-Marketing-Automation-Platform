@@ -18,9 +18,13 @@ def _update_bandit_and_memory(state: CampaignState) -> None:
     # channel_rewards for channels actually (re)posted-to -- so both the
     # "no update for rejected variants" and "skipped channel excluded from
     # reward" rules already hold with no special-casing needed here.
+    variant_b = state.get("creative_b")
     for channel, reward in metrics_result.channel_rewards.items():
-        context = build_context_vector(persona.age_bracket, persona.income_tier, channel, state["domain_category"])
-        update_arm(creative.arm_index, context, reward)
+        # Variant B was an email too: same context, its own arm.
+        arm_index = variant_b.arm_index if channel == "email_b" and variant_b else creative.arm_index
+        context_channel = "email" if channel == "email_b" else channel
+        context = build_context_vector(persona.age_bracket, persona.income_tier, context_channel, state["domain_category"])
+        update_arm(arm_index, context, reward)
 
     if not user_id:
         return

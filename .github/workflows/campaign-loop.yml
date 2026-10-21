@@ -21,6 +21,11 @@ on:
         description: "Owning user's Supabase Auth id -- required when idea is set"
         required: false
         type: string
+      ab_test:
+        description: "Email A/B test for a new campaign (two variants, recipients split in half)"
+        required: false
+        type: boolean
+        default: false
       org_id:
         description: "Organisation for a new campaign (blank: the user's personal organisation)"
         required: false
@@ -61,13 +66,14 @@ jobs:
         with:
           path: ~/.cache/huggingface/hub
           key: domain-model-${{ steps.domain-rev.outputs.rev }}
-      - run: pip install -e ".[local-model]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+      - run: pip install -e ".[local-model,observability]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
       - name: Run iteration
         run: |
           if [ -n "${{ inputs.idea }}" ]; then
             python -m src.graph.run_campaign "${{ inputs.idea }}" \
               --user-id "${{ inputs.user_id }}" \
               --org-id "${{ inputs.org_id }}" \
+              ${{ inputs.ab_test && '--ab-test' || '' }} \
               --target-language "${{ inputs.target_language || 'en' }}" \
               --email-to "${{ inputs.email_to }}"
           elif [ -n "${{ inputs.campaign_id }}" ]; then
@@ -76,11 +82,25 @@ jobs:
             python -m src.scheduler.run_iteration
             # Retry failed channel sends whose backoff has elapsed (delivery ledger).
             python -m src.scheduler.retry_deliveries
+            # Escalate gates waiting past their organisation's approval deadline.
+            python -c "from dotenv import load_dotenv; load_dotenv(); from src.notifications import escalate_overdue_gates as e; print(f'Escalated {e()} overdue gate(s).')"
+            # Confirm webhook deliveries and retry failed ones.
+            python -m src.scheduler.webhooks
+            # Data retention (GDPR): prune old Tools results, usage rows, delivery payloads, click events.
+            python -c "from dotenv import load_dotenv; load_dotenv(); from src.db.supabase_client import get_client; print('Retention:', get_client().rpc('apply_retention').execute().data)"
           fi
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          # Optional observability (src/observability.py): Sentry errors, Langfuse traces.
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+          LANGFUSE_HOST: ${{ vars.LANGFUSE_HOST || 'https://cloud.langfuse.com' }}
           # Emailed when a channel delivery gives up after 5 attempts (optional).
           OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}
+          # Approval notifications: emails are opt-in (Slack webhooks are set per organisation in Settings).
+          NOTIFY_EMAIL: ${{ vars.NOTIFY_EMAIL || 'false' }}
+          APP_BASE_URL: ${{ vars.APP_BASE_URL || 'https://campaign-iq-multi-agent-ai-marketin.vercel.app' }}
           # Free-tier fallbacks behind Groq (src/providers/gateway.py); each is
           # optional and only used once Groq is rate-limited or down.
           CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
