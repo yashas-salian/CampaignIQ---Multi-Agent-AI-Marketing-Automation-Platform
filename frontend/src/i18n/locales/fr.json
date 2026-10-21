@@ -146,6 +146,8 @@
     "s_measure": "Mesure",
     "gate1Body": "Vérifiez la faisabilité et les personas ci-dessous. Valider lance la création.",
     "gate2Body": "Relisez le texte et le prompt d’image de ce tour. Valider le publie sur les canaux réels.",
+    "categoryLabel": "Catégorie du produit",
+    "categoryHint": "Corrigez-la si elle est fausse : le bandit apprend des campagnes de la même catégorie, et vos corrections aident à réentraîner le classifieur.",
     "commentLabel": "Commentaire (facultatif)",
     "rejectConfirm": "Cliquez encore pour rejeter",
     "decisionSent": "Décision enregistrée. La campagne reprend…",

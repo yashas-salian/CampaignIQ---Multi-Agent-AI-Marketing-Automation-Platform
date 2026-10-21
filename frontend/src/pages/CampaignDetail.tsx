@@ -13,6 +13,12 @@ const GATE_NUMBER_BY_STATUS: Partial<Record<CampaignStatus, 1 | 2>> = {
   awaiting_gate_2: 2,
 }
 
+// Must match DomainCategory in src/capabilities/idea_intake.py (and the check in schema_m7.sql).
+const DOMAINS = [
+  'fitness_wellness', 'b2b_saas', 'ecommerce_retail', 'food_beverage', 'finance_fintech', 'education',
+  'consumer_electronics', 'travel_hospitality', 'real_estate', 'healthcare', 'entertainment_media', 'other',
+] as const
+
 const STEPS = ['s_intake', 's_feasibility', 's_audience', 's_gate1', 's_creative', 's_preflight', 's_gate2', 's_distribute', 's_measure'] as const
 
 /** Index of the step the campaign is on now (STEPS.length = all done). */
@@ -138,6 +144,7 @@ export default function CampaignDetail() {
   const [stopping, setStopping] = useState(false)
   const [confirm, setConfirm] = useState<'reject' | 'stop' | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [category, setCategory] = useState('')
 
   const load = useCallback(async () => {
     if (!id) return
@@ -218,6 +225,22 @@ export default function CampaignDetail() {
     }
     setConfirm(null)
     setSubmitting(true)
+    // Gate 1 category correction: update the campaign (the graph re-reads it after
+    // the gate, so the bandit uses it) and record a human-verified label for retraining.
+    const predicted = campaign?.domain_category
+    const corrected = pendingGate.gate_number === 1 && decision !== 'reject' && category && predicted && category !== predicted
+    if (corrected && campaign) {
+      await supabase.from('campaigns').update({ domain_category: category }).eq('id', campaign.id)
+      const { error: correctionError } = await supabase.from('domain_corrections').insert({
+        campaign_id: campaign.id,
+        idea: campaign.idea,
+        predicted_domain: predicted,
+        corrected_domain: category,
+      })
+      // Never block the gate on the training log (e.g. schema_m7.sql not applied yet).
+      if (correctionError) console.warn('domain correction not recorded:', correctionError.message)
+      if (decision === 'approve') decision = 'edit'
+    }
     await supabase
       .from('gate_decisions')
       .update({ decision, comment: comment || null, decided_at: new Date().toISOString() })
@@ -361,6 +384,24 @@ export default function CampaignDetail() {
               <p className={styles.panelSub}>{pendingGate.gate_number === 1 ? t('cd.gate1Body') : t('cd.gate2Body')}</p>
             </div>
           </div>
+          {pendingGate.gate_number === 1 && (
+            <label className={styles.field}>
+              <span>{t('cd.categoryLabel')}</span>
+              <select
+                className={`${styles.select} ${local.categorySelect}`}
+                value={category || campaign.domain_category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                {DOMAINS.map((d) => (
+                  <option key={d} value={d}>
+                    {humanize(d)}
+                    {d === campaign.domain_category ? ' ✓' : ''}
+                  </option>
+                ))}
+              </select>
+              <small className={local.hint}>{t('cd.categoryHint')}</small>
+            </label>
+          )}
           <label className={styles.field}>
             <span>{t('cd.commentLabel')}</span>
             <textarea

@@ -146,6 +146,8 @@
     "s_measure": "Medición",
     "gate1Body": "Revisa la viabilidad y las personas abajo. Al aprobar empieza la generación creativa.",
     "gate2Body": "Revisa el texto y el prompt de imagen de esta ronda. Al aprobar se publica en los canales reales.",
+    "categoryLabel": "Categoría del producto",
+    "categoryHint": "Corrígela si es incorrecta: el bandit aprende de campañas de la misma categoría y tus correcciones ayudan a reentrenar el clasificador.",
     "commentLabel": "Comentario (opcional)",
     "rejectConfirm": "Haz clic otra vez para rechazar",
     "decisionSent": "Decisión registrada. La campaña se reanuda…",

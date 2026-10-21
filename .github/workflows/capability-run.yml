@@ -27,8 +27,9 @@ jobs:
           python-version: "3.12"
       # M7: the fine-tuned domain model (llama.cpp, CPU wheel) + its ~940 MB GGUF,
       # cached between runs. Without the HF secrets below the app falls back to Groq.
-      - name: Cache domain model
-        uses: actions/cache@v4
+      - name: Restore domain model cache
+        id: domain-cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/huggingface/hub
           key: domain-model-${{ hashFiles('src/finetune/MODEL_VERSION') }}
@@ -56,3 +57,11 @@ jobs:
           PAID_LLM_API_KEY: ${{ secrets.PAID_LLM_API_KEY }}
           PAID_IMAGE_API_KEY: ${{ secrets.PAID_IMAGE_API_KEY }}
           PAID_JUDGE_API_KEY: ${{ secrets.PAID_JUDGE_API_KEY }}
+      # Save even when an earlier step failed (e.g. a Groq rate limit), so the
+      # ~940 MB model isn't re-downloaded on every run until a job succeeds.
+      - name: Save domain model cache
+        if: always() && steps.domain-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/huggingface/hub
+          key: domain-model-${{ hashFiles('src/finetune/MODEL_VERSION') }}

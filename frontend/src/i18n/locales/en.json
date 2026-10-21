@@ -146,6 +146,8 @@
     "s_measure": "Measure",
     "gate1Body": "Check the feasibility score and personas below. Approving starts creative generation.",
     "gate2Body": "Review this round’s copy and image prompt. Approving publishes it to the live channels.",
+    "categoryLabel": "Product category",
+    "categoryHint": "Fix it if it's wrong: the bandit learns from campaigns in the same category, and your corrections help retrain the classifier.",
     "commentLabel": "Comment (optional)",
     "rejectConfirm": "Click again to reject",
     "decisionSent": "Decision recorded. The campaign is resuming…",

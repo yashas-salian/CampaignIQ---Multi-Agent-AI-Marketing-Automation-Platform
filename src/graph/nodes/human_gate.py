@@ -1,6 +1,7 @@
 from langgraph.types import interrupt
 
 from src.capabilities.audience import Persona
+from src.capabilities.idea_intake import DOMAIN_CATEGORIES
 from src.db.supabase_client import create_pending_gate, get_campaign, get_primary_persona, update_campaign_status
 from src.graph.state import CampaignState
 
@@ -20,8 +21,15 @@ def gate_1_node(state: CampaignState) -> CampaignState:
     # rather than trust its own pre-gate in-memory state.
     campaign = get_campaign(state["campaign_id"])
     primary = get_primary_persona(state["campaign_id"])
+    # The user may have corrected the category at Gate 1 (recorded in
+    # domain_corrections). It's the bandit's domain context, so the rest of the
+    # loop must use the corrected value -- validated, never trusted blindly.
+    domain = campaign.get("domain_category")
+    if domain not in DOMAIN_CATEGORIES:
+        domain = state["domain_category"]
     return {
         "idea": campaign["idea"],
+        "domain_category": domain,
         "primary_persona": Persona(
             name=primary["name"],
             demographics=primary["demographics"],

@@ -274,6 +274,8 @@ three golden misses are exactly those. Both over-use `ecommerce_retail`, and
 the teacher's: human category corrections are the planned source, fed into a
 scheduled retrain that only promotes a new model if it scores at least as well.
 
+**Human corrections.** Gate 1 shows the predicted category in a dropdown; if the user changes it, the campaign is updated (the graph re-reads it after the gate, so the bandit uses the corrected context) and the fix is stored in `domain_corrections` as a human-verified training label. Run [`src/db/schema_m7.sql`](./src/db/schema_m7.sql) once to create that table.
+
 **In the app** (`src/providers/free/local_domain_classifier.py`): free-tier
 campaigns use the local model; BYOK and subscribed users keep their paid LLM.
 If the model is missing, can't load, or returns an invalid label, the call falls

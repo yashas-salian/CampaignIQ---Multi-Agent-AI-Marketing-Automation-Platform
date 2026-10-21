@@ -19,6 +19,11 @@ def load_golden_set() -> list[dict]:
 
 def run() -> float:
     entries = load_golden_set()
+    # Say which classifier the domain column is measuring (M7 local model or the
+    # LLM fallback); the classifier's own messages are INFO and not printed here.
+    from src.providers.free.local_domain_classifier import available
+
+    print(f"domain classifier: {'fine-tuned local model (M7)' if available() else 'LLM (Groq)'}", flush=True)
     domain_hits = 0
     feasibility_hits = 0
     persona_scores = []
