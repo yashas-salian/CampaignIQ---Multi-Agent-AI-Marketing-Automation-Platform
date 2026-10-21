@@ -1,0 +1,56 @@
+{
+  "generated": 564,
+  "labelled_unique": 564,
+  "golden_leaks_removed": 1,
+  "near_duplicates_removed": 3,
+  "kept": 560,
+  "teacher_agrees_with_generation_target": 0.623,
+  "split_sizes": {
+    "train": 417,
+    "val": 47,
+    "test": 96
+  },
+  "label_counts": {
+    "train": {
+      "b2b_saas": 61,
+      "consumer_electronics": 36,
+      "ecommerce_retail": 79,
+      "education": 41,
+      "entertainment_media": 19,
+      "finance_fintech": 34,
+      "fitness_wellness": 20,
+      "food_beverage": 68,
+      "healthcare": 13,
+      "real_estate": 18,
+      "travel_hospitality": 28
+    },
+    "val": {
+      "b2b_saas": 5,
+      "consumer_electronics": 5,
+      "ecommerce_retail": 5,
+      "education": 5,
+      "entertainment_media": 3,
+      "finance_fintech": 5,
+      "fitness_wellness": 4,
+      "food_beverage": 5,
+      "healthcare": 2,
+      "real_estate": 3,
+      "travel_hospitality": 5
+    },
+    "test": {
+      "b2b_saas": 10,
+      "consumer_electronics": 10,
+      "ecommerce_retail": 10,
+      "education": 10,
+      "entertainment_media": 7,
+      "finance_fintech": 10,
+      "fitness_wellness": 8,
+      "food_beverage": 10,
+      "healthcare": 4,
+      "real_estate": 7,
+      "travel_hospitality": 10
+    }
+  },
+  "teacher_model": "groq openai/gpt-oss-120b (free tier, via normalize_idea)",
+  "seed": 7
+}

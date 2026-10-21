@@ -125,7 +125,7 @@ def label(ideas: list[dict]) -> dict[str, str]:
     print(f"[label] {len(labels)} cached, {len(todo)} to go", flush=True)
     for i, idea in enumerate(todo, 1):
         try:
-            result = _with_backoff(normalize_idea, idea)
+            result = _with_backoff(normalize_idea, idea, use_local=False)  # teacher, never the student
         except Exception as exc:
             print(f"  ! giving up on one idea: {str(exc)[:80]}", flush=True)
             continue

@@ -1,0 +1,3 @@
+# Bump when a new fine-tuned model is published to the Hugging Face repo;
+# the workflows key their model cache on this file.
+v1 2026-10-21 synthetic-only, Qwen2.5-1.5B-Instruct LoRA r16, golden 15/18, held-out 72/96

@@ -236,6 +236,57 @@ these automatically, no code change needed).
 depending on platform) — if `pip install -e .` times out or drops mid-download
 on a slow/flaky connection, just re-run it; pip resumes partial downloads.
 
+## Fine-tuned domain classifier (M7)
+
+Every campaign starts by classifying the idea into one of 12 product domains.
+That label is the bandit's domain context, so it decides which past campaigns a
+new one learns from. M7 distils that decision from the production LLM
+(`gpt-oss-120b` on Groq, the "teacher") into **Qwen2.5-1.5B-Instruct with a LoRA
+adapter**, served locally on CPU through llama.cpp.
+
+**Data** (`src/finetune/generate_dataset.py`): the teacher wrote 564 varied
+ideas (B2B/B2C, price points, six non-English languages, deliberately
+borderline cases) and labelled each one through the real `normalize_idea()`
+prompt. Near-duplicates and anything too close to the golden eval set were
+removed (cosine on the app's multilingual embeddings), leaving 560 ideas split
+417 / 47 / 96. The first model is trained on synthetic data only.
+
+**Training** (`src/finetune/train_lora.ipynb`): Unsloth on a free Colab T4,
+LoRA r=16 on all attention and MLP projections, loss on the answer tokens only,
+3 epochs. Exported as a 4-bit GGUF (`Q4_K_M`, ~940 MB).
+
+**Results** (`src/finetune/evaluate_finetune.py`, CPU):
+
+| Model | Golden accuracy (human labels, n=18) | Agreement with teacher (held-out, n=96) | Invalid outputs |
+|---|---|---|---|
+| Teacher: `gpt-oss-120b` via Groq | 83% | 100% (it wrote the labels) | 0 |
+| Qwen2.5-1.5B, untuned | 56% | 54% | 3 |
+| **Qwen2.5-1.5B + LoRA** | **83%** | **75%** | **0** |
+
+The student matches the teacher on human-labelled ideas at ~0.6–0.8 s per idea
+on CPU, with no API call, no per-token cost and no exposure to the free tier's
+200k-tokens-per-day limit.
+
+**Honest limits.** Distillation copies the teacher's habits: the teacher never
+answered `other` (0 of 47 "other" ideas), so the student can't either, and its
+three golden misses are exactly those. Both over-use `ecommerce_retail`, and
+`healthcare` has only 13 training examples. Fixing this needs better labels than
+the teacher's: human category corrections are the planned source, fed into a
+scheduled retrain that only promotes a new model if it scores at least as well.
+
+**In the app** (`src/providers/free/local_domain_classifier.py`): free-tier
+campaigns use the local model; BYOK and subscribed users keep their paid LLM.
+If the model is missing, can't load, or returns an invalid label, the call falls
+back to the LLM, so it can never break a run. `DOMAIN_CLASSIFIER=llm` switches it
+off. The GGUF lives in a private Hugging Face model repo
+(`DOMAIN_MODEL_HF_REPO` + `HF_TOKEN` secrets) and the workflows cache it between
+runs, keyed on `src/finetune/MODEL_VERSION`. Locally:
+
+```
+pip install -e ".[local-model]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+# put the GGUF at src/finetune/models/marketingos-domain-q4_k_m.gguf
+```
+
 ## Multilingual campaigns
 
 Every campaign has a `target_language` (`src/languages.py`, ~15 languages),

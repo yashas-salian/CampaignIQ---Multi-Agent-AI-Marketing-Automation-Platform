@@ -24,6 +24,12 @@ dependencies = [
     "sentence-transformers>=3,<4",
 ]
 
+[project.optional-dependencies]
+# M7: run the fine-tuned domain classifier locally on CPU. Install with
+#   pip install -e ".[local-model]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+# (prebuilt CPU wheels; without the index pip tries to compile llama.cpp).
+local-model = ["llama-cpp-python>=0.3,<0.4"]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

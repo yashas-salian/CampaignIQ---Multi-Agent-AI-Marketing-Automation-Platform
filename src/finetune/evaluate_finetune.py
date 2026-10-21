@@ -82,7 +82,7 @@ def main() -> None:
 
     models: dict[str, callable] = {}
     if not args.skip_teacher:
-        models["teacher (gpt-oss-120b via Groq)"] = lambda idea: normalize_idea(idea).domain_category
+        models["teacher (gpt-oss-120b via Groq)"] = lambda idea: normalize_idea(idea, use_local=False).domain_category
     if args.base or args.tuned:
         from src.finetune.local_classifier import classify
 
