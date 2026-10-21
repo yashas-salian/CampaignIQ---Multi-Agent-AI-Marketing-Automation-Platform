@@ -28,8 +28,10 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       DOMAIN_MODEL_HF_REPO: ${{ secrets.DOMAIN_MODEL_HF_REPO }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      # kaggle>=2 authenticates with the new-style API token (KAGGLE_API_TOKEN);
+      # the username is still used to build the dataset/kernel ids.
       KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
-      KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+      KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
