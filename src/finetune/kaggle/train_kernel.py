@@ -13,7 +13,15 @@ import os
 # Kaggle's T4 machine has two GPUs; Unsloth trains on one.
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
+OUTPUT = "/kaggle/working/marketingos-domain-q4_k_m.gguf"
+SCRATCH = "/tmp/marketingos-domain"
+# Work outside /kaggle/working so HF/Unsloth caches don't become kernel output.
+os.makedirs(SCRATCH, exist_ok=True)
+os.chdir(SCRATCH)
+os.environ["HF_HOME"] = f"{SCRATCH}/hf"
+
 import glob
+import inspect
 import json
 import shutil
 import subprocess
@@ -21,13 +29,11 @@ import sys
 
 subprocess.run([sys.executable, "-m", "pip", "install", "-q", "unsloth"], check=True)
 
-from datasets import Dataset  # noqa: E402
-from trl import SFTConfig, SFTTrainer  # noqa: E402
+# Unsloth must be imported before trl/transformers to patch them.
 from unsloth import FastLanguageModel  # noqa: E402
 from unsloth.chat_templates import get_chat_template, train_on_responses_only  # noqa: E402
-
-OUTPUT = "/kaggle/working/marketingos-domain-q4_k_m.gguf"
-SCRATCH = "/tmp/marketingos-domain"
+from datasets import Dataset  # noqa: E402
+from trl import SFTConfig, SFTTrainer  # noqa: E402
 
 
 def find(name: str) -> str:
@@ -79,6 +85,7 @@ columns = ["idea", "label"]
 train_ds = Dataset.from_list([{k: r[k] for k in columns} for r in train_rows]).map(to_text)
 val_ds = Dataset.from_list([{k: r[k] for k in columns} for r in val_rows]).map(to_text)
 
+seq_len_arg = "max_length" if "max_length" in inspect.signature(SFTConfig).parameters else "max_seq_length"
 trainer = SFTTrainer(
     model=model,
     processing_class=tokenizer,
@@ -86,7 +93,8 @@ trainer = SFTTrainer(
     eval_dataset=val_ds,
     args=SFTConfig(
         dataset_text_field="text",
-        max_seq_length=512,
+        # TRL renamed max_seq_length -> max_length; Kaggle installs whatever is latest.
+        **{seq_len_arg: 512},
         per_device_train_batch_size=8,
         gradient_accumulation_steps=2,
         num_train_epochs=3,
