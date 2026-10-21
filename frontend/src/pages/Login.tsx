@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { NEXT_KEY } from '../lib/site'
 import LogoMark from '../components/LogoMark'
 import { isValidUsername, normalizeUsername } from '../lib/profile'
 import { supabase } from '../lib/supabaseClient'
@@ -62,7 +63,18 @@ export default function Login() {
 
   // Already signed in: there's nothing to do here.
   useEffect(() => {
-    if (!sessionLoading && session) navigate('/dashboard', { replace: true })
+    if (!sessionLoading && session) {
+      // e.g. an invite link opened while signed out (ProtectedRoute stores it)
+      let next = '/dashboard'
+      try {
+        const stored = sessionStorage.getItem(NEXT_KEY)
+        sessionStorage.removeItem(NEXT_KEY)
+        if (stored && stored.startsWith('/') && !stored.startsWith('//')) next = stored
+      } catch {
+        // storage blocked
+      }
+      navigate(next, { replace: true })
+    }
   }, [sessionLoading, session, navigate])
 
   // The error now lives in state; drop it from the URL so a refresh doesn't repeat it.

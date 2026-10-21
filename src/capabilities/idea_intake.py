@@ -3,8 +3,8 @@ from typing import Literal, get_args
 from pydantic import BaseModel
 
 from src.llm_json import generate_json
-from src.providers.free.groq_llm import GroqLLMProvider
 from src.providers.registry import get_llm
+from src.security.prompt_guard import fence, guarded
 
 DomainCategory = Literal[
     "fitness_wellness",
@@ -39,7 +39,7 @@ def normalize_idea(raw_idea: str, *, user_id: str | None = None, use_local: bool
     """
     idea = raw_idea.strip()
     llm = get_llm(user_id)
-    if use_local and isinstance(llm, GroqLLMProvider):
+    if use_local and llm.free_tier:
         # Lazy import: the local classifier imports this module for DOMAIN_CATEGORIES.
         from src.providers.free.local_domain_classifier import classify_domain
 
@@ -48,9 +48,12 @@ def normalize_idea(raw_idea: str, *, user_id: str | None = None, use_local: bool
             return NormalizedIdea(idea=idea, domain_category=label)
     parsed = generate_json(
         llm,
-        f'Campaign idea: "{idea}"\n\n'
+        f"Campaign idea:\n{fence(idea, 'user_idea')}\n\n"
         f"Classify this idea into exactly one of these domain/category tags: {list(DOMAIN_CATEGORIES)}. "
         'Respond with ONLY a JSON object, no prose, with exactly one key: "domain_category".',
-        system="You are a strict classifier. You output only valid JSON, never prose or markdown fences.",
+        system=guarded("You are a strict classifier. You output only valid JSON, never prose or markdown fences."),
     )
-    return NormalizedIdea(idea=idea, domain_category=parsed["domain_category"])
+    label = str(parsed.get("domain_category", "")).strip().lower()
+    # An off-list answer (model drift, or an idea that talked the model into
+    # inventing a label) must not crash the run.
+    return NormalizedIdea(idea=idea, domain_category=label if label in DOMAIN_CATEGORIES else "other")

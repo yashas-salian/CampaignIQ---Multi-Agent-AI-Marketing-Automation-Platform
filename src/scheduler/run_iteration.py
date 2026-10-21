@@ -9,6 +9,7 @@ from langgraph.types import Command
 from src.constants import METRICS_WAIT_HOURS
 from src.db.supabase_client import get_campaign, get_client, get_gate_decision
 from src.graph.build_graph import build_graph
+from src.usage import budget_exhausted, use_org
 
 GATE_NUMBER_BY_STATUS = {"awaiting_gate_1": 1, "awaiting_gate_2": 2}
 ACTIVE_STATUSES = ["awaiting_gate_1", "awaiting_gate_2", "awaiting_metrics"]
@@ -45,6 +46,11 @@ def _resume_metrics_wait(app, campaign: dict) -> None:
 def process_campaign(app, campaign_id: str) -> None:
     campaign = get_campaign(campaign_id)
     status = campaign["status"]
+    use_org(campaign.get("org_id"))
+    blocked = budget_exhausted(campaign.get("org_id"))
+    if blocked and status != "awaiting_gate_1":  # gate 1 resumes don't need the LLM until creative
+        print(f"Campaign {campaign_id}: paused, {blocked}.")
+        return
     if status in ("awaiting_gate_1", "awaiting_gate_2"):
         _resume_gate(app, campaign)
     elif status == "awaiting_metrics":

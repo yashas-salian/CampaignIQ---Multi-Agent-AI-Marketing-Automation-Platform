@@ -84,7 +84,8 @@
   .logo { font-size: 17px; }
 }
 /* Very narrow phones: logo tile only, so the bar never overflows at 360px. */
-@media (max-width: 420px) { .brandText { display: none; } }
+/* Below ~440px the brand name no longer fits beside the theme, CTA and menu tiles. */
+@media (max-width: 440px) { .brandText { display: none; } }
 
 
 /* ---------- Public page layout ---------- */

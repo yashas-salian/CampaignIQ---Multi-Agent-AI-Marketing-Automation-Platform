@@ -2,6 +2,10 @@ from abc import ABC, abstractmethod
 
 
 class LLMProvider(ABC):
+    # True for the shared free-tier providers (and the gateway over them):
+    # free-tier-only behaviour, like the M7 local classifier, keys off this.
+    free_tier: bool = False
+
     @abstractmethod
     def generate(self, prompt: str, *, system: str | None = None) -> str:
         """Return a text completion for the given prompt."""

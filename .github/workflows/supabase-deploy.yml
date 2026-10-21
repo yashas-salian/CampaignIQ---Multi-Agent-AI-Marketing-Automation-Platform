@@ -1,0 +1,62 @@
+name: Supabase deploy
+
+# Applies new migrations to the live project and deploys the Edge Functions
+# whenever they change on main. Replaces pasting SQL into the SQL Editor and
+# code into the Dashboard.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/functions/**"
+      - "supabase/config.toml"
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-deploy
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      # Must be reachable over IPv4 from GitHub runners: use the Session pooler
+      # connection string (Dashboard -> Connect), not the direct db.* host.
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - name: Record the baseline as applied (existing project only)
+        run: |
+          # The baseline is a dump of the schema that production already has.
+          # On that database, mark it applied instead of re-running it; a fresh
+          # database (no campaigns table yet) runs it normally.
+          has_schema=$(psql "$SUPABASE_DB_URL" -tAc "select to_regclass('public.campaigns') is not null")
+          recorded=$(psql "$SUPABASE_DB_URL" -tAc "select to_regclass('supabase_migrations.schema_migrations') is not null and exists (select 1 from supabase_migrations.schema_migrations where version = '20261021000000')" 2>/dev/null || echo f)
+          if [ "$has_schema" = "t" ] && [ "$recorded" != "t" ]; then
+            supabase migration repair 20261021000000 --status applied --db-url "$SUPABASE_DB_URL"
+          fi
+      - name: Apply pending migrations
+        run: supabase db push --db-url "$SUPABASE_DB_URL"
+
+  functions:
+    runs-on: ubuntu-latest
+    needs: migrate
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - name: Deploy Edge Functions
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_REF" ]; then
+            echo "::notice::SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_REF not set; skipping function deploy."
+            exit 0
+          fi
+          # verify_jwt per function comes from supabase/config.toml.
+          supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"

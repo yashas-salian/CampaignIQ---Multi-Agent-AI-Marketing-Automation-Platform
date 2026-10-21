@@ -168,7 +168,10 @@
     "viewPost": "Ver publicação",
     "noRounds": "As rodadas criativas aparecem aqui após aprovar a Etapa 1.",
     "rawData": "Dados brutos",
-    "notFound": "Esta campanha não existe ou não é sua."
+    "notFound": "Esta campanha não existe ou não é sua.",
+    "safetyBlocked": "Não será enviado: as verificações de segurança da marca falharam",
+    "safetyReview": "Verifique estas afirmações antes de aprovar",
+    "safetyDisclaimer": "Aviso adicionado automaticamente: {{text}}"
   },
   "mx": {
     "back": "Voltar à campanha",
@@ -308,5 +311,56 @@
     "run": "Executar",
     "dispatching": "Enviando…",
     "status": "Status: {{status}}"
+  },
+  "org": {
+    "team": "Equipe",
+    "teamSub": "Quem pode ver, criar e aprovar campanhas nesta organização.",
+    "current": "Organização",
+    "personal": "Pessoal",
+    "switch": "Trocar de organização",
+    "createLabel": "Nova organização de equipe",
+    "createPlaceholder": "ex.: Acme Marketing",
+    "create": "Criar",
+    "personalNote": "Este é seu espaço pessoal. Crie uma organização de equipe para convidar colegas.",
+    "inviteEmail": "Convidar por e-mail",
+    "inviteRole": "Função",
+    "invite": "Criar link de convite",
+    "inviteLink": "Link de convite",
+    "inviteLinkNote": "Envie este link para a pessoa convidada. Funciona uma vez, para esse e-mail, por 7 dias.",
+    "copy": "Copiar",
+    "pending": "Convites pendentes",
+    "expires": "Expira em {{date}}",
+    "revoke": "Revogar",
+    "remove": "Remover",
+    "leave": "Sair",
+    "roleFor": "Função de {{who}}",
+    "role_owner": "Proprietário",
+    "role_admin": "Admin",
+    "role_marketer": "Marketer",
+    "role_approver": "Aprovador",
+    "role_viewer": "Leitor",
+    "readOnlyNote": "Como {{role}} você não pode criar campanhas aqui.",
+    "cantCreate": "Sua função nesta organização não pode criar campanhas.",
+    "cantApprove": "Somente proprietários, admins e aprovadores podem decidir esta etapa.",
+    "joining": "Entrando na organização…",
+    "inviteFailed": "Este convite não pode ser usado"
+  },
+  "audit": {
+    "title": "Registro de auditoria",
+    "sub": "Cada alteração em campanhas, etapas, membros, chaves e envios desta organização, dos mais recentes aos mais antigos.",
+    "filter": "Filtrar por área",
+    "all": "Tudo",
+    "exportCsv": "Exportar CSV",
+    "exportJson": "Exportar JSON",
+    "empty": "Nada registrado ainda.",
+    "system": "Sistema",
+    "more": "Carregar mais",
+    "note": "As entradas são gravadas pelo próprio banco de dados e encadeadas por hash, então não podem ser editadas nem apagadas sem que isso apareça."
+  },
+  "usage": {
+    "campaigns_per_day": "Campanhas hoje",
+    "active_campaigns": "Campanhas ativas",
+    "llm_tokens_per_day": "Orçamento de IA hoje",
+    "unlimited": "Sem limites de uso no plano {{plan}}."
   }
 }

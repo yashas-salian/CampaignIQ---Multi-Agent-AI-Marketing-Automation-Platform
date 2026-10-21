@@ -14,5 +14,6 @@ def creative_node(state: CampaignState) -> CampaignState:
             use_image_template=state.get("use_image_template", False),
             revision_directive=state.get("revision_directive"),
             target_language=state.get("target_language", "en"),
+            cta_url=state.get("cta_url"),
         )
     }

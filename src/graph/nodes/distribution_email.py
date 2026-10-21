@@ -1,4 +1,7 @@
+import html as html_lib
+
 from src.capabilities.distribution import send_campaign_email
+from src.capabilities.guardrails import DISCLAIMERS, prepare_for_channel
 from src.db.supabase_client import get_template, upsert_iteration
 from src.graph.state import CampaignState
 
@@ -16,13 +19,23 @@ def _render_email_html(copy_text: str, state: CampaignState) -> str:
 
 def distribution_email_node(state: CampaignState) -> CampaignState:
     creative = state["creative"]
-    email_id = send_campaign_email(
-        state["campaign_id"],
-        state["round_id"],
-        state["email_to"],
-        subject=state["idea"][:78],
-        html=_render_email_html(creative.copy_text, state),
-        cta_url=state.get("cta_url"),
-    )
+    domain = state.get("domain_category", "other")
+    text, blocked = prepare_for_channel(creative.copy_text, "email", domain_category=domain, cta_url=state.get("cta_url"))
+    if blocked:
+        email_id = f"dead: {blocked}"
+    else:
+        body = _render_email_html(text, state)
+        disclaimer = DISCLAIMERS.get(domain)
+        if disclaimer:
+            body += f'<p style="font-size:12px;color:#666">{html_lib.escape(disclaimer)}</p>'
+        email_id = send_campaign_email(
+            state["campaign_id"],
+            state["round_id"],
+            state["email_to"],
+            subject=state["idea"][:78],
+            html=body,
+            cta_url=state.get("cta_url"),
+            user_id=state["user_id"],
+        )
     upsert_iteration(state["campaign_id"], state["user_id"], state["round_id"], email_id=email_id)
     return {"email_id": email_id}

@@ -9,6 +9,7 @@ export type CampaignStatus =
 
 export interface Campaign {
   id: string
+  org_id: string
   idea: string
   domain_category: string
   feasibility_score: number | null
@@ -56,6 +57,13 @@ export interface Iteration {
   image_style: string | null
   copy_tone: string | null
   arm_index: number | null
+  guardrail_flags: GuardrailFlags | null
+}
+
+/** Brand-safety result for a round's creative (src/capabilities/guardrails.py). */
+export interface GuardrailFlags {
+  issues: { code: string; severity: 'block' | 'review'; message: string }[]
+  disclaimer: string | null
 }
 
 export interface GateDecision {

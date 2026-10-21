@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 from src.db.supabase_client import get_client
+from src.usage import budget_exhausted, personal_org, use_org
 
 
 def _run_feasibility(params: dict, user_id: str) -> dict:
@@ -71,6 +72,14 @@ def main() -> None:
 
     client = get_client()
     params = json.loads(args.params)
+
+    # Tools runs count against the user's personal organisation.
+    org_id = personal_org(args.user_id)
+    use_org(org_id)
+    blocked = budget_exhausted(org_id)
+    if blocked:
+        client.table("capability_runs").update({"status": "failed", "error": blocked}).eq("id", args.run_id).execute()
+        return
 
     client.table("capability_runs").update({"status": "running"}).eq("id", args.run_id).execute()
 

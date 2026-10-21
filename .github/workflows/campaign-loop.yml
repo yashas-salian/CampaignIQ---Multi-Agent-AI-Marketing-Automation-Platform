@@ -21,6 +21,10 @@ on:
         description: "Owning user's Supabase Auth id -- required when idea is set"
         required: false
         type: string
+      org_id:
+        description: "Organisation for a new campaign (blank: the user's personal organisation)"
+        required: false
+        type: string
       target_language:
         description: "Target language code for a new campaign (see src/languages.py)"
         required: false
@@ -63,15 +67,25 @@ jobs:
           if [ -n "${{ inputs.idea }}" ]; then
             python -m src.graph.run_campaign "${{ inputs.idea }}" \
               --user-id "${{ inputs.user_id }}" \
+              --org-id "${{ inputs.org_id }}" \
               --target-language "${{ inputs.target_language || 'en' }}" \
               --email-to "${{ inputs.email_to }}"
           elif [ -n "${{ inputs.campaign_id }}" ]; then
             python -m src.scheduler.run_iteration --campaign-id "${{ inputs.campaign_id }}"
           else
             python -m src.scheduler.run_iteration
+            # Retry failed channel sends whose backoff has elapsed (delivery ledger).
+            python -m src.scheduler.retry_deliveries
           fi
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          # Emailed when a channel delivery gives up after 5 attempts (optional).
+          OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}
+          # Free-tier fallbacks behind Groq (src/providers/gateway.py); each is
+          # optional and only used once Groq is rate-limited or down.
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           # M7 fine-tuned domain classifier (private Hugging Face model repo).
           DOMAIN_MODEL_HF_REPO: ${{ secrets.DOMAIN_MODEL_HF_REPO }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}

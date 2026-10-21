@@ -12,7 +12,8 @@ class MetricsResult(BaseModel):
 
 
 def _is_real_post_ref(value: str | None) -> bool:
-    return bool(value) and not value.startswith("DRY_RUN") and not value.startswith("skipped")
+    # Not a dry run, a dedup skip, or a failed/dead delivery (see capabilities/delivery.py).
+    return bool(value) and not value.startswith(("DRY_RUN", "skipped", "failed:", "dead:"))
 
 
 def collect_metrics(campaign_id: str, user_id: str, round_number: int, email_to: list[str] | None = None) -> MetricsResult:

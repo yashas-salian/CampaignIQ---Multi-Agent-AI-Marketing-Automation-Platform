@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import LogoMark from '../components/LogoMark'
 import RewardChart, { type RewardPoint } from '../components/RewardChart'
 import { CAMPAIGN_LANGUAGES } from '../lib/languages'
+import { useOrg } from '../lib/useOrg'
 import { supabase } from '../lib/supabaseClient'
 import { displayName } from '../lib/profile'
 import { useSession } from '../lib/useAuth'
@@ -212,6 +213,39 @@ function Skeleton({ h, w = '100%' }: { h: number; w?: string }) {
 /* Page                                                                */
 /* ------------------------------------------------------------------ */
 
+interface OrgUsage {
+  plan: 'free' | 'pro' | 'enterprise'
+  limits: Record<'campaigns_per_day' | 'active_campaigns' | 'members' | 'llm_tokens_per_day', number | null>
+  used: Record<'campaigns_per_day' | 'active_campaigns' | 'members' | 'llm_tokens_per_day', number>
+}
+
+/** The active organisation's usage against its plan (limits enforced by the database). */
+function UsageMeters({ usage }: { usage: OrgUsage }) {
+  const { t } = useTranslation()
+  const rows = (['campaigns_per_day', 'active_campaigns', 'llm_tokens_per_day'] as const).filter((k) => usage.limits[k] != null)
+  if (!rows.length) return <p className={styles.planRounds}>{t('usage.unlimited', { plan: usage.plan })}</p>
+  return (
+    <ul className={styles.usage}>
+      {rows.map((k) => {
+        const limit = usage.limits[k] as number
+        const used = usage.used[k]
+        const pct = Math.min(100, Math.round((used / limit) * 100))
+        return (
+          <li key={k}>
+            <div className={styles.usageHead}>
+              <span>{t(`usage.${k}`)}</span>
+              <span>{k === 'llm_tokens_per_day' ? `${pct}%` : `${used} / ${limit}`}</span>
+            </div>
+            <div className={styles.usageTrack} role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={t(`usage.${k}`)}>
+              <span className={pct >= 100 ? styles.usageFull : ''} style={{ width: `${pct}%` }} />
+            </div>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 export default function Dashboard() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -223,6 +257,7 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState<Metric[]>([])
   const [arms, setArms] = useState<IterationArm[]>([])
   const [tier, setTier] = useState<'free' | 'subscribed'>('free')
+  const [usage, setUsage] = useState<OrgUsage | null>(null)
   const [firstLoad, setFirstLoad] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -232,22 +267,30 @@ export default function Dashboard() {
   const [toast, setToast] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
 
   const [filter, setFilter] = useState<Filter>('all')
+  const { active: org, can } = useOrg()
+  const orgId = org?.id
+  const canCreate = can('create')
   const [query, setQuery] = useState('')
 
   // Quiet reload: after the first load, data swaps in place without skeletons.
   const load = useCallback(async () => {
+    if (!orgId) return
     const [c, m, it, sub] = await Promise.all([
-      supabase.from('campaigns').select('*').order('created_at', { ascending: false }),
+      supabase.from('campaigns').select('*').eq('org_id', orgId).order('created_at', { ascending: false }),
       supabase.from('metrics').select('*').order('collected_at', { ascending: true }),
       supabase.from('iterations').select('campaign_id,round_number,preflight_attempt,image_style,copy_tone'),
       supabase.from('subscriptions').select('status').maybeSingle(),
     ])
+    // RLS returns every organisation the user belongs to; show the active one.
+    const inOrg = new Set(((c.data as Campaign[]) ?? []).map((x) => x.id))
     setCampaigns((c.data as Campaign[]) ?? [])
-    setMetrics((m.data as Metric[]) ?? [])
-    setArms((it.data as IterationArm[]) ?? [])
+    setMetrics(((m.data as Metric[]) ?? []).filter((x) => inOrg.has(x.campaign_id)))
+    setArms(((it.data as IterationArm[]) ?? []).filter((x) => inOrg.has(x.campaign_id)))
     setTier(sub.data?.status === 'subscribed' ? 'subscribed' : 'free')
+    const { data: u } = await supabase.rpc('org_usage', { p_org: orgId })
+    setUsage((u as OrgUsage | null) ?? null)
     setFirstLoad(false)
-  }, [])
+  }, [orgId])
 
   useEffect(() => {
     load()
@@ -280,15 +323,20 @@ export default function Dashboard() {
   }
 
   async function createCampaign() {
-    if (!idea.trim() || creating) return
+    if (!idea.trim() || creating || !canCreate) return
     setCreating(true)
     setToast(null)
-    const { error } = await supabase.functions.invoke('create-campaign', {
-      body: { idea: idea.trim(), target_language: targetLanguage },
+    const { error, response } = await supabase.functions.invoke('create-campaign', {
+      body: { idea: idea.trim(), target_language: targetLanguage, org_id: orgId },
     })
     setCreating(false)
     if (error) {
-      setToast({ kind: 'error', text: t('dash.dispatchFailed', { message: error.message }) })
+      // Plan limits come back as 429 with the reason in the body.
+      let message = error.message
+      if (response?.status === 429) {
+        message = ((await response.json().catch(() => null)) as { error?: string } | null)?.error ?? message
+      }
+      setToast({ kind: 'error', text: t('dash.dispatchFailed', { message }) })
       return
     }
     setToast({ kind: 'ok', text: t('dash.dispatched') })
@@ -554,7 +602,7 @@ export default function Dashboard() {
                 ))}
               </select>
             </label>
-            <button type="button" className={styles.primaryBtn} onClick={createCampaign} disabled={creating || !idea.trim()}>
+            <button type="button" className={styles.primaryBtn} onClick={createCampaign} disabled={creating || !idea.trim() || !canCreate} title={canCreate ? undefined : t('org.cantCreate')}>
               {creating && <span className={styles.spinner} aria-hidden="true" />}
               {creating ? t('dashboard.creating') : t('dashboard.createSubmit')}
               {!creating && (
@@ -583,6 +631,7 @@ export default function Dashboard() {
               </span>
             </div>
             <p className={styles.planRounds}>{t('dash.planRounds', { rounds: roundsCap })}</p>
+            {usage && <UsageMeters usage={usage} />}
             <Link to="/settings" className={`${styles.planLink} link-wipe`}>
               {t('dash.planKeys')} →
             </Link>

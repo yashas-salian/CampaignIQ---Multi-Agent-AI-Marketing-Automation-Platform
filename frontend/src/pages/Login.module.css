@@ -73,8 +73,9 @@
 
 /* OAuth providers: outlined buttons that lift on hover, like the ghost
    buttons on the Landing page. */
-.oauth { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 32px; }
-@media (max-width: 420px) { .oauth { grid-template-columns: 1fr; } }
+.oauth { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-top: 32px; }
+/* Two "Continue with ..." buttons need ~460px side by side; stack below that. */
+@media (max-width: 480px) { .oauth { grid-template-columns: 1fr; } }
 .oauthBtn {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px;
   height: 50px; padding: 0 14px; border-radius: 14px; cursor: pointer;

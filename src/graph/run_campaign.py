@@ -9,6 +9,7 @@ from langgraph.types import Command
 from src.db.supabase_client import get_campaign, get_gate_decision
 from src.graph.build_graph import build_graph
 from src.languages import SUPPORTED_LANGUAGES
+from src.usage import budget_exhausted, personal_org, use_org
 
 GATE_NUMBER_BY_STATUS = {"awaiting_gate_1": 1, "awaiting_gate_2": 2}
 
@@ -23,6 +24,7 @@ def main() -> None:
     parser.add_argument("idea", nargs="?", help="New campaign idea (omit when resuming --campaign-id)")
     parser.add_argument("--campaign-id", default=None, help="Resume an existing campaign instead of creating one")
     parser.add_argument("--user-id", default=None, help="Owning user's Supabase Auth id (required for a new campaign)")
+    parser.add_argument("--org-id", default=None, help="Organisation the campaign belongs to (default: the user's personal one)")
     parser.add_argument("--email-to", default="", help="Comma-separated recipient list")
     parser.add_argument("--reddit-subreddit", default=None)
     parser.add_argument("--cta-url", default=None)
@@ -41,6 +43,7 @@ def main() -> None:
         if args.campaign_id:
             campaign_id = args.campaign_id
             campaign = get_campaign(campaign_id)
+            use_org(campaign.get("org_id"))
             gate_number = GATE_NUMBER_BY_STATUS.get(campaign["status"])
             if gate_number is None:
                 print(f"Campaign {campaign_id} is in status '{campaign['status']}' — nothing to resume.")
@@ -57,10 +60,17 @@ def main() -> None:
                 parser.error("an idea is required when not resuming with --campaign-id")
             if not args.user_id:
                 parser.error("--user-id is required when creating a new campaign")
+            org_id = args.org_id or personal_org(args.user_id)
+            use_org(org_id)
+            blocked = budget_exhausted(org_id)
+            if blocked:
+                print(f"Not starting: {blocked}")
+                return
             campaign_id = str(uuid.uuid4())
             config = {"configurable": {"thread_id": campaign_id}}
             initial_state = {
                 "idea": args.idea, "campaign_id": campaign_id, "user_id": args.user_id, "round_id": 1,
+                "org_id": org_id,
                 "email_to": args.email_to.split(",") if args.email_to else [os.environ["RESEND_TEST_TO_EMAIL"]],
                 "reddit_subreddit": args.reddit_subreddit, "cta_url": args.cta_url,
                 "use_image_template": args.use_image_template, "use_email_template": args.use_email_template,

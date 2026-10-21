@@ -9,3 +9,6 @@ export function useAuthTargets() {
   const authed = !loading && !!session
   return { authed, loginTo: authed ? '/dashboard' : '/login', signupTo: authed ? '/dashboard' : '/signup' }
 }
+
+/** sessionStorage key: where to go after signing in (an invite link, a deep link into the app). */
+export const NEXT_KEY = 'mos.next'

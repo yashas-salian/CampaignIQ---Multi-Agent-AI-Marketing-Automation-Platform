@@ -45,6 +45,11 @@ jobs:
       - run: python -m src.eval.run_eval
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          # Free-tier fallbacks behind Groq (src/providers/gateway.py); each is
+          # optional and only used once Groq is rate-limited or down.
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           # M7 fine-tuned domain classifier (private Hugging Face model repo).
           DOMAIN_MODEL_HF_REPO: ${{ secrets.DOMAIN_MODEL_HF_REPO }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}

@@ -12,6 +12,7 @@ class CampaignState(TypedDict, total=False):
     idea: str
     campaign_id: str
     user_id: str
+    org_id: Optional[str]
     round_id: int
     domain_category: DomainCategory
     reddit_subreddit: str

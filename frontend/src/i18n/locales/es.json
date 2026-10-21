@@ -168,7 +168,10 @@
     "viewPost": "Ver publicación",
     "noRounds": "Las rondas creativas aparecen aquí tras aprobar el Control 1.",
     "rawData": "Datos sin procesar",
-    "notFound": "Esta campaña no existe o no es tuya."
+    "notFound": "Esta campaña no existe o no es tuya.",
+    "safetyBlocked": "No se enviará: falló la revisión de seguridad de marca",
+    "safetyReview": "Revisa estas afirmaciones antes de aprobar",
+    "safetyDisclaimer": "Aviso añadido automáticamente: {{text}}"
   },
   "mx": {
     "back": "Volver a la campaña",
@@ -308,5 +311,56 @@
     "run": "Ejecutar",
     "dispatching": "Enviando…",
     "status": "Estado: {{status}}"
+  },
+  "org": {
+    "team": "Equipo",
+    "teamSub": "Quién puede ver, crear y aprobar campañas en esta organización.",
+    "current": "Organización",
+    "personal": "Personal",
+    "switch": "Cambiar de organización",
+    "createLabel": "Nueva organización de equipo",
+    "createPlaceholder": "p. ej. Acme Marketing",
+    "create": "Crear",
+    "personalNote": "Este es tu espacio personal. Crea una organización de equipo para invitar a colegas.",
+    "inviteEmail": "Invitar por correo",
+    "inviteRole": "Rol",
+    "invite": "Crear enlace de invitación",
+    "inviteLink": "Enlace de invitación",
+    "inviteLinkNote": "Envía este enlace a la persona invitada. Funciona una vez, para ese correo, durante 7 días.",
+    "copy": "Copiar",
+    "pending": "Invitaciones pendientes",
+    "expires": "Caduca el {{date}}",
+    "revoke": "Revocar",
+    "remove": "Quitar",
+    "leave": "Salir",
+    "roleFor": "Rol de {{who}}",
+    "role_owner": "Propietario",
+    "role_admin": "Administrador",
+    "role_marketer": "Marketer",
+    "role_approver": "Aprobador",
+    "role_viewer": "Lector",
+    "readOnlyNote": "Como {{role}} no puedes crear campañas aquí.",
+    "cantCreate": "Tu rol en esta organización no puede crear campañas.",
+    "cantApprove": "Solo propietarios, administradores y aprobadores pueden decidir esta revisión.",
+    "joining": "Uniéndote a la organización…",
+    "inviteFailed": "Esta invitación no se puede usar"
+  },
+  "audit": {
+    "title": "Registro de auditoría",
+    "sub": "Cada cambio en campañas, revisiones, miembros, claves y envíos de esta organización, del más reciente al más antiguo.",
+    "filter": "Filtrar por área",
+    "all": "Todo",
+    "exportCsv": "Exportar CSV",
+    "exportJson": "Exportar JSON",
+    "empty": "Aún no hay registros.",
+    "system": "Sistema",
+    "more": "Cargar más",
+    "note": "La propia base de datos escribe las entradas y las encadena por hash, así que no se pueden editar ni borrar sin que se note."
+  },
+  "usage": {
+    "campaigns_per_day": "Campañas hoy",
+    "active_campaigns": "Campañas activas",
+    "llm_tokens_per_day": "Presupuesto de IA hoy",
+    "unlimited": "Sin límites de uso en el plan {{plan}}."
   }
 }

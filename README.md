@@ -9,7 +9,9 @@ infrastructure. Full design and milestone plan: [`DESIGN.md`](./DESIGN.md).
 built and live-verified: provider abstraction, eval harness, human-in-the-loop
 gates + pre-flight panel, multi-tenancy + BYOK + Tools page, the metrics →
 feedback → autonomy loop, and a contextual bandit + per-user memory/RAG.
-M7–M9 (fine-tuning, MCP server, stretch) are explicitly out of scope for now.
+Beyond the core: M7 (a fine-tuned domain classifier with a weekly retrain on
+human corrections) and M8 (the capabilities as an MCP server). M9 (stretch) is
+out of scope for now.
 Architecture diagram + what makes this more than an LLM wrapper:
 [`docs/architecture.md`](./docs/architecture.md).
 
@@ -63,9 +65,39 @@ generates (no review/approval process).
 `DRY_RUN=true` (the default) makes every `capabilities/distribution.py`
 function log what it *would* send and return a synthetic result — no real
 Bluesky/Reddit/email calls. Set `DRY_RUN=false` to actually send. Every
-distribution call also takes a `campaign_id`/`round_id`, deduped against a
-local `.local_dedup_store.json` (gitignored) so the same campaign/round/
-channel is never sent twice.
+distribution call also takes a `campaign_id`/`round_id` and goes through the
+**delivery ledger** ([`capabilities/delivery.py`](./src/capabilities/delivery.py),
+`deliveries` table). It guarantees the following:
+- **Once per round:** the same campaign/round/channel is sent at most once, even across separate GitHub Actions runs or two workers at the same time (atomic claim).
+- **A failing channel can't crash a run:** it's retried three times in-process, then rescheduled with backoff (5 min, 30 min, 2 h, 8 h) by `src.scheduler.retry_deliveries`, which runs in the hourly sweep.
+- **Dead-letter state:** after 5 attempts the send is marked `dead`, and `OPS_ALERT_EMAIL` gets an alert.
+- **No ledger, no send:** a send never happens without a ledger claim.
+
+Without Supabase credentials (local scripts), a local JSON file stands in for the ledger.
+
+### Brand-safety guardrails
+
+[`src/capabilities/guardrails.py`](./src/capabilities/guardrails.py) checks every generated creative. It's deterministic and free, with no LLM call.
+
+| Severity | Triggers | What happens |
+|---|---|---|
+| **block** | A link to anything but the campaign's CTA domain, an email address or phone number, a banned term (built-in list + `BANNED_TERMS`), over 300 characters for Bluesky, empty copy | The copy is regenerated with the reasons, up to 2 times. If it's still blocked, Gate 2 shows why and distribution refuses to send. |
+| **review** | Absolute claims ("guaranteed", "risk-free", "#1", "clinically proven") and category-specific claims ("cures", "guaranteed returns", "lose 10 kg") | Shown at Gate 2 for the approver to substantiate. |
+
+Healthcare, finance and fitness campaigns automatically get a disclaimer: the full text on emails, and a short form on Bluesky when it fits. Results are stored per round in `iterations.guardrail_flags`.
+
+### Prompt-injection protection
+
+Untrusted text reaches the prompts from two places:
+- **Third parties:** news headlines feed the feasibility rationale.
+- **Users:** the idea, stakeholder comments and past campaigns, plus model output derived from them (personas, copy) that gets passed to the next step.
+
+[`src/security/prompt_guard.py`](./src/security/prompt_guard.py) handles both:
+- **Fencing:** every untrusted value goes inside an `<untrusted source=... id=random>` block, and fake closing tags inside the value are neutralised. Every system prompt adds the rule that fenced text is data, never instructions.
+- **Clean-up:** control and bidi characters are stripped, and length is capped.
+- **Filtering:** headlines that read like instructions ("ignore previous instructions", role tags, "reveal your prompt", …) are dropped and logged.
+
+Outputs are schema-checked: an off-list category becomes `other`, and personas and the bandit use fixed label sets. That limits what a successful injection could change.
 
 ### `track-click` (email link tracking)
 
@@ -74,11 +106,11 @@ click data doesn't depend on Resend's own tracking. This is Supabase
 infrastructure pulled forward from M3 — a full Supabase project with
 auth/RLS/campaigns tables isn't set up until then, just this one function:
 
-1. Create a free project at supabase.com.
-2. In the SQL Editor, run [`supabase_setup/sql/click_log.sql`](./supabase_setup/sql/click_log.sql).
-3. In Edge Functions, create a new function named `track-click`, paste in
-   [`supabase_setup/functions/track-click/index.ts`](./supabase_setup/functions/track-click/index.ts), and deploy.
-4. Set `TRACK_CLICK_BASE_URL` in `.env` to
+1. Create a free project at supabase.com and apply the schema (see
+   [Database and Edge Functions](#database-and-edge-functions)).
+2. Deploy the `track-click` function
+   ([`supabase/functions/track-click/index.ts`](./supabase/functions/track-click/index.ts)).
+3. Set `TRACK_CLICK_BASE_URL` in `.env` to
    `https://<project-ref>.supabase.co/functions/v1/track-click`.
 
 Without this set, `send-email --cta-url` still works but links go out
@@ -113,23 +145,110 @@ Reddit or just log a synthetic result — see "Distribution safety" above.
 
 ### Edge Functions to deploy
 
-All five are Supabase Dashboard → Edge Functions → paste the file → Deploy
-(keep "Enforce JWT Verification" ON for all except `track-click`, which
-needs it OFF since email clients follow the link unauthenticated):
+Deployed by [`supabase-deploy.yml`](./.github/workflows/supabase-deploy.yml) (see [Database and Edge Functions](#database-and-edge-functions)); JWT verification is configured per function in `supabase/config.toml`, and is off only for `track-click`, since email clients follow the link unauthenticated:
 
 | Function | Source | Needs |
 |---|---|---|
-| `track-click` | `supabase_setup/functions/track-click/index.ts` | — |
-| `submit-provider-key` | `supabase_setup/functions/submit-provider-key/index.ts` | `SETTINGS_ENCRYPTION_KEY` secret |
-| `trigger-capability-run` | `supabase_setup/functions/trigger-capability-run/index.ts` | `GITHUB_REPO`, `GITHUB_PAT` secrets |
-| `resume-campaign` | `supabase_setup/functions/resume-campaign/index.ts` | `GITHUB_REPO`, `GITHUB_PAT` secrets |
-| `create-campaign` | `supabase_setup/functions/create-campaign/index.ts` | `GITHUB_REPO`, `GITHUB_PAT` secrets |
+| `track-click` | `supabase/functions/track-click/index.ts` | — |
+| `submit-provider-key` | `supabase/functions/submit-provider-key/index.ts` | — (stores keys in Supabase Vault) |
+| `trigger-capability-run` | `supabase/functions/trigger-capability-run/index.ts` | `GITHUB_REPO`, `GITHUB_PAT` secrets |
+| `resume-campaign` | `supabase/functions/resume-campaign/index.ts` | `GITHUB_REPO`, `GITHUB_PAT` secrets |
+| `create-campaign` | `supabase/functions/create-campaign/index.ts` | `GITHUB_REPO`, `GITHUB_PAT` secrets |
 
 `GITHUB_REPO`/`GITHUB_PAT` are shared across the last three (same repo, same
 PAT, only set once). The GitHub Actions side needs every key in `.env`
 mirrored as a repo secret (Settings → Secrets and variables → Actions) —
 `campaign-loop.yml` and `capability-run.yml` both list exactly which ones
 in their `env:` blocks.
+
+## Database and Edge Functions
+
+The schema lives in [`supabase/migrations/`](./supabase/migrations/), managed with the Supabase CLI (a frontend devDependency: `npx --prefix frontend supabase ... --workdir .`). [`20261021000000_baseline.sql`](./supabase/migrations/20261021000000_baseline.sql) is a `supabase db dump` of production; it replaces the hand-run `src/db/schema_*.sql` files.
+
+- **New schema change:** `npx --prefix frontend supabase migration new <name> --workdir .`, write the SQL, and push. Never edit an applied migration.
+- **Every change** is checked by [`supabase-check.yml`](./.github/workflows/supabase-check.yml), which builds a fresh database from all migrations in Docker and lints it. It never touches production.
+- **On main,** [`supabase-deploy.yml`](./.github/workflows/supabase-deploy.yml) applies pending migrations to production (`SUPABASE_DB_URL`; must be the IPv4 Session-pooler string) and deploys the Edge Functions (`SUPABASE_ACCESS_TOKEN` + `SUPABASE_PROJECT_REF`, skipped until they're set). The first run records the baseline as already applied instead of re-running it.
+- **Fresh project** (staging, a new environment): `supabase db push --db-url <its connection string>` builds everything, including the signup trigger on `auth.users`.
+- **Locally:** `npx --prefix frontend supabase db start --workdir .` (needs Docker) gives a throwaway Postgres on port 54322 with every migration applied.
+
+## Organisations and roles
+
+Campaigns belong to an **organisation**. Every user has a personal one and can create team organisations (Settings → Team).
+
+| | owner | admin | marketer | approver | viewer |
+|---|:-:|:-:|:-:|:-:|:-:|
+| See campaigns, results, members | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Create, run, stop campaigns | ✓ | ✓ | ✓ | | |
+| Decide gates, pick personas, correct categories | ✓ | ✓ | | ✓ | |
+| Invite, change roles, remove members | ✓ | ✓ | | | |
+| Grant owner or admin, remove admins | ✓ | | | | |
+
+- **Separation of duties:** marketers can't approve their own campaigns.
+- **Where it's enforced:** in the database. RLS on every campaign table goes through `org_can()` and `campaign_can()`, and memberships only change through checked functions (`create_invitation`, `accept_invitation`, `set_member_role`, `remove_member`), which never let an organisation lose its last owner. The UI only hides what a role can't use.
+- **Invites:** single-use links, bound to the invited email address, that expire after 7 days. Only a hash of the token is stored. If the invitee isn't signed in, the link survives the sign-in redirect.
+- **Still per user:** BYOK keys and templates.
+
+## Plans and usage limits
+
+Each organisation has a plan. A personal organisation follows its owner's subscription, and team plans are set by billing or the admin console; members can't change them. Limits live in `plan_limits`, where null means unlimited:
+
+| | free | pro | enterprise |
+|---|---|---|---|
+| Campaigns per day | 3 | 50 | ∞ |
+| Active campaigns | 3 | 25 | ∞ |
+| Members | 5 | 50 | ∞ |
+| Tools runs per day (per user) | 20 | 500 | ∞ |
+| AI tokens per day | 150k | 3M | ∞ |
+
+- **Hard limits** are enforced by triggers on `campaigns`, `memberships` and `capability_runs`, with the error `usage limit: …`.
+- **Checked before spending anything:** `create-campaign` calls `campaign_quota_error()` before dispatching and returns 429, because the campaign row is only written after the first LLM calls.
+- **Token budget:** the gateway tags every LLM call with the run's organisation (`llm_usage.org_id`). Once the daily budget is spent, the worker skips that organisation's runs until the next day; the check fails open, so it can never block a run by mistake.
+- **Dashboard:** the plan card shows the active organisation's usage.
+
+## Audit log
+
+`audit_log` is written by **database triggers**, so no path (frontend, workers, Edge Functions, the SQL editor) can skip it.
+- **What's recorded:** campaign creation, status changes, stops and category corrections; gate decisions with comments; members added, re-roled or removed; invitations created, accepted or revoked; organisation renames; BYOK keys added, rotated or deleted (capability and masked key only); deliveries sent or dead-lettered; feature-flag changes. Each event records who did it, or `system` for workers.
+- **Integrity:** every row stores the SHA-256 of the previous one, so `verify_audit_chain()` (service role) returns the first row whose hash doesn't match, or null when the chain is intact. A trigger blocks UPDATE, DELETE and TRUNCATE, and no role can write the table directly.
+- **Access:** org owners and admins browse and export it as CSV or JSON in Settings → Audit log.
+- **Never logged:** secrets, invite tokens and delivery payloads.
+
+## LLM gateway (free-tier fallback)
+
+Free-tier LLM calls go through [`src/providers/gateway.py`](./src/providers/gateway.py), which tries each provider in order: Groq, then whichever of **Cerebras** (same `gpt-oss-120b` model), **OpenRouter** (`gpt-oss-120b:free`) and **Gemini Flash** has an API key set. All three have free tiers; see `.env.example`.
+
+- **Failover:** a rate limit, outage or bad key moves the call to the next provider and benches the failing one: an hour when its daily budget is spent, a minute for a per-minute limit, 30 s for an outage.
+- **Fast switching:** with fallbacks configured, Groq retries only twice, so a spent budget fails over in seconds instead of waiting out Groq's retry-after.
+- **Usage accounting:** every call is recorded in `llm_usage` (provider, model, tokens, latency, errors). Users can read their own rows. Recording is best effort and never slows or breaks a run.
+- **BYOK and paid users** don't go through the gateway: their prompts stay with the provider they chose.
+- **Kill switch:** the `llm_fallback` flag, or `FLAG_LLM_FALLBACK=false`.
+
+## Feature flags and releases
+
+**Flags** (`feature_flags` table) let new code ship dark and turn on without a deploy.
+- **Per flag:** a kill switch (`enabled`), an allow list of user ids, and a percentage rollout. Each user gets a stable bucket, so raising the percentage never drops anyone who was already in.
+- **One rule for both sides:** the SQL function `feature_enabled_for()` is the only evaluator, called by Python's `src.flags.is_enabled(key, user_id)` and the browser's `useFlag(key)`.
+- **Overrides:** `FLAG_<KEY>=true|false` overrides a flag in Python, for tests, local dev, or killing a flag without a DB write.
+- **Failures:** a failed lookup returns the caller's default, so a flag can never break a run.
+- **Changing flags:** users can read flags but not change them. Edit them with the service role (SQL Editor, or the admin console later).
+
+**Releases:** one version covers the backend and the frontend (`pyproject.toml` and `frontend/package.json`), and the footer shows it.
+- [`CHANGELOG.md`](./CHANGELOG.md) follows Keep a Changelog.
+- Pushing a tag `vX.Y.Z` runs [`release.yml`](./.github/workflows/release.yml). It checks that the tag and both version fields agree, then publishes that version's changelog section as the GitHub Release.
+
+## Tests
+
+[`tests.yml`](./.github/workflows/tests.yml) runs on every push. It's free: no Groq, no live Supabase.
+
+| Suite | What it covers | Run locally |
+|---|---|---|
+| **Python unit** (`tests/unit`) | LLM-JSON repair, BYOK crypto, provider tiers, feasibility weighting and graceful degradation, DRY_RUN and dedup, click tracking, LinUCB, graph routing, Gate 1 category corrections, the M7 retrain gate, and the MCP server (in-memory client) | `pytest -m "not integration"` |
+| **RLS integration** (`tests/integration`) | Against a real Postgres built from `supabase/migrations`: cross-user isolation, no self-upgrade of subscriptions, masked BYOK view, signup trigger, Realtime publication | `npx --prefix frontend supabase db start --workdir .` then `pytest -m integration` |
+| **Frontend e2e** (`frontend/e2e`, Playwright) | Every public page on desktop and a phone, no sideways scroll at 360/390/430 px, the phone menu, the auth redirect, 404, theme persistence | `cd frontend && npm run test:e2e` |
+
+- **Install:** `pip install -e ".[dev,mcp]"`.
+- **Network guard:** a unit test that tries to open a non-loopback connection fails.
+- **Coverage floor:** 55%. Raise it as coverage grows.
 
 ## Eval harness (M2)
 
@@ -154,9 +273,8 @@ secrets are optional/on hold, same as local `.env`).
 
 Single-tenant, no auth yet (M4 adds that). Setup:
 
-1. In the Supabase SQL Editor (same project as `track-click`), run
-   [`src/db/schema.sql`](./src/db/schema.sql) — creates `campaigns`,
-   `personas`, `iterations`, `gate_decisions`.
+1. Apply the schema (see [Database and Edge Functions](#database-and-edge-functions)):
+   `campaigns`, `personas`, `iterations`, `gate_decisions` and the rest.
 2. Set in `.env`: `SUPABASE_URL` (same project URL as `TRACK_CLICK_BASE_URL`'s
    host) and `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API →
    "service_role" secret — server-side only, never expose this one).
@@ -190,12 +308,14 @@ this one action has no frontend since it's a billing decision made by you,
 not the end user) → **free**
 (same `.env` keys as always). The Tools page runs any capability standalone
 (dispatches `capability-run.yml` via a `trigger-capability-run` Edge
-Function, result shown live via Supabase Realtime). Run
-[`src/db/schema_m4.sql`](./src/db/schema_m4.sql) after `schema.sql`, sign up
+Function, result shown live via Supabase Realtime). With the schema applied, sign up
 two test users in the frontend to confirm RLS actually denies cross-user
-reads (not just UI-hidden), and set `SETTINGS_ENCRYPTION_KEY` (generate with
-`python -c "import os, base64; print(base64.b64encode(os.urandom(32)).decode())"`)
-in both `.env` and the Edge Function's own secrets.
+reads (not just UI-hidden).
+
+**BYOK keys are stored in Supabase Vault.**
+- **How:** the `submit-provider-key` function passes the key to `store_provider_key()`. That function, like `read_provider_key()`, runs as `security definer` and only the service role can call it. `provider_keys` keeps just a Vault pointer and the masked key.
+- **Who can read a key:** nobody but the workers, not even with SQL a user can run. Users can only read their masked keys and delete their own rows, which also deletes the secret.
+- **Keys saved before the Vault move** were AES-encrypted. They keep working through the legacy decrypt path until `python -m src.admin.migrate_keys_to_vault --apply` moves them; after that, `SETTINGS_ENCRYPTION_KEY` can be retired.
 
 ## Feedback loop + autonomy (M5)
 
@@ -209,8 +329,7 @@ per-campaign resumption (`workflow_dispatch`, `campaign_id` input) — the
 latter triggered instantly by the `resume-campaign` Edge Function on a gate
 decision or "stop campaign" (campaign *creation* instead dispatches
 `run_campaign.py` via the separate `create-campaign` Edge Function, added
-alongside the multilingual work below). Run
-[`src/db/schema_m5.sql`](./src/db/schema_m5.sql), set `SUPABASE_DB_URL`
+alongside the multilingual work below). Set `SUPABASE_DB_URL`
 (Project Settings → Database → Connection string — this is what lets
 LangGraph's Postgres checkpointer survive across separate, ephemeral
 GitHub Actions runs), and add the same GitHub Actions secrets already used
@@ -223,9 +342,8 @@ catalog (5 image styles × 4 copy tones) driving each round's creative
 style/tone selection, and `tools/memory.py` — per-user pgvector embeddings
 used for feasibility grounding and a novelty check (retries creative
 generation up to 3 times if too similar to this user's own past creative,
-per the same best-attempt pattern the pre-flight loop already uses). Run
-[`src/db/schema_m6.sql`](./src/db/schema_m6.sql) (adds `bandit_arms`,
-`embeddings` + `pgvector`, and new persona/iteration columns). The
+per the same best-attempt pattern the pre-flight loop already uses). Schema: `bandit_arms`,
+`embeddings` + `pgvector`, and new persona/iteration columns (all in [`supabase/migrations/`](./supabase/migrations/)). The
 `Metrics.tsx` frontend page (linked from a campaign's detail view) shows
 per-round/per-channel real engagement, the normalized reward, which arm was
 used, and a reward-trend chart. LangSmith tracing is optional — set
@@ -274,7 +392,7 @@ three golden misses are exactly those. Both over-use `ecommerce_retail`, and
 the teacher's: human category corrections are the planned source, fed into a
 scheduled retrain that only promotes a new model if it scores at least as well.
 
-**Human corrections.** Gate 1 shows the predicted category in a dropdown; if the user changes it, the campaign is updated (the graph re-reads it after the gate, so the bandit uses the corrected context) and the fix is stored in `domain_corrections` as a human-verified training label. Run [`src/db/schema_m7.sql`](./src/db/schema_m7.sql) once to create that table.
+**Human corrections.** Gate 1 shows the predicted category in a dropdown; if the user changes it, the campaign is updated (the graph re-reads it after the gate, so the bandit uses the corrected context) and the fix is stored in `domain_corrections` as a human-verified training label. The table is part of [`supabase/migrations/`](./supabase/migrations/).
 
 **Weekly retrain** ([`retrain-domain-model.yml`](./.github/workflows/retrain-domain-model.yml), Sundays 03:00 UTC, or run it by hand with *force*). No Groq calls:
 
@@ -282,6 +400,15 @@ scheduled retrain that only promotes a new model if it scores at least as well.
 2. Train on a free Kaggle T4 ([`src/finetune/kaggle/train_kernel.py`](./src/finetune/kaggle/train_kernel.py), same recipe as the notebook) via a private Kaggle dataset and kernel.
 3. `retrain evaluate`: the candidate and the current model are compared on the golden set (human labels), the held-back corrections (human labels) and the held-out synthetic test (teacher agreement, 3-point slack). The candidate is promoted only if it is not worse on any of them.
 4. `retrain promote`: upload the GGUF and `training_meta.json` to the private HF repo. The other workflows pick it up on their next run.
+
+**First run (2026-10-21)** was forced, with 0 corrections, so it trained on the same synthetic data as the Colab model. It took 22 minutes, 17 of them on Kaggle. Both models were scored on the same CI runner:
+
+| Model | Golden (human labels) | Held-out (teacher agreement) |
+|---|---|---|
+| Current (Colab v1) | 78% (14/18) | 72% |
+| Candidate (Kaggle) | 83% (15/18) | 78% |
+
+The candidate was promoted. The same v1 file scored 83% / 75% on a Windows laptop: llama.cpp builds can flip a borderline greedy decode, so the gate always scores both models in the same job.
 
 Secrets: `KAGGLE_USERNAME`, `KAGGLE_KEY` (the Kaggle account must be phone-verified for GPU and internet), `SUPABASE_*`, `DOMAIN_MODEL_HF_REPO`, and `HF_WRITE_TOKEN` (a write-scoped HF token; falls back to `HF_TOKEN`).
 
@@ -298,6 +425,50 @@ pip install -e ".[local-model]" --extra-index-url https://abetlen.github.io/llam
 # put the GGUF at src/finetune/models/marketingos-domain-q4_k_m.gguf
 ```
 
+## MCP server (M8)
+
+[`src/mcp_server/server.py`](./src/mcp_server/server.py) exposes the same `capabilities/` functions the graph, the Tools page and CI use. It wraps them, it doesn't reimplement them, so Claude Desktop, Claude Code or any other MCP client gets exactly the app's behaviour.
+
+| Tool | What it does |
+|---|---|
+| `classify_idea` | Normalizes the idea and picks its category (the fine-tuned M7 model when installed, else the LLM) |
+| `score_feasibility` | 0–100 score from live Trends, news and Bluesky/Mastodon signals, plus rationale |
+| `generate_personas` | Customer personas grounded in the feasibility signals |
+| `generate_creative` | Copy and an image for one persona; the LinUCB bandit picks the style/tone archetype |
+| `generate_image` | A single image from the user's image provider |
+| `preflight_creative` | Synthetic persona-panel pre-test: predicted engagement and pass/fail |
+| `post_bluesky`, `send_campaign_email` | Distribution: **dry runs unless the server runs with `DRY_RUN=false`**, deduplicated per campaign/round |
+| `list_campaigns`, `campaign_summary` | Read-only results for `MCP_USER_ID`'s own campaigns |
+
+Tools carry MCP annotations (read-only, or open-world/destructive for the senders), so clients can ask before sending anything.
+
+- **Configuration** comes from the repo's `.env`.
+- **`MCP_USER_ID`** (your Supabase user id) is optional. When set, it resolves your BYOK/paid providers and unlocks the campaign tools. Those tools only ever return that user's campaigns: another user's campaign id gets the same "not found" as a missing one, even though the server holds the service-role key.
+
+```
+pip install -e ".[mcp]"          # plus ".[local-model]" for the M7 classifier
+python -m src.mcp_server.server  # stdio; add --http 8765 for streamable HTTP on 127.0.0.1
+```
+
+Claude Code: `claude mcp add marketingos -- <repo>/.venv/Scripts/python.exe -m src.mcp_server.server` (works from any directory; the server loads the repo's `.env` itself).
+Claude Desktop (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "marketingos": {
+      "command": "C:/path/to/repo/.venv/Scripts/python.exe",
+      "args": ["-m", "src.mcp_server.server"],
+      "env": { "MCP_USER_ID": "<your Supabase user id>", "DRY_RUN": "true" }
+    }
+  }
+}
+```
+
+**Implementation notes:**
+- Capability code is blocking, so each tool runs in a worker thread with `stdout` redirected to `stderr`, because `stdout` is the stdio wire.
+- On Windows, a DLL-backed module (numpy, llama.cpp, torch) first imported from a worker thread deadlocks while the transport's thread is blocked reading stdin. The server therefore imports them on the main thread before it starts serving.
+
 ## Multilingual campaigns
 
 Every campaign has a `target_language` (`src/languages.py`, ~15 languages),
@@ -311,8 +482,7 @@ Google Trends' `hl` both follow `target_language`. The embedding model
 (`tools/memory.py`) is multilingual (`paraphrase-multilingual-MiniLM-L12-v2`,
 also 384-dim) so retrieval/novelty-check work correctly across languages for
 the same user — confirmed live (an English query matched a Spanish embedding
-at 0.9 cosine similarity). Run [`src/db/schema_i18n.sql`](./src/db/schema_i18n.sql)
-(adds `campaigns.target_language`).
+at 0.9 cosine similarity). (`campaigns.target_language`, in [`supabase/migrations/`](./supabase/migrations/).)
 
 The frontend's own UI chrome is separately localizable via `react-i18next`
 — a language switcher in the nav bar, independent of any campaign's
@@ -330,7 +500,7 @@ survive a page reload.
 
 1. **Redeploy the four browser-facing Edge Functions** (`create-campaign`,
    `resume-campaign`, `submit-provider-key`, `trigger-capability-run`) from
-   `supabase_setup/functions/`. They answer the browser's CORS preflight; the
+   `supabase/functions/` (the Supabase deploy workflow does this once its secrets are set). They answer the browser's CORS preflight; the
    earlier versions rejected it with a 401, which blocks every call made from
    the website.
 2. **Import the repo on Vercel** with **Root Directory = `frontend`**. The

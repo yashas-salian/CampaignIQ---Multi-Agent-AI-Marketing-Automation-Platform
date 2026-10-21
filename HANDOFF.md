@@ -122,10 +122,10 @@ MarketingOS/
     graph/               ← state.py, build_graph.py, run_campaign.py, nodes/ (one thin wrapper per step)
     scheduler/           ← run_iteration.py (cron sweep / --campaign-id), run_capability.py (Tools page)
     admin/set_subscription.py  ← operator-only tier toggle
-    db/                  ← supabase_client.py + schema*.sql
+    db/                  ← supabase_client.py
     eval/                ← golden_set.jsonl, judge.py, run_eval.py
-  supabase_setup/
-    sql/click_log.sql
+  supabase/              ← Supabase CLI project (no __init__.py, so it can't shadow the pip package)
+    migrations/          ← baseline (dump of prod, 2026-10-21) + every later schema change
     functions/           ← track-click, submit-provider-key, trigger-capability-run, resume-campaign, create-campaign
   frontend/              ← Vite SPA: pages/ Landing, Login, Dashboard, CampaignDetail, Metrics, Tools, Settings
   .github/workflows/     ← campaign-loop.yml, capability-run.yml, eval.yml
@@ -206,9 +206,9 @@ anon key, never the service role key).
   OFF**; the others have it ON.
 - GitHub Actions repo secrets: all the keys above, plus `SUPABASE_DB_URL` and
   `DRY_RUN`.
-- SQL already applied, in this order: `click_log.sql` → `schema.sql` →
-  `schema_m4.sql` → `schema_m5.sql` → `schema_templates.sql` →
-  `schema_m6.sql` → `schema_i18n.sql`.
+- Schema: `supabase/migrations/` (Supabase CLI). The baseline is a dump of
+  production; `supabase-deploy.yml` applies new migrations on main and
+  `supabase-check.yml` builds a fresh DB from them on every change.
 
 ---
 
@@ -310,8 +310,10 @@ and the README has the demo video and portfolio write-up.
   (`_safe_signal()` in `feasibility.py`).
 - LangGraph node names must not collide with state keys (for example, a node
   can't be named `feasibility`).
-- Don't name a local folder after a pip package (`supabase/` was renamed to
-  `supabase_setup/` for this reason).
+- Don't name a local folder after a pip package **as a regular package**.
+  `supabase/` (the CLI's required layout) is fine only because it has no
+  `__init__.py`: a namespace directory never wins over an installed package.
+  Never add one there.
 - `providers/registry.py` imports `db.supabase_client` **lazily** inside
   functions to avoid a circular import. Keep it that way.
 - Templates **never replace** generation; they're combined with fresh output

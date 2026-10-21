@@ -168,7 +168,10 @@
     "viewPost": "Voir la publication",
     "noRounds": "Les tours créatifs apparaissent ici après validation de l’étape 1.",
     "rawData": "Données brutes",
-    "notFound": "Cette campagne n’existe pas ou ne vous appartient pas."
+    "notFound": "Cette campagne n’existe pas ou ne vous appartient pas.",
+    "safetyBlocked": "Ne sera pas envoyé : contrôles de sécurité de marque échoués",
+    "safetyReview": "Vérifiez ces affirmations avant d'approuver",
+    "safetyDisclaimer": "Mention ajoutée automatiquement : {{text}}"
   },
   "mx": {
     "back": "Retour à la campagne",
@@ -308,5 +311,56 @@
     "run": "Exécuter",
     "dispatching": "Envoi…",
     "status": "Statut : {{status}}"
+  },
+  "org": {
+    "team": "Équipe",
+    "teamSub": "Qui peut voir, créer et approuver des campagnes dans cette organisation.",
+    "current": "Organisation",
+    "personal": "Personnel",
+    "switch": "Changer d'organisation",
+    "createLabel": "Nouvelle organisation d'équipe",
+    "createPlaceholder": "ex. Acme Marketing",
+    "create": "Créer",
+    "personalNote": "Ceci est votre espace personnel. Créez une organisation d'équipe pour inviter des collègues.",
+    "inviteEmail": "Inviter par e-mail",
+    "inviteRole": "Rôle",
+    "invite": "Créer un lien d'invitation",
+    "inviteLink": "Lien d'invitation",
+    "inviteLinkNote": "Envoyez ce lien à la personne invitée. Il fonctionne une fois, pour cette adresse, pendant 7 jours.",
+    "copy": "Copier",
+    "pending": "Invitations en attente",
+    "expires": "Expire le {{date}}",
+    "revoke": "Révoquer",
+    "remove": "Retirer",
+    "leave": "Quitter",
+    "roleFor": "Rôle de {{who}}",
+    "role_owner": "Propriétaire",
+    "role_admin": "Admin",
+    "role_marketer": "Marketeur",
+    "role_approver": "Approbateur",
+    "role_viewer": "Lecteur",
+    "readOnlyNote": "En tant que {{role}}, vous ne pouvez pas créer de campagnes ici.",
+    "cantCreate": "Votre rôle dans cette organisation ne permet pas de créer des campagnes.",
+    "cantApprove": "Seuls les propriétaires, admins et approbateurs peuvent trancher cette étape.",
+    "joining": "Connexion à l'organisation…",
+    "inviteFailed": "Cette invitation ne peut pas être utilisée"
+  },
+  "audit": {
+    "title": "Journal d'audit",
+    "sub": "Chaque modification des campagnes, étapes, membres, clés et envois de cette organisation, du plus récent au plus ancien.",
+    "filter": "Filtrer par domaine",
+    "all": "Tout",
+    "exportCsv": "Exporter en CSV",
+    "exportJson": "Exporter en JSON",
+    "empty": "Rien d'enregistré pour l'instant.",
+    "system": "Système",
+    "more": "Charger plus",
+    "note": "Les entrées sont écrites par la base de données elle-même et chaînées par hachage : impossible de les modifier ou de les supprimer sans que cela se voie."
+  },
+  "usage": {
+    "campaigns_per_day": "Campagnes aujourd'hui",
+    "active_campaigns": "Campagnes actives",
+    "llm_tokens_per_day": "Budget IA du jour",
+    "unlimited": "Aucune limite d'utilisation avec l'offre {{plan}}."
   }
 }

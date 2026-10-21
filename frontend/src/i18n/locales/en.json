@@ -168,7 +168,10 @@
     "viewPost": "View post",
     "noRounds": "Creative rounds appear here after Gate 1 is approved.",
     "rawData": "Raw data",
-    "notFound": "This campaign doesn’t exist or isn’t yours."
+    "notFound": "This campaign doesn’t exist or isn’t yours.",
+    "safetyBlocked": "Won't be sent: brand-safety checks failed",
+    "safetyReview": "Check these claims before approving",
+    "safetyDisclaimer": "Disclaimer added automatically: {{text}}"
   },
   "mx": {
     "back": "Back to campaign",
@@ -308,5 +311,56 @@
     "run": "Run",
     "dispatching": "Dispatching…",
     "status": "Status: {{status}}"
+  },
+  "org": {
+    "team": "Team",
+    "teamSub": "Who can see, create and approve campaigns in this organisation.",
+    "current": "Organisation",
+    "personal": "Personal",
+    "switch": "Switch organisation",
+    "createLabel": "New team organisation",
+    "createPlaceholder": "e.g. Acme Marketing",
+    "create": "Create",
+    "personalNote": "This is your personal workspace. Create a team organisation to invite colleagues.",
+    "inviteEmail": "Invite by email",
+    "inviteRole": "Role",
+    "invite": "Create invite link",
+    "inviteLink": "Invite link",
+    "inviteLinkNote": "Send this link to the person you invited. It works once, for that email address, for 7 days.",
+    "copy": "Copy",
+    "pending": "Pending invitations",
+    "expires": "Expires {{date}}",
+    "revoke": "Revoke",
+    "remove": "Remove",
+    "leave": "Leave",
+    "roleFor": "Role for {{who}}",
+    "role_owner": "Owner",
+    "role_admin": "Admin",
+    "role_marketer": "Marketer",
+    "role_approver": "Approver",
+    "role_viewer": "Viewer",
+    "readOnlyNote": "As {{role}} you can't create campaigns here.",
+    "cantCreate": "Your role in this organisation can't create campaigns.",
+    "cantApprove": "Only owners, admins and approvers can decide this gate.",
+    "joining": "Joining the organisation…",
+    "inviteFailed": "This invitation can't be used"
+  },
+  "audit": {
+    "title": "Audit log",
+    "sub": "Every change to campaigns, gates, members, keys and sends in this organisation, newest first.",
+    "filter": "Filter by area",
+    "all": "Everything",
+    "exportCsv": "Export CSV",
+    "exportJson": "Export JSON",
+    "empty": "Nothing recorded yet.",
+    "system": "System",
+    "more": "Load more",
+    "note": "Entries are written by the database itself and chained by hash, so they can't be edited or deleted without it showing."
+  },
+  "usage": {
+    "campaigns_per_day": "Campaigns today",
+    "active_campaigns": "Active campaigns",
+    "llm_tokens_per_day": "AI budget today",
+    "unlimited": "No usage limits on the {{plan}} plan."
   }
 }

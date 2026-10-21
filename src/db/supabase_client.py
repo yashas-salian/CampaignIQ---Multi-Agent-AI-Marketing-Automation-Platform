@@ -27,6 +27,7 @@ def create_campaign(
     max_rounds: int | None = None,
     max_duration_minutes: int | None = None,
     target_language: str = "en",
+    org_id: str | None = None,
 ) -> None:
     row = {
         "id": campaign_id,
@@ -45,6 +46,8 @@ def create_campaign(
         "target_language": target_language,
         "status": "created",
     }
+    if org_id:
+        row["org_id"] = org_id  # otherwise the DB puts it in the creator's personal organisation
     get_client().table("campaigns").insert(row).execute()
 
 

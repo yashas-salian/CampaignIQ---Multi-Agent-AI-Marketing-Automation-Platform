@@ -6,6 +6,7 @@ from src.capabilities.feasibility import FeasibilityResult
 from src.languages import language_name
 from src.llm_json import generate_json
 from src.providers.registry import get_llm
+from src.security.prompt_guard import fence, guarded
 
 AgeBracket = Literal["18-24", "25-34", "35-44", "45-54", "55+"]
 IncomeTier = Literal["low", "mid", "high"]
@@ -49,8 +50,8 @@ def generate_personas(
 ) -> list[Persona]:
     personas_raw = generate_json(
         get_llm(user_id),
-        f"Ad campaign idea: \"{idea}\"\n"
-        f"Feasibility rationale: {feasibility.rationale}\n\n"
+        f"Ad campaign idea:\n{fence(idea, 'user_idea')}\n"
+        f"Feasibility rationale:\n{fence(feasibility.rationale, 'feasibility_rationale')}\n\n"
         f"Generate exactly {n} distinct ideal-customer-profile personas for this campaign. "
         "Respond with ONLY a JSON array, no prose, where each element has exactly these keys: "
         '"name", "demographics", "psychographics", "channel_fit", "messaging_angle" (each a single '
@@ -58,7 +59,7 @@ def generate_personas(
         f"{language_name(target_language)} since these personas represent that target market), plus "
         f'"age_bracket" (exactly one of {list(_AGE_BRACKETS)}, always in English -- this is a fixed '
         f'category label, not display text) and "income_tier" (exactly one of {list(_INCOME_TIERS)}, same).',
-        system="You are an audience research strategist. You output only valid JSON, never prose or markdown fences.",
+        system=guarded("You are an audience research strategist. You output only valid JSON, never prose or markdown fences."),
     )
     return [
         Persona(

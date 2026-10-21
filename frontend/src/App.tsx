@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { UI_LOCALES } from './i18n'
 import LogoMark from './components/LogoMark'
+import OrgProvider from './lib/OrgProvider'
+import { NEXT_KEY } from './lib/site'
+import { useOrg } from './lib/useOrg'
 import { displayName } from './lib/profile'
 import { ThemeProvider } from './lib/ThemeContext'
 import { supabase } from './lib/supabaseClient'
@@ -25,6 +28,8 @@ const Contact = lazy(() => import('./pages/Contact'))
 const Privacy = lazy(() => import('./pages/Privacy'))
 const Terms = lazy(() => import('./pages/Terms'))
 const NotFound = lazy(() => import('./pages/NotFound'))
+const AcceptInvite = lazy(() => import('./pages/AcceptInvite'))
+
 
 /** New page → start at the top, unless the link targets a section (#hash). */
 function ScrollToTop() {
@@ -44,8 +49,16 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, loading } = useSession()
   const { t } = useTranslation()
   const fallback = <p className={`p-8 ${styles.muted}`}>{t('common.loading')}</p>
+  const { pathname, search } = useLocation()
   if (loading) return fallback
-  if (!session) return <Navigate to="/login" replace />
+  if (!session) {
+    try {
+      sessionStorage.setItem(NEXT_KEY, pathname + search)
+    } catch {
+      // storage blocked: the user lands on the dashboard instead
+    }
+    return <Navigate to="/login" replace />
+  }
   return <Suspense fallback={fallback}>{children}</Suspense>
 }
 
@@ -88,6 +101,7 @@ const APP_PREFIXES = ['/dashboard', '/campaigns', '/tools', '/settings']
  */
 function AccountMenu({ name, email }: { name: string | null; email: string }) {
   const { t, i18n } = useTranslation()
+  const { orgs, active, setActive } = useOrg()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -126,6 +140,25 @@ function AccountMenu({ name, email }: { name: string | null; email: string }) {
       </button>
       <div className={styles.menu} role="menu">
         <p className={styles.menuEmail}>{email}</p>
+        {orgs.length > 1 && (
+          <div className={styles.menuOrgs} role="group" aria-label={t('org.switch')}>
+            {orgs.map((o) => (
+              <button
+                key={o.id}
+                role="menuitemradio"
+                aria-checked={o.id === active?.id}
+                type="button"
+                className={`${styles.menuItem} ${o.id === active?.id ? styles.menuItemActive : ''}`}
+                onClick={() => {
+                  setActive(o.id)
+                  setOpen(false)
+                }}
+              >
+                {o.personal ? t('org.personal') : o.name}
+              </button>
+            ))}
+          </div>
+        )}
         {/* Phones only (CSS): the language picker moves here from the top bar. */}
         <label className={styles.menuLang}>
           <span>Language</span>
@@ -139,6 +172,9 @@ function AccountMenu({ name, email }: { name: string | null; email: string }) {
         </label>
         <Link role="menuitem" to="/settings#account" className={styles.menuItem} onClick={() => setOpen(false)}>
           {t('common.settings')}
+        </Link>
+        <Link role="menuitem" to="/settings#team" className={styles.menuItem} onClick={() => setOpen(false)}>
+          {t('org.team')}
         </Link>
         <button role="menuitem" type="button" className={`${styles.menuItem} ${styles.menuDanger}`} onClick={() => supabase.auth.signOut()}>
           {t('st.signOut')}
@@ -196,6 +232,7 @@ function App() {
     <ThemeProvider>
       <BrowserRouter>
         <ScrollToTop />
+        <OrgProvider>
         <TopBar />
         <Routes>
           <Route path="/" element={<Landing />} />
@@ -245,8 +282,17 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/invite/:token"
+            element={
+              <ProtectedRoute>
+                <AcceptInvite />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<Lazy><NotFound /></Lazy>} />
         </Routes>
+        </OrgProvider>
       </BrowserRouter>
     </ThemeProvider>
   )

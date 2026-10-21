@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { CAMPAIGN_LANGUAGES } from '../lib/languages'
+import { useOrg } from '../lib/useOrg'
 import { supabase } from '../lib/supabaseClient'
 import type { Campaign, CampaignStatus, GateDecision, Iteration, Persona } from '../lib/types'
 import styles from '../styles/app.module.css'
@@ -13,7 +14,7 @@ const GATE_NUMBER_BY_STATUS: Partial<Record<CampaignStatus, 1 | 2>> = {
   awaiting_gate_2: 2,
 }
 
-// Must match DomainCategory in src/capabilities/idea_intake.py (and the check in schema_m7.sql).
+// Must match DomainCategory in src/capabilities/idea_intake.py (and the domain_corrections check in supabase/migrations).
 const DOMAINS = [
   'fitness_wellness', 'b2b_saas', 'ecommerce_retail', 'food_beverage', 'finance_fintech', 'education',
   'consumer_electronics', 'travel_hospitality', 'real_estate', 'healthcare', 'entertainment_media', 'other',
@@ -42,6 +43,32 @@ function currentStep(status: CampaignStatus): number {
 }
 
 const humanize = (s: string) => s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
+
+/** Brand-safety findings for one round's copy: blocking issues stop the send, claims need a human look. */
+function BrandSafety({ flags }: { flags: Iteration['guardrail_flags'] }) {
+  const { t } = useTranslation()
+  if (!flags) return null
+  const blocked = flags.issues.filter((i) => i.severity === 'block')
+  const review = flags.issues.filter((i) => i.severity === 'review')
+  if (!blocked.length && !review.length && !flags.disclaimer) return null
+  return (
+    <div className={local.safety} role="note">
+      {blocked.length > 0 && (
+        <div className={`${local.safetyGroup} ${local.safetyBlock}`}>
+          <strong>{t('cd.safetyBlocked')}</strong>
+          <ul>{blocked.map((i, n) => <li key={n}>{i.message}</li>)}</ul>
+        </div>
+      )}
+      {review.length > 0 && (
+        <div className={`${local.safetyGroup} ${local.safetyReview}`}>
+          <strong>{t('cd.safetyReview')}</strong>
+          <ul>{review.map((i, n) => <li key={n}>{i.message}</li>)}</ul>
+        </div>
+      )}
+      {flags.disclaimer && <p className={local.hint}>{t('cd.safetyDisclaimer', { text: flags.disclaimer })}</p>}
+    </div>
+  )
+}
 
 /** at://did/app.bsky.feed.post/rkey → public bsky.app URL. */
 function blueskyUrl(uri: string) {
@@ -133,6 +160,7 @@ function ScoreRing({ score }: { score: number | null }) {
 
 export default function CampaignDetail() {
   const { t, i18n } = useTranslation()
+  const { can } = useOrg()
   const { id } = useParams<{ id: string }>()
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [missing, setMissing] = useState(false)
@@ -237,7 +265,7 @@ export default function CampaignDetail() {
         predicted_domain: predicted,
         corrected_domain: category,
       })
-      // Never block the gate on the training log (e.g. schema_m7.sql not applied yet).
+      // Never block the gate on the training log (e.g. the domain_corrections migration not applied yet).
       if (correctionError) console.warn('domain correction not recorded:', correctionError.message)
       if (decision === 'approve') decision = 'edit'
     }
@@ -315,6 +343,9 @@ export default function CampaignDetail() {
   const step = currentStep(campaign.status)
   const lang = CAMPAIGN_LANGUAGES.find((l) => l.code === campaign.target_language)
   const gateOpen = pendingGate && !pendingGate.decided_at
+  // The database enforces these; the UI only hides what the role can't do.
+  const canApprove = can('approve', campaign?.org_id)
+  const canCreate = can('create', campaign?.org_id)
   const created = new Date(campaign.created_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' })
   const summaryEntries = campaign.campaign_summary
     ? Object.entries(campaign.campaign_summary).filter(([, v]) => ['string', 'number', 'boolean'].includes(typeof v))
@@ -356,7 +387,7 @@ export default function CampaignDetail() {
             </svg>
             {t('cd.metrics')}
           </Link>
-          {isActive && (
+          {isActive && canCreate && (
             <button
               type="button"
               onClick={stopCampaign}
@@ -384,6 +415,7 @@ export default function CampaignDetail() {
               <p className={styles.panelSub}>{pendingGate.gate_number === 1 ? t('cd.gate1Body') : t('cd.gate2Body')}</p>
             </div>
           </div>
+          {pendingGate.gate_number === 2 && <BrandSafety flags={rounds[0]?.guardrail_flags ?? null} />}
           {pendingGate.gate_number === 1 && (
             <label className={styles.field}>
               <span>{t('cd.categoryLabel')}</span>
@@ -412,17 +444,18 @@ export default function CampaignDetail() {
               onChange={(e) => setComment(e.target.value)}
             />
           </label>
+          {!canApprove && <p className={local.hint}>{t('org.cantApprove')}</p>}
           <div className={local.gateActions}>
-            <button type="button" disabled={submitting} onClick={() => submitDecision('approve')} className={`${styles.btn} ${styles.primary}`}>
+            <button type="button" disabled={submitting || !canApprove} onClick={() => submitDecision('approve')} className={`${styles.btn} ${styles.primary}`}>
               {submitting && <span className={styles.spinner} aria-hidden="true" />}
               {t('campaignDetail.approve')}
             </button>
-            <button type="button" disabled={submitting} onClick={() => submitDecision('edit')} className={`${styles.btn} ${styles.ghost}`}>
+            <button type="button" disabled={submitting || !canApprove} onClick={() => submitDecision('edit')} className={`${styles.btn} ${styles.ghost}`}>
               {t('campaignDetail.approveEdits')}
             </button>
             <button
               type="button"
-              disabled={submitting}
+              disabled={submitting || !canApprove}
               onClick={() => submitDecision('reject')}
               className={`${styles.btn} ${confirm === 'reject' ? styles.dangerSolid : styles.danger}`}
             >
@@ -483,7 +516,7 @@ export default function CampaignDetail() {
                       <strong>{p.name}</strong>
                       {p.is_primary ? (
                         <span className={local.primaryBadge}>{t('campaignDetail.primaryBadge')}</span>
-                      ) : (
+                      ) : canApprove && (
                         <button type="button" className={`${local.makePrimary} link-wipe`} onClick={() => setPrimaryPersona(p.id)}>
                           {t('campaignDetail.makePrimary')}
                         </button>
@@ -547,6 +580,7 @@ export default function CampaignDetail() {
                       <RoundImage key={it.id} seedFrom={it.id} prompt={it.image_prompt} />
                       <div className={local.creativeText}>
                         {it.copy_text && <blockquote className={local.copy}>{it.copy_text}</blockquote>}
+                        {!gateOpen && <BrandSafety flags={it.guardrail_flags} />}
                         {it.image_prompt && (
                           <p className={local.prompt}>
                             <span>{t('cd.imagePrompt')}</span>

@@ -1,0 +1,28 @@
+name: Supabase check
+
+# Builds a fresh database from supabase/migrations on every change, so a broken
+# migration fails here instead of in production. Free: runs Postgres in Docker
+# on the runner, never touches the live project.
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/supabase-check.yml"
+  push:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/supabase-check.yml"
+  workflow_dispatch:
+
+jobs:
+  migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+      - name: Apply all migrations to a fresh database
+        run: supabase db start
+      - name: Lint the schema
+        run: supabase db lint --level error

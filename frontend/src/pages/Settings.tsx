@@ -2,6 +2,9 @@ import type { CSSProperties, DragEvent, ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import AuditLog from '../components/AuditLog'
+import TeamSettings from '../components/TeamSettings'
+import { useOrg } from '../lib/useOrg'
 import { isValidUsername, normalizeUsername, saveUsername, usernameOf } from '../lib/profile'
 import { supabase } from '../lib/supabaseClient'
 import { useSession } from '../lib/useAuth'
@@ -52,6 +55,7 @@ function NoticeLine({ notice, onClose }: { notice: Notice; onClose: () => void }
 }
 
 export default function Settings() {
+  const { can: canInOrg } = useOrg()
   const { t, i18n } = useTranslation()
   const { session } = useSession()
   const [keys, setKeys] = useState<Record<string, MaskedKey>>({})
@@ -190,8 +194,11 @@ export default function Settings() {
   }, [emailHtml, t])
 
   const fmt = (iso: string) => new Date(iso).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' })
+  const canManage = canInOrg('manage')
   const sections = [
     { id: 'account', label: t('st.navAccount') },
+    { id: 'team', label: t('org.team') },
+    ...(canManage ? [{ id: 'audit', label: t('audit.title') }] : []),
     { id: 'keys', label: t('st.navKeys') },
     { id: 'templates', label: t('st.navTemplates') },
   ]
@@ -284,6 +291,28 @@ export default function Settings() {
           </section>
 
           {/* API keys */}
+          <section id="team" className={`${styles.panel} ${local.section} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties}>
+            <div className={styles.panelHead}>
+              <div>
+                <h2>{t('org.team')}</h2>
+                <p className={styles.panelSub}>{t('org.teamSub')}</p>
+              </div>
+            </div>
+            <TeamSettings />
+          </section>
+
+          {canManage && (
+            <section id="audit" className={`${styles.panel} ${local.section} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties}>
+              <div className={styles.panelHead}>
+                <div>
+                  <h2>{t('audit.title')}</h2>
+                  <p className={styles.panelSub}>{t('audit.sub')}</p>
+                </div>
+              </div>
+              <AuditLog />
+            </section>
+          )}
+
           <section id="keys" className={`${styles.panel} ${local.section} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties}>
             <div className={styles.panelHead}>
               <div>

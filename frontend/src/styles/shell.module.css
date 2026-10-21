@@ -245,3 +245,8 @@
   .themeToggle { width: 52px; }
 }
 @media (max-width: 380px) { .accountButton :global(.link-wipe) { display: none; } }
+
+/* Organisation switcher inside the account menu */
+.menuOrgs { display: grid; gap: 2px; padding: 4px 0; margin: 4px 0; border-top: 1px solid var(--nav-gap); border-bottom: 1px solid var(--nav-gap); }
+.menuItemActive { color: var(--mos-accent); font-weight: 600; }
+.menuItemActive::before { content: '✓ '; }

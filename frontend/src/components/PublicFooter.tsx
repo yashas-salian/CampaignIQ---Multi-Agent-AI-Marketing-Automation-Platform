@@ -75,7 +75,7 @@ export default function PublicFooter() {
           MarketingOS
         </div>
         <div className={styles.footerBottom}>
-          <span>© 2026 MarketingOS. All rights reserved.</span>
+          <span>© 2026 MarketingOS. All rights reserved. · v{__APP_VERSION__}</span>
         </div>
       </div>
     </footer>

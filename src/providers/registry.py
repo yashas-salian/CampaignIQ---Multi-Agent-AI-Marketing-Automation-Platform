@@ -3,11 +3,23 @@ import os
 
 from src.providers.base import ImageProvider, LLMProvider
 from src.providers.free.groq_llm import GroqLLMProvider
+from src.providers.free.openai_compatible import configured_fallbacks
+from src.providers.gateway import LLMGateway
 from src.providers.free.pollinations_image import PollinationsImageProvider
 from src.providers.paid.openai_image import OpenAIImageProvider
 from src.providers.paid.openai_llm import OpenAILLMProvider
 
 logger = logging.getLogger("providers.registry")
+
+
+def _free_llm(user_id: str | None) -> LLMProvider:
+    """Groq, plus any configured free fallbacks behind it (see gateway.py).
+    The `llm_fallback` flag is the kill switch for the fallbacks."""
+    from src.flags import is_enabled
+
+    fallbacks = configured_fallbacks() if is_enabled("llm_fallback", user_id, default=True) else []
+    groq = GroqLLMProvider(max_retries=2 if fallbacks else 8)
+    return LLMGateway([groq, *fallbacks], user_id=user_id)
 
 
 def _force_free_tier() -> bool:
@@ -19,8 +31,14 @@ def _byok_key(user_id: str, capability: str) -> str | None:
     # the Persona type, and capabilities import this module for get_llm() —
     # a module-level import here would create a circular import.
     from src.db.supabase_client import get_client
-    from src.providers.crypto import decrypt_key
 
+    # Keys live in Supabase Vault; read_provider_key() is service-role only.
+    vaulted = get_client().rpc("read_provider_key", {"p_user_id": user_id, "p_capability": capability}).execute()
+    if vaulted.data:
+        return vaulted.data
+
+    # Legacy rows (AES-encrypted before the Vault move, until
+    # src/admin/migrate_keys_to_vault.py has run).
     result = (
         get_client()
         .table("provider_keys")
@@ -30,8 +48,10 @@ def _byok_key(user_id: str, capability: str) -> str | None:
         .maybe_single()
         .execute()
     )
-    if not result or not result.data:
+    if not result or not result.data or not result.data.get("encrypted_key"):
         return None
+    from src.providers.crypto import decrypt_key
+
     return decrypt_key(result.data["encrypted_key"])
 
 
@@ -68,8 +88,8 @@ def get_llm(user_id: str | None = None) -> LLMProvider:
     elif not _force_free_tier() and os.environ.get("PAID_LLM_API_KEY"):
         logger.info("provider tier resolved: llm=paid (no user context)")
         return OpenAILLMProvider()
-    logger.info("provider tier resolved: llm=free (Groq)")
-    return GroqLLMProvider()
+    logger.info("provider tier resolved: llm=free (Groq + fallbacks)")
+    return _free_llm(user_id)
 
 
 def get_image_generator(user_id: str | None = None) -> ImageProvider:
@@ -100,5 +120,5 @@ def get_judge_llm(user_id: str | None = None) -> LLMProvider:
     elif not _force_free_tier() and os.environ.get("PAID_JUDGE_API_KEY"):
         logger.info("provider tier resolved: judge=paid (no user context)")
         return OpenAILLMProvider(api_key=os.environ["PAID_JUDGE_API_KEY"])
-    logger.info("provider tier resolved: judge=free (Groq, same as agents)")
-    return GroqLLMProvider()
+    logger.info("provider tier resolved: judge=free (Groq + fallbacks, same as agents)")
+    return _free_llm(user_id)
