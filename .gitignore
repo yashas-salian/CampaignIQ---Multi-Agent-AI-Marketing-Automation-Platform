@@ -13,3 +13,6 @@ dist/
 src/finetune/data/real_*.jsonl
 src/finetune/data/*_cache.jsonl
 src/finetune/models/
+
+# M7 weekly retrain scratch (prepared data incl. user corrections, Kaggle output)
+retrain/

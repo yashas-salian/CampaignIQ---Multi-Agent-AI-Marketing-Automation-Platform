@@ -1,0 +1,129 @@
+name: Retrain domain model
+
+# M7 weekly retrain of the fine-tuned domain classifier on human Gate-1
+# corrections (src/finetune/retrain.py). Trains on a free Kaggle GPU, then
+# promotes the new model only if it is not worse than the current one.
+# No Groq calls. Corrections are users' content: the Kaggle dataset + kernel are
+# private and the model only goes to the private Hugging Face repo.
+on:
+  schedule:
+    - cron: "0 3 * * 0" # Sundays 03:00 UTC
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Train even with fewer than 30 new corrections"
+        type: boolean
+        default: false
+
+concurrency:
+  group: retrain-domain-model
+  cancel-in-progress: false
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      DOMAIN_MODEL_HF_REPO: ${{ secrets.DOMAIN_MODEL_HF_REPO }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+      KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+
+      - name: Prepare training data
+        id: prepare
+        run: python -m src.finetune.retrain prepare ${{ inputs.force && '--force' || '' }}
+
+      - name: Train on Kaggle GPU
+        if: steps.prepare.outputs.should_train == 'true'
+        run: |
+          pip install kaggle
+          DATASET="$KAGGLE_USERNAME/marketingos-domain-retrain-data"
+          KERNEL="$KAGGLE_USERNAME/marketingos-domain-retrain"
+
+          cat > retrain/kaggle-data/dataset-metadata.json <<EOF
+          {"id": "$DATASET", "title": "marketingos-domain-retrain-data", "licenses": [{"name": "other"}]}
+          EOF
+          # Datasets are private unless --public is passed.
+          if kaggle datasets status "$DATASET" >/dev/null 2>&1; then
+            kaggle datasets version -p retrain/kaggle-data -m "weekly retrain $(date -u +%F)"
+          else
+            kaggle datasets create -p retrain/kaggle-data
+          fi
+          for i in $(seq 1 30); do
+            status=$(kaggle datasets status "$DATASET" 2>&1 || true)
+            echo "dataset: $status"
+            echo "$status" | grep -qi ready && break
+            sleep 20
+          done
+
+          mkdir -p retrain/kernel
+          cp src/finetune/kaggle/train_kernel.py retrain/kernel/
+          cat > retrain/kernel/kernel-metadata.json <<EOF
+          {
+            "id": "$KERNEL",
+            "title": "marketingos-domain-retrain",
+            "code_file": "train_kernel.py",
+            "language": "python",
+            "kernel_type": "script",
+            "is_private": true,
+            "enable_gpu": true,
+            "enable_internet": true,
+            "machine_shape": "NvidiaTeslaT4",
+            "dataset_sources": ["$DATASET"]
+          }
+          EOF
+          kaggle kernels push -p retrain/kernel
+
+          # Poll for up to ~4 h (Kaggle's GPU sessions cap at 12 h; a normal run is ~30-45 min).
+          for i in $(seq 1 240); do
+            sleep 60
+            status=$(kaggle kernels status "$KERNEL" 2>&1 || true)
+            echo "[$i min] $status"
+            if echo "$status" | grep -qi complete; then break; fi
+            if echo "$status" | grep -qiE "error|cancel"; then
+              kaggle kernels output "$KERNEL" -p retrain/kaggle-output || true
+              tail -n 80 retrain/kaggle-output/*.log 2>/dev/null || true
+              exit 1
+            fi
+          done
+          kaggle kernels output "$KERNEL" -p retrain/kaggle-output
+          ls -la retrain/kaggle-output
+          test -s retrain/kaggle-output/marketingos-domain-q4_k_m.gguf
+
+      - name: Install llama.cpp (CPU)
+        if: steps.prepare.outputs.should_train == 'true'
+        run: pip install -e ".[local-model]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+
+      - name: Quality gate (candidate vs current)
+        id: gate
+        if: steps.prepare.outputs.should_train == 'true'
+        run: |
+          CURRENT=$(python -c "from src.providers.free.local_domain_classifier import _model_path; print(_model_path() or '')")
+          python -m src.finetune.retrain evaluate \
+            --candidate retrain/kaggle-output/marketingos-domain-q4_k_m.gguf \
+            ${CURRENT:+--current "$CURRENT"}
+
+      - name: Promote to Hugging Face
+        if: steps.gate.outputs.promote == 'true'
+        env:
+          # Needs a write-scoped token; falls back to HF_TOKEN if that one can write.
+          HF_WRITE_TOKEN: ${{ secrets.HF_WRITE_TOKEN || secrets.HF_TOKEN }}
+        run: python -m src.finetune.retrain promote --candidate retrain/kaggle-output/marketingos-domain-q4_k_m.gguf
+
+      - name: Keep gate report
+        if: always() && steps.prepare.outputs.should_train == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrain-gate-report
+          path: |
+            retrain/gate_report.json
+            retrain/prepare_meta.json
+          if-no-files-found: ignore

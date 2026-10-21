@@ -276,13 +276,22 @@ scheduled retrain that only promotes a new model if it scores at least as well.
 
 **Human corrections.** Gate 1 shows the predicted category in a dropdown; if the user changes it, the campaign is updated (the graph re-reads it after the gate, so the bandit uses the corrected context) and the fix is stored in `domain_corrections` as a human-verified training label. Run [`src/db/schema_m7.sql`](./src/db/schema_m7.sql) once to create that table.
 
+**Weekly retrain** ([`retrain-domain-model.yml`](./.github/workflows/retrain-domain-model.yml), Sundays 03:00 UTC, or run it by hand with *force*). No Groq calls:
+
+1. `python -m src.finetune.retrain prepare`: synthetic train/val plus every human correction (weighted ×3; a correction overrides the teacher's label for the same idea). It skips the week if there are fewer than 30 new corrections since the published model's `training_meta.json`. About 1 in 5 corrections is held back for the gate and never trained on.
+2. Train on a free Kaggle T4 ([`src/finetune/kaggle/train_kernel.py`](./src/finetune/kaggle/train_kernel.py), same recipe as the notebook) via a private Kaggle dataset and kernel.
+3. `retrain evaluate`: the candidate and the current model are compared on the golden set (human labels), the held-back corrections (human labels) and the held-out synthetic test (teacher agreement, 3-point slack). The candidate is promoted only if it is not worse on any of them.
+4. `retrain promote`: upload the GGUF and `training_meta.json` to the private HF repo. The other workflows pick it up on their next run.
+
+Secrets: `KAGGLE_USERNAME`, `KAGGLE_KEY` (the Kaggle account must be phone-verified for GPU and internet), `SUPABASE_*`, `DOMAIN_MODEL_HF_REPO`, and `HF_WRITE_TOKEN` (a write-scoped HF token; falls back to `HF_TOKEN`).
+
 **In the app** (`src/providers/free/local_domain_classifier.py`): free-tier
 campaigns use the local model; BYOK and subscribed users keep their paid LLM.
 If the model is missing, can't load, or returns an invalid label, the call falls
 back to the LLM, so it can never break a run. `DOMAIN_CLASSIFIER=llm` switches it
 off. The GGUF lives in a private Hugging Face model repo
 (`DOMAIN_MODEL_HF_REPO` + `HF_TOKEN` secrets) and the workflows cache it between
-runs, keyed on `src/finetune/MODEL_VERSION`. Locally:
+runs, keyed on the Hugging Face repo's current revision. Locally:
 
 ```
 pip install -e ".[local-model]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
