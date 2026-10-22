@@ -121,6 +121,20 @@ export default function Settings() {
     return () => clearTimeout(id)
   }, [templateNotice])
 
+  // Deleting the row also deletes its Vault secret (database trigger); campaigns
+  // then fall back to the plan's own providers.
+  async function removeKey(capability: KeyCapability) {
+    setSubmitting(capability)
+    const { error } = await supabase.from('provider_keys').delete().eq('capability', capability)
+    setSubmitting(null)
+    setKeyNotice(
+      error
+        ? { kind: 'error', text: t('st.failed', { message: error.message }) }
+        : { kind: 'ok', text: t('st.removed', { capability: t(`st.cap_${capability}`) }) },
+    )
+    await load()
+  }
+
   async function submit(capability: KeyCapability) {
     const apiKey = inputs[capability]?.trim()
     if (!apiKey) return
@@ -408,6 +422,9 @@ export default function Settings() {
                       <p className={local.masked}>
                         <code>{existing.masked_key}</code>
                         <span>{t('st.updated', { time: fmt(existing.updated_at) })}</span>
+                        <button type="button" className={local.removeKey} disabled={submitting === capability} onClick={() => removeKey(capability)}>
+                          {t('st.removeKey')}
+                        </button>
                       </p>
                     )}
                     <div className={styles.inputRow}>

@@ -248,7 +248,9 @@
     "usernamePlaceholder": "Adicione um nome de usuário",
     "usernameSaved": "Nome de usuário atualizado.",
     "usernameInvalid": "Use 2–32 caracteres: letras, números, espaços, pontos, hifens ou sublinhados.",
-    "usernameMissing": "Ainda não definido. Adicione um para sabermos como te chamar."
+    "usernameMissing": "Ainda não definido. Adicione um para sabermos como te chamar.",
+    "removeKey": "Remover",
+    "removed": "Chave de {{capability}} removida. As campanhas agora usam os provedores incluídos no plano."
   },
   "campaignDetail": {
     "backLink": "← Todas as campanhas",

@@ -248,7 +248,9 @@
     "usernamePlaceholder": "Add a username",
     "usernameSaved": "Username updated.",
     "usernameInvalid": "Use 2–32 characters: letters, numbers, spaces, dots, dashes or underscores.",
-    "usernameMissing": "Not set yet. Add one so we know what to call you."
+    "usernameMissing": "Not set yet. Add one so we know what to call you.",
+    "removeKey": "Remove",
+    "removed": "{{capability}} key removed. Campaigns now use the plan's built-in providers."
   },
   "campaignDetail": {
     "backLink": "← All campaigns",
