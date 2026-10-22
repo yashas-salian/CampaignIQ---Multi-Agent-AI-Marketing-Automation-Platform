@@ -47,6 +47,7 @@ def gate_1_node(state: CampaignState) -> CampaignState:
             age_bracket=primary["age_bracket"],
             income_tier=primary["income_tier"],
             archetype=primary.get("archetype") or "general",
+            gender=primary.get("gender") or "unspecified",
         ),
         "rejected": False,
     }

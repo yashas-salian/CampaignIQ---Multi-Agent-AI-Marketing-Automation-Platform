@@ -12,3 +12,9 @@
   color: var(--mos-text-muted); max-width: 112px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 @media (prefers-reduced-motion: reduce) { .figure img { transition: none; } }
+.initials {
+  width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--mos-accent);
+  background: var(--mos-bg-raised); border: 1px solid var(--mos-surface-border);
+}
+.lg .initials { width: 112px; height: 112px; border-radius: 24px; font-size: 32px; }

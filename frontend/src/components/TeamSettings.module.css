@@ -1,9 +1,9 @@
-.team { display: grid; gap: 18px; }
+.team { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .orgRow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; align-items: end; }
-@media (max-width: 720px) { .orgRow { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .orgRow { grid-template-columns: minmax(0, 1fr); } }
 .inline { display: flex; gap: 10px; align-items: flex-end; }
 .inline > label, .inline > input { flex: 1; min-width: 0; }
-.members { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.members { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .member {
   display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px;
   border: 1px solid var(--mos-surface-border); background: var(--mos-bg-raised);
@@ -16,7 +16,7 @@
 .small { height: 36px; padding: 0 12px; font-size: 13px; }
 .inviteForm { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; gap: 12px; align-items: end; }
 @media (max-width: 640px) {
-  .inviteForm { grid-template-columns: 1fr; }
+  .inviteForm { grid-template-columns: minmax(0, 1fr); }
   .member { flex-wrap: wrap; }
 }
 .link { display: grid; gap: 8px; }
@@ -24,6 +24,6 @@
 .error { color: var(--mos-danger); font-size: 13.5px; }
 .policy { display: grid; gap: 12px; padding-top: 16px; border-top: 1px solid var(--mos-surface-border); }
 .policyGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 640px) { .policyGrid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .policyGrid { grid-template-columns: minmax(0, 1fr); } }
 .check { display: flex; gap: 10px; align-items: center; font-size: 14px; }
 .check input { width: 18px; height: 18px; accent-color: var(--mos-accent); }

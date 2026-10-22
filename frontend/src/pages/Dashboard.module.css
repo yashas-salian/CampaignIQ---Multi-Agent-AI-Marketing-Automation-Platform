@@ -43,7 +43,8 @@
 .name { color: var(--mos-accent); }
 .subtitle { color: var(--mos-text-muted); margin-top: 6px !important; font-size: 15px; }
 .addName { --wipe-base: var(--mos-accent); font-weight: 500; }
-.headerActions { display: flex; align-items: center; gap: 10px; }
+.headerActions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 400px) { .helpLabel { display: none; } .helpBtn { padding: 0 11px; } }
 .live {
   display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; height: 40px; border-radius: 999px;
   font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mos-text-muted);
@@ -94,7 +95,15 @@
 /* ---------- KPIs ---------- */
 .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 @media (max-width: 1000px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px) { .kpis { grid-template-columns: 1fr; } }
+/* Phones: stay 2 x 2 (a compact glance) rather than four full-width cards. */
+@media (max-width: 480px) {
+  .kpis { gap: 10px; }
+  .kpi { padding: 16px; min-height: 0; gap: 8px; }
+  .kpiValue { font-size: 28px; }
+  .kpiRow { flex-wrap: wrap; }
+  .kpiMeter { max-width: none; flex-basis: 100%; margin-bottom: 0; }
+  .spark { width: 100%; }
+}
 .kpi { display: flex; flex-direction: column; gap: 10px; min-height: 132px; }
 .kpi:hover { box-shadow: 0 18px 40px -28px rgba(0, 0, 0, 0.6); }
 .kpiLabel { font-size: 13px; color: var(--mos-text-muted); font-weight: 500; }
@@ -106,10 +115,23 @@
 @keyframes grow { from { width: 0; } }
 .spark { width: 96px; height: 32px; flex: none; }
 
-/* ---------- Layout rows ---------- */
-.gridMain { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-@media (max-width: 1000px) { .gridMain { grid-template-columns: 1fr; } }
+/* ---------- Layout ----------
+   The page reads top to bottom in four labelled groups (start, performance,
+   campaigns, help). In every two-column row both sides stretch to the same
+   height, and the panel that would come up short grows to fill it, so there
+   are no holes between panels. */
+.sectionTitle {
+  margin-top: 10px !important; font-family: var(--font-mono); font-size: 11.5px; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--mos-text-muted);
+  display: flex; align-items: center; gap: 12px;
+}
+.sectionTitle::after { content: ''; flex: 1; height: 1px; background: var(--mos-surface-border); }
+.row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+.rowHalves { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+@media (max-width: 1000px) { .row, .rowHalves { grid-template-columns: minmax(0, 1fr); } }
 .sideStack { display: flex; flex-direction: column; gap: 16px; }
+.grow { flex: 1; display: flex; flex-direction: column; }
+.panelNote { margin-top: auto !important; padding-top: 14px; font-size: 12.5px; line-height: 1.5; color: var(--mos-text-muted); }
 
 /* ---------- Composer ---------- */
 .composer { display: flex; flex-direction: column; gap: 14px; }
@@ -154,10 +176,78 @@
 .tierBadge { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; background: var(--mos-bg-raised); border: 1px solid var(--mos-surface-border); color: var(--mos-text-muted); }
 .tierPaid { background: var(--mos-accent); border-color: var(--mos-accent); color: #111316; }
 .planRounds { font-size: 14px; color: var(--mos-text-muted); }
-.planLink { margin-top: 14px; font-size: 14px; font-weight: 500; --wipe-base: var(--mos-text); }
-.guide { display: flex; flex-direction: column; gap: 8px; }
-.guide h3 { font-family: var(--font-display); font-size: 16px; font-weight: 600; margin-top: 8px; }
-.guide p { font-size: 13.5px; color: var(--mos-text-muted); line-height: 1.5; }
+.planLink { align-self: flex-start; font-size: 14px; font-weight: 500; --wipe-base: var(--mos-text); }
+.activityPanel { display: flex; flex-direction: column; }
+.activityPanel .planLink { margin-top: auto; padding-top: 14px; }
+
+/* ---------- Spotlight composer ----------
+   Creating a campaign is the main job of the page: it gets the full width,
+   a stronger frame and a larger input. Plan limits form its footer strip. */
+.hero {
+  padding: 28px; gap: 16px;
+  border-color: color-mix(in srgb, var(--mos-accent) 35%, var(--mos-surface-border));
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--mos-accent) 9%, transparent) 0%, transparent 55%),
+    var(--mos-surface);
+  box-shadow: 0 24px 60px -40px color-mix(in srgb, var(--mos-accent) 70%, transparent);
+}
+.heroHead { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; }
+.heroHead h2 { font-family: var(--font-display); font-size: clamp(20px, 2.2vw, 24px); font-weight: 600; letter-spacing: -0.02em; }
+.heroHead .panelSub { margin-top: 2px !important; font-size: 14px; }
+.heroIcon { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--mos-accent); color: #111316; }
+.heroIcon svg { width: 22px; height: 22px; }
+.hero .textarea { min-height: 120px; font-size: 16px; padding: 16px 18px 30px; }
+.heroPlan {
+  display: grid; grid-template-columns: minmax(170px, auto) minmax(0, 1fr) auto; align-items: center; gap: 24px;
+  margin-top: 6px; padding-top: 18px; border-top: 1px solid var(--mos-surface-border);
+}
+.heroPlanHead { display: grid; grid-template-columns: auto auto; justify-content: start; align-items: center; gap: 4px 10px; font-size: 14px; font-weight: 600; }
+.heroPlanHead small { grid-column: 1 / -1; font-size: 12.5px; font-weight: 400; color: var(--mos-text-muted); }
+.heroPlan .usage { margin: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.heroPlanLinks { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.upgradeLink { --wipe-base: var(--mos-accent); font-weight: 600; }
+@media (max-width: 900px) {
+  .heroPlan { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .heroPlanLinks { flex-direction: row; flex-wrap: wrap; gap: 8px 20px; }
+}
+@media (max-width: 520px) {
+  .hero { padding: 20px; }
+  .heroHead { grid-template-columns: auto minmax(0, 1fr); }
+  .heroHead .kbd { display: none; }
+  .heroPlan .usage { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+}
+
+/* ---------- Header help button ---------- */
+.helpBtn {
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: 500; color: var(--mos-text);
+  background: var(--mos-surface); border: 1px solid var(--mos-surface-border);
+  transition: border-color 0.25s ease, color 0.25s ease, transform 0.35s var(--mos-ease);
+}
+.helpBtn:hover { border-color: var(--mos-accent); color: var(--mos-accent); transform: translateY(-1px); }
+.helpBtn:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: 2px; }
+.helpBtn svg { width: 17px; height: 17px; }
+
+/* ---------- Help & resources ---------- */
+.help { display: flex; flex-direction: column; gap: 16px; scroll-margin-top: 90px; }
+.help .panelHead { margin-bottom: 0; }
+.helpBody { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: center; }
+.helpIntro h3 { font-family: var(--font-display); font-size: 16px; font-weight: 600; margin-bottom: 6px !important; }
+.helpIntro p { font-size: 13.5px; color: var(--mos-text-muted); line-height: 1.5; }
+.helpLinks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 1240px) and (min-width: 1001px), (max-width: 700px) { .helpLinks { grid-template-columns: minmax(0, 1fr); } }
+.helpLink {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; text-decoration: none; color: var(--mos-text);
+  background: var(--mos-bg-raised); transition: transform 0.35s var(--mos-ease);
+}
+.helpLink:hover { transform: translateX(3px); }
+.helpLink:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: 2px; }
+.helpIcon { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex: none; background: var(--mos-surface); color: var(--mos-accent); }
+.helpIcon svg { width: 18px; height: 18px; }
+.helpText { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 14px; font-weight: 500; }
+.helpText small { font-size: 12px; font-weight: 400; color: var(--mos-text-muted); }
+.helpTip { margin-top: auto !important; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--mos-text-muted); }
+@media (max-width: 520px) { .helpBody { grid-template-columns: minmax(0, 1fr); } }
 .video {
   position: relative; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
@@ -176,6 +266,13 @@
 .videoLabel { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mos-text-muted); }
 
 /* ---------- Reward chart (empty state; the chart lives in components/RewardChart) ---------- */
+.trendPanel { display: flex; flex-direction: column; }
+.trendBody { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+/* Summary under the chart: fills the panel with numbers rather than space. */
+.trendStats { margin: 16px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.trendStats div { padding: 12px 14px; border-radius: 12px; background: var(--mos-bg-raised); }
+.trendStats dt { font-size: 12px; color: var(--mos-text-muted); }
+.trendStats dd { margin: 4px 0 0; font-family: var(--font-display); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .emptyChart { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 220px; text-align: center; color: var(--mos-text-muted); }
 .emptyChart svg { width: 140px; color: color-mix(in srgb, var(--mos-accent) 60%, transparent); }
 .emptyChart p { max-width: 36ch; font-size: 14px; line-height: 1.5; }
@@ -200,6 +297,27 @@
 
 /* ---------- Campaigns table ---------- */
 .tablePanel { padding-bottom: 10px; }
+/* Pipeline strip: one bar split by status, and a legend that filters the table. */
+.pipeline { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.pipelineBar { display: flex; gap: 3px; height: 10px; border-radius: 999px; overflow: hidden; background: var(--mos-bg-raised); }
+.pipelineBar span { min-width: 6px; animation: grow 0.9s var(--mos-ease) both; }
+.pipelineLegend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.legendItem {
+  all: unset; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; font-size: 12.5px; color: var(--mos-text);
+  padding: 3px 2px; border-radius: 6px;
+}
+.legendItem b { font-family: var(--font-mono); font-weight: 500; font-size: 12px; color: var(--mos-text-muted); }
+.legendItem:hover:not(:disabled) { color: var(--mos-accent); }
+.legendItem:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: 2px; }
+.legendZero { color: var(--mos-text-muted); cursor: default; opacity: 0.6; }
+.legendDot { width: 9px; height: 9px; border-radius: 3px; flex: none; }
+.seg_created { background: color-mix(in srgb, var(--mos-text) 30%, transparent); }
+.seg_awaiting_gate_1 { background: var(--mos-accent); }
+.seg_awaiting_gate_2 { background: color-mix(in srgb, var(--mos-accent) 65%, var(--mos-surface)); }
+.seg_awaiting_metrics { background: color-mix(in srgb, var(--mos-text) 55%, transparent); }
+.seg_awaiting_next_round { background: color-mix(in srgb, var(--mos-text) 42%, transparent); }
+.seg_completed { background: var(--mos-success); }
+.seg_rejected { background: var(--mos-danger); }
 .tableHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .tableHead h2 { font-family: var(--font-display); font-size: 17px; font-weight: 600; }
 .search {
@@ -219,9 +337,15 @@
 .tabActive { background: var(--mos-surface); color: var(--mos-text); box-shadow: 0 4px 12px -8px rgba(0, 0, 0, 0.5); }
 .tabCount { font-family: var(--font-mono); font-size: 11px; padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, var(--mos-text) 8%, transparent); }
 .tabActive .tabCount { background: var(--mos-accent); color: #111316; }
+/* Phones: search takes its own full-width line and the status tabs wrap,
+   so nothing sticks out sideways. */
+@media (max-width: 640px) {
+  .search { min-width: 0; flex: 1 1 100%; }
+  .tabs { flex-wrap: wrap; overflow-x: visible; }
+}
 
 .table { display: flex; flex-direction: column; }
-.tr { display: grid; grid-template-columns: minmax(0, 2.6fr) minmax(0, 1.5fr) 110px 70px 120px; align-items: center; gap: 14px; padding: 12px 10px; }
+.tr { display: grid; grid-template-columns: minmax(0, 2.6fr) minmax(190px, 1.2fr) 130px 80px 130px; align-items: center; gap: 14px; padding: 12px 10px; }
 .th { font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mos-text-muted); padding-top: 6px; padding-bottom: 8px; border-bottom: 1px solid var(--mos-surface-border); }
 .row {
   border-bottom: 1px solid var(--mos-surface-border); border-radius: 10px; cursor: pointer;
@@ -242,6 +366,7 @@
 .row:hover .rowArrow { opacity: 1; transform: none; color: var(--mos-accent); }
 @media (max-width: 720px) {
   .tr { grid-template-columns: minmax(0, 1fr) auto; }
+  .tr > :nth-child(2) { min-width: 0; }
   .th { display: none; }
   .tr > :nth-child(3), .tr > :nth-child(4), .tr > :nth-child(5) { display: none; }
 }

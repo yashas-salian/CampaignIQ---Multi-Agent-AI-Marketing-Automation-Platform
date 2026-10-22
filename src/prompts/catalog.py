@@ -43,7 +43,7 @@ _CATALOG = [
     ),
     Prompt(
         id="audience.personas",
-        version="1.1.0",  # 1.1.0: archetype (picks the persona's 3D figure)
+        version="1.2.0",  # 1.1.0: archetype (picks the persona's 3D figure); 1.2.0: gender (matches the figure)
         system=f"You are an audience research strategist. {_JSON_ONLY}",
         template=(
             "Ad campaign idea:\n{idea}\n"
@@ -54,9 +54,10 @@ _CATALOG = [
             "plain string value, never a nested object or list, written in "
             "{language} since these personas represent that target market), plus "
             '"age_bracket" (exactly one of {age_brackets}, always in English -- this is a fixed '
-            'category label, not display text), "income_tier" (exactly one of {income_tiers}, same) and '
+            'category label, not display text), "income_tier" (exactly one of {income_tiers}, same), '
             '"archetype" (the one of {archetypes} that best describes who this person is, by occupation or life '
-            'stage; "general" if none fits; always in English).'
+            'stage; "general" if none fits; always in English) and "gender" (exactly one of {genders}, the '
+            "persona's gender, consistent with their name and description; always in English)."
         ),
     ),
     Prompt(

@@ -15,9 +15,21 @@ GitHub Release notes.
 
 ### Added
 - **3D persona figures** on campaign persona cards and Tools → Personas results:
-  - **The set:** a fixed set of 20 archetypes (teacher with books, doctor in a white coat with a stethoscope, chef, developer, …), each a stylised 3D character in `frontend/public/personas/`, re-rendered with `frontend/scripts/render_personas.py`.
-  - **Choosing a figure:** the personas prompt (`audience.personas` 1.1.0) picks the archetype. An off-list or "general" answer falls back to keyword matching on the name and demographics. That same fallback covers personas created before this change, both in Python and in `lib/archetypes.ts`.
-  - **Storage:** a new `personas.archetype` column (migration `20261022000900`).
+  - **The set:** 20 archetypes (teacher with books, doctor in a white coat with a stethoscope, chef, developer, …), each with a female and a male stylised 3D character. They live in `frontend/public/personas/<archetype>-<gender>.webp` and are re-rendered with `frontend/scripts/render_personas.py`.
+  - **Choosing a figure:** the personas prompt (`audience.personas` 1.2.0) gives each persona an archetype and a gender, so the figure always matches the persona the AI wrote.
+  - **Older personas:** the archetype falls back to keywords in the name and description. Gender falls back to the pronouns in the description and is never guessed from the name.
+  - **No clear gender:** the card shows initials instead of a figure.
+  - **Storage:** new `personas.archetype` and `personas.gender` columns (migrations `20261022000900`, `20261022001000`).
+- **Dashboard reorganised** into four labelled groups, with no gaps between panels. Panels in a row stretch to the same height, and the shorter side fills with useful content.
+  - **Start a campaign:** a full-width spotlight composer. Today's plan limits and upgrade link sit along its bottom.
+  - **Performance:** every metric in one place. The KPI cards, then reward over time (with rounds measured, average and latest reward) beside engagement by channel and winning creative arms.
+  - **Campaigns:** a full-width table. A pipeline strip on top shows every status and filters the table, and status pills show in full.
+  - **Help & activity:** a new Help & resources panel (walkthrough, docs, system status, contact support, shortcut) beside recent activity. A Help button in the header jumps to it.
+  - **Phones:** the KPIs show as a 2 × 2 grid.
+- **Collapsible sidebars** (`components/SideDrawer`): Tools → Recent runs (right) and the Settings sections list (left) are closed by default.
+  - **Opening and closing:** a tab on the screen edge (a floating button on phones) opens them over the page, and Esc or a click outside closes them.
+  - **Recent runs:** the tab shows the run count and pulses while a run is in progress.
+  - **Settings sections:** the section in view keeps the site's orange text and left-to-right underline.
 - **Remove a saved provider key** in Settings → Provider keys; its Vault secret is deleted with it.
 - **Onboarding checklist** on the Dashboard: 6 steps worked out from real data, dismissible.
 - **Public docs** (`/docs`).
@@ -110,6 +122,11 @@ GitHub Release notes.
 - **Database migrations** with the Supabase CLI (`supabase/migrations`). The baseline is a dump of production. Every change is checked on a fresh database, and migrations and Edge Functions deploy from main.
 
 ### Fixed
+- **No sideways scrolling on phones and tablets:**
+  - **Top bar:** its page links now share the screen width.
+  - **Dashboard:** the campaign table's search and status tabs wrap.
+  - **Settings:** the section links and the team, API-key and webhook lists fit the screen, and long URLs and keys in code wrap.
+  - **Regression test:** a new e2e test (`e2e/no-sideways-scroll.spec.ts`) checks every page at 320–768 px with long content.
 - **Security:** users could UPDATE their own `provider_keys` rows (`for all` RLS policy). They can now only read and delete them.
 - **Duplicate protection reset between runs.** The local JSON dedup file didn't survive between GitHub Actions runs (each starts on a fresh machine), so it only prevented duplicates within one run.
 - **Live updates never arrived.** The Realtime publication contained no tables, so Dashboard, CampaignDetail and Metrics only refreshed on reload.

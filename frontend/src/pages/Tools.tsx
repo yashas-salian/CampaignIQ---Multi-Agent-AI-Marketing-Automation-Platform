@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import PersonaFigure from '../components/PersonaFigure'
+import SideDrawer from '../components/SideDrawer'
 import { CAMPAIGN_LANGUAGES } from '../lib/languages'
 import { supabase } from '../lib/supabaseClient'
 import styles from '../styles/app.module.css'
@@ -129,7 +130,7 @@ function ResultView({ capability, result }: { capability: string; result: unknow
       <div className={local.personas}>
         {r.map((p, i) => (
           <article key={i} className={local.persona} style={{ '--i': i } as CSSProperties}>
-            <PersonaFigure archetype={p.archetype} name={p.name} demographics={p.demographics} size="lg" />
+            <PersonaFigure archetype={p.archetype} gender={p.gender} name={p.name} demographics={p.demographics} psychographics={p.psychographics} size="lg" />
             <strong>{String(p.name ?? `#${i + 1}`)}</strong>
             {['demographics', 'psychographics'].map((k) => (p[k] ? <p key={k}>{String(p[k])}</p> : null))}
             <div className={local.personaChips}>
@@ -161,6 +162,7 @@ export default function Tools() {
   const [error, setError] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [runs, setRuns] = useState<Run[]>([])
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const loadRuns = useCallback(async () => {
     const { data } = await supabase
@@ -256,8 +258,7 @@ export default function Tools() {
         ))}
       </div>
 
-      <div className={styles.grid2}>
-        <div className={styles.stack}>
+      <div className={styles.stack}>
           <section className={`${styles.panel} ${local.form} ${styles.enter}`} style={{ '--i': 4 } as CSSProperties}>
             <label className={styles.field}>
               <span>{capability === 'image' ? t('tl.inputPrompt') : t('tl.inputIdea')}</span>
@@ -351,12 +352,16 @@ export default function Tools() {
               </div>
             )}
           </section>
-        </div>
+      </div>
 
-        <aside className={`${styles.panel} ${styles.enter}`} style={{ '--i': 6 } as CSSProperties}>
-          <div className={styles.panelHead}>
-            <h2>{t('tl.historyTitle')}</h2>
-          </div>
+      <SideDrawer
+        side="right"
+        label={t('tl.historyTitle')}
+        count={runs.length}
+        busy={runs.some((r) => r.status === 'pending' || r.status === 'running')}
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+      >
           {runs.length === 0 ? (
             <p className={styles.muted}>{t('tl.historyEmpty')}</p>
           ) : (
@@ -365,7 +370,10 @@ export default function Tools() {
                 const input = String(r.params.idea ?? r.params.prompt ?? '')
                 return (
                   <li key={r.id}>
-                    <button type="button" className={`${local.historyItem} ${r.id === activeId ? local.historyActive : ''}`} onClick={() => reuse(r)}>
+                    <button type="button" className={`${local.historyItem} ${r.id === activeId ? local.historyActive : ''}`} onClick={() => {
+                        reuse(r)
+                        setHistoryOpen(false)
+                      }}>
                       <span className={`${local.hDot} ${local[`h_${r.status}`]}`} aria-hidden="true" />
                       <span className={local.hBody}>
                         <strong>{isCapability(r.capability) ? t(CAP_META[r.capability].title) : r.capability}</strong>
@@ -378,8 +386,7 @@ export default function Tools() {
               })}
             </ul>
           )}
-        </aside>
-      </div>
+      </SideDrawer>
     </div>
   )
 }

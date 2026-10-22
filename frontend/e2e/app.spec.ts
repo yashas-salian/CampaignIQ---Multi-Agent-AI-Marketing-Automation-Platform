@@ -83,7 +83,7 @@ test('the admin console turns non-operators away', async ({ page }) => {
   await expect(page).toHaveURL(/\/dashboard$/)
 })
 
-test('persona cards show a 3D figure per archetype, guessing for older personas', async ({ page }) => {
+test('persona cards show a 3D figure matching role and gender, guessing for older personas', async ({ page }) => {
   await signIn(page)
   const now = new Date().toISOString()
   const campaign = {
@@ -92,13 +92,14 @@ test('persona cards show a 3D figure per archetype, guessing for older personas'
     cta_url: null, use_image_template: false, use_email_template: false, max_rounds: null, max_duration_minutes: null,
     campaign_summary: null, distributed_at: null, stop_requested: false, target_language: 'en', created_at: now, updated_at: now,
   }
-  const persona = (id: string, name: string, demographics: string, archetype: string | null) => ({
+  const persona = (id: string, name: string, demographics: string, archetype: string | null, gender: string | null) => ({
     id, campaign_id: 'c1', name, demographics, psychographics: '-', channel_fit: 'email', messaging_angle: '-',
-    is_primary: id === 'p1', archetype,
+    is_primary: id === 'p1', archetype, gender,
   })
   const personas = [
-    persona('p1', 'Maya', '34, maths teacher', 'teacher'),
-    persona('p2', 'Dr. Okafor', 'hospital physician', null), // pre-archetype row: guessed from text
+    persona('p1', 'Maya', '34, maths teacher', 'teacher', 'female'),
+    persona('p2', 'Dr. Okafor', 'hospital physician; she works nights', null, null), // older row: role + pronouns from text
+    persona('p3', 'Alex Kim', 'lives downtown', null, null), // nothing to go on: initials, no figure
   ]
   await page.route('**/rest/v1/campaigns?*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(campaign) }))
   await page.route('**/rest/v1/personas?*', (route) =>
@@ -109,10 +110,71 @@ test('persona cards show a 3D figure per archetype, guessing for older personas'
   await page.goto('/campaigns/c1')
   const figures = page.locator('figure img')
   await expect(figures).toHaveCount(2)
-  await expect(figures.nth(0)).toHaveAttribute('src', '/personas/teacher.webp')
-  await expect(figures.nth(1)).toHaveAttribute('src', '/personas/doctor.webp')
+  await expect(figures.nth(0)).toHaveAttribute('src', '/personas/teacher-female.webp')
+  await expect(figures.nth(1)).toHaveAttribute('src', '/personas/doctor-female.webp')
+  await expect(page.getByText('AK', { exact: true })).toBeVisible()
   await expect(page.getByText('Teacher', { exact: true })).toBeVisible()
   // The image actually loads from public/ (no broken figure); it's lazy, so bring it into view first.
   await figures.nth(0).scrollIntoViewIfNeeded()
   await expect.poll(() => figures.nth(0).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBeGreaterThan(0)
+})
+
+test('tools: recent runs live in a right-hand drawer that starts closed', async ({ page }) => {
+  await signIn(page)
+  await page.goto('/tools')
+  const tab = page.getByRole('button', { name: /recent runs/i })
+  await expect(tab).toHaveAttribute('aria-expanded', 'false')
+  const drawer = page.getByRole('complementary', { name: /recent runs/i, includeHidden: true })
+  await expect(drawer).toBeHidden()
+  await tab.click()
+  await expect(drawer).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(drawer).toBeHidden()
+  await expect(tab).toBeFocused()
+})
+
+test('settings: sections drawer starts closed and marks the section in view', async ({ page }) => {
+  await signIn(page)
+  await page.goto('/settings')
+  const tab = page.getByRole('button', { name: /sections/i })
+  await expect(tab).toHaveAttribute('aria-expanded', 'false')
+  await tab.click()
+  const nav = page.getByRole('navigation', { name: /sections/i })
+  await expect(nav).toBeVisible()
+  await expect(nav.locator('[aria-current="location"]')).toHaveCount(1)
+
+  // Jumping to a section closes the drawer and marks that section.
+  const privacy = nav.getByRole('link', { name: /privacy/i })
+  await privacy.click()
+  await expect(nav).toBeHidden()
+  await tab.click()
+  await expect(privacy).toHaveAttribute('aria-current', 'location')
+  // The current section keeps the site's orange fill + left-to-right underline drawn (polled: it animates in).
+  const wipe = privacy.locator('.link-wipe')
+  await expect.poll(() => wipe.evaluate((el) => getComputedStyle(el).backgroundPositionX)).toMatch(/^0(px|%)$/)
+  await expect
+    .poll(() => wipe.evaluate((el) => getComputedStyle(el, '::after').transform))
+    .toBe('matrix(1, 0, 0, 1, 0, 0)')
+  // Other sections rest undrawn.
+  const other = nav.getByRole('link', { name: /account/i }).locator('.link-wipe')
+  expect(await other.evaluate((el) => getComputedStyle(el, '::after').transform)).toBe('matrix(0, 0, 0, 1, 0, 0)')
+})
+
+test('settings: scrolling to the bottom marks the last section, a picked section stays marked', async ({ page }) => {
+  await signIn(page)
+  await page.goto('/settings')
+  const tab = page.getByRole('button', { name: /sections/i })
+  const nav = page.getByRole('navigation', { name: /sections/i, includeHidden: true })
+  const currentLabel = () => nav.locator('[aria-current="location"]').textContent({ timeout: 2000 })
+
+  // Scroll by hand to the very bottom: the short last section (Privacy) must be current.
+  await page.mouse.move(200, 400)
+  for (let i = 0; i < 40; i++) await page.mouse.wheel(0, 1200)
+  await expect.poll(currentLabel).toMatch(/privacy/i)
+
+  // Pick a section that can't scroll all the way up: it stays the current one.
+  await tab.click()
+  await nav.getByRole('link', { name: /templates/i }).click()
+  await page.waitForTimeout(800)
+  await expect.poll(currentLabel).toMatch(/templates/i)
 })

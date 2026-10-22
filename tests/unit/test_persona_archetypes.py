@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from src.capabilities import audience
-from src.capabilities.audience import ARCHETYPES, guess_archetype
+from src.capabilities.audience import ARCHETYPES, guess_archetype, guess_gender
 from src.capabilities.feasibility import FeasibilityResult
 
 FIGURES = Path(__file__).resolve().parents[2] / "frontend" / "public" / "personas"
@@ -66,8 +66,33 @@ class TestGeneratedArchetype:
         assert self._run(monkeypatch, fake_llm, [_persona(name="Nurse Priya", archetype="general")]) == ["nurse"]
 
 
-def test_every_archetype_has_a_figure():
-    missing = [a for a in ARCHETYPES if not (FIGURES / f"{a}.webp").exists()]
+class TestGender:
+    @pytest.mark.parametrize(
+        ("texts", "expected"),
+        [
+            (("She runs a bakery", "her customers love her"), "female"),
+            (("He is a nurse", "his shifts are long"), "male"),
+            (("A mother of two",), "female"),
+            (("Lives in Pune, 34, freelance designer",), "unspecified"),  # no pronouns: no guess
+            (("Others say there is hesitation here",), "unspecified"),  # 'her'/'he' inside words don't count
+        ],
+    )
+    def test_pronouns(self, texts, expected):
+        assert guess_gender(*texts) == expected
+
+    def test_model_gender_wins_and_name_is_never_used(self, monkeypatch, fake_llm):
+        personas = [
+            _persona(name="Priya", gender="Male"),  # the model's statement wins, any case
+            _persona(name="Priya", demographics="34, he works nights"),  # pronouns, not the name
+            _persona(name="Priya"),  # nothing to go on
+        ]
+        monkeypatch.setattr(audience, "get_llm", lambda user_id=None: fake_llm(json.dumps(personas)))
+        result = audience.generate_personas("idea", FeasibilityResult(score=50, rationale="ok", signals={}))
+        assert [p.gender for p in result] == ["male", "male", "unspecified"]
+
+
+def test_every_archetype_has_a_female_and_male_figure():
+    missing = [f"{a}-{g}" for a in ARCHETYPES for g in ("female", "male") if not (FIGURES / f"{a}-{g}.webp").exists()]
     assert not missing, f"render them: python frontend/scripts/render_personas.py {' '.join(missing)}"
 
 

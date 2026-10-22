@@ -124,7 +124,27 @@
     "activityTitle": "Recent activity",
     "activityCreated": "Created “{{idea}}”",
     "activityMeasured": "Measured round {{round}} of “{{idea}}”",
-    "activityEmpty": "Nothing yet. Activity appears as campaigns run."
+    "activityEmpty": "Nothing yet. Activity appears as campaigns run.",
+    "secStart": "Start a campaign",
+    "secPerformance": "Performance",
+    "secCampaigns": "Campaigns",
+    "secHelp": "Help & activity",
+    "helpBtn": "Help",
+    "helpTitle": "Help & resources",
+    "helpSub": "Stuck or curious? Everything to get unstuck is here.",
+    "helpDocs": "Read the docs",
+    "helpDocsSub": "How campaigns, gates and the learning loop work",
+    "helpStatus": "System status",
+    "helpStatusSub": "Check that every service is up",
+    "helpContact": "Contact support",
+    "helpContactSub": "Ask a question or report a problem",
+    "helpShortcut": "creates a campaign straight from the composer.",
+    "trendRounds": "Rounds measured",
+    "trendAvg": "Average reward",
+    "trendLatest": "Latest round",
+    "planManage": "Manage billing",
+    "armsNote": "Each new round tries the arm with the best expected reward, with some exploration so newer arms get a fair chance.",
+    "activityCalendar": "See everything in the calendar"
   },
   "cd": {
     "back": "All campaigns",
@@ -250,7 +270,8 @@
     "usernameInvalid": "Use 2–32 characters: letters, numbers, spaces, dots, dashes or underscores.",
     "usernameMissing": "Not set yet. Add one so we know what to call you.",
     "removeKey": "Remove",
-    "removed": "{{capability}} key removed. Campaigns now use the plan's built-in providers."
+    "removed": "{{capability}} key removed. Campaigns now use the plan's built-in providers.",
+    "sections": "Sections"
   },
   "campaignDetail": {
     "backLink": "← All campaigns",
@@ -570,5 +591,8 @@
     "finance": "Finance",
     "creator": "Creator",
     "general": "Customer"
+  },
+  "drawer": {
+    "close": "Close"
   }
 }

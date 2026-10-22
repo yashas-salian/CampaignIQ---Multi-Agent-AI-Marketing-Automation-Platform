@@ -124,7 +124,27 @@
     "activityTitle": "Activité récente",
     "activityCreated": "« {{idea}} » créée",
     "activityMeasured": "Tour {{round}} mesuré pour « {{idea}} »",
-    "activityEmpty": "Rien pour l’instant. L’activité apparaît pendant l’exécution des campagnes."
+    "activityEmpty": "Rien pour l’instant. L’activité apparaît pendant l’exécution des campagnes.",
+    "secStart": "Lancer une campagne",
+    "secPerformance": "Performances",
+    "secCampaigns": "Campagnes",
+    "secHelp": "Aide et activité",
+    "helpBtn": "Aide",
+    "helpTitle": "Aide et ressources",
+    "helpSub": "Bloqué ou curieux ? Tout ce qu'il faut est ici.",
+    "helpDocs": "Lire la documentation",
+    "helpDocsSub": "Fonctionnement des campagnes, des validations et de la boucle d'apprentissage",
+    "helpStatus": "État du système",
+    "helpStatusSub": "Vérifiez que chaque service fonctionne",
+    "helpContact": "Contacter le support",
+    "helpContactSub": "Posez une question ou signalez un problème",
+    "helpShortcut": "crée une campagne directement depuis l'éditeur.",
+    "trendRounds": "Tours mesurés",
+    "trendAvg": "Récompense moyenne",
+    "trendLatest": "Dernier tour",
+    "planManage": "Gérer la facturation",
+    "armsNote": "Chaque nouveau tour essaie la variante au meilleur gain attendu, avec un peu d'exploration pour laisser leur chance aux nouvelles.",
+    "activityCalendar": "Tout voir dans le calendrier"
   },
   "cd": {
     "back": "Toutes les campagnes",
@@ -250,7 +270,8 @@
     "usernameInvalid": "Utilisez 2 à 32 caractères : lettres, chiffres, espaces, points, tirets ou tirets bas.",
     "usernameMissing": "Pas encore défini. Ajoutez-en un pour qu’on sache comment vous appeler.",
     "removeKey": "Supprimer",
-    "removed": "Clé {{capability}} supprimée. Les campagnes utilisent désormais les fournisseurs inclus dans l'offre."
+    "removed": "Clé {{capability}} supprimée. Les campagnes utilisent désormais les fournisseurs inclus dans l'offre.",
+    "sections": "Sections"
   },
   "campaignDetail": {
     "backLink": "← Toutes les campagnes",
@@ -570,5 +591,8 @@
     "finance": "Finance",
     "creator": "Créateur",
     "general": "Client"
+  },
+  "drawer": {
+    "close": "Fermer"
   }
 }

@@ -554,7 +554,7 @@ export default function CampaignDetail() {
               {personas.map((p) => (
                 <article key={p.id} className={`${local.persona} ${p.is_primary ? local.personaPrimary : ''}`}>
                   <div className={local.personaHead}>
-                    <PersonaFigure archetype={p.archetype} name={p.name} demographics={p.demographics} />
+                    <PersonaFigure archetype={p.archetype} gender={p.gender} name={p.name} demographics={p.demographics} psychographics={p.psychographics} />
                     <div className={local.personaName}>
                       <strong>{p.name}</strong>
                       {p.is_primary ? (

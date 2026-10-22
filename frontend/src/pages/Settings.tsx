@@ -1,11 +1,12 @@
 import type { CSSProperties, DragEvent, ReactNode } from 'react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import ApiSettings from '../components/ApiSettings'
 import AuditLog from '../components/AuditLog'
 import BillingSettings from '../components/BillingSettings'
 import BrandKitSettings from '../components/BrandKitSettings'
+import SideDrawer from '../components/SideDrawer'
 import UsageStats from '../components/UsageStats'
 import PrivacySettings from '../components/PrivacySettings'
 import TeamSettings from '../components/TeamSettings'
@@ -225,6 +226,48 @@ export default function Settings() {
     { id: 'privacy', label: t('privacy.title') },
   ]
 
+  // Sections drawer: closed by default; the section in view is marked current.
+  const [navOpen, setNavOpen] = useState(false)
+  const [current, setCurrent] = useState(sections[0]?.id ?? '')
+  const sectionIds = sections.map((s) => s.id).join(',')
+  // A section picked in the drawer stays current until the user scrolls by
+  // hand: short sections near the bottom can't scroll up to the line below.
+  const picked = useRef<string | null>(null)
+  useEffect(() => {
+    const ids = sectionIds.split(',')
+    let frame = 0
+    const update = () => {
+      frame = 0
+      if (picked.current) return
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4
+      if (atBottom) return setCurrent(ids[ids.length - 1])
+      // Otherwise: the last section whose top has passed a line ~30% down the screen.
+      const line = window.innerHeight * 0.3
+      let id = ids[0]
+      for (const candidate of ids) {
+        const el = document.getElementById(candidate)
+        if (el && el.getBoundingClientRect().top <= line) id = candidate
+      }
+      setCurrent(id)
+    }
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update)
+    }
+    const release = () => {
+      picked.current = null
+    }
+    update()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    for (const ev of ['wheel', 'touchstart', 'keydown'] as const) window.addEventListener(ev, release, { passive: true })
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+      for (const ev of ['wheel', 'touchstart', 'keydown'] as const) window.removeEventListener(ev, release)
+    }
+  }, [sectionIds])
+
   return (
     <div className={styles.page}>
       <header className={`${styles.header} ${styles.enter}`}>
@@ -235,14 +278,27 @@ export default function Settings() {
         </div>
       </header>
 
-      <div className={local.layout}>
-        <nav className={local.side} aria-label={t('st.title')}>
+      <SideDrawer side="left" label={t('st.sections')} open={navOpen} onOpenChange={setNavOpen}>
+        <nav className={local.side} aria-label={t('st.sections')}>
           {sections.map((s) => (
-            <a key={s.id} href={`#${s.id}`} className="link-wipe">
-              {s.label}
+            <a
+              key={s.id}
+              href={`#${s.id}`}
+              className={`wipe-host ${s.id === current ? local.sideCurrent : ''}`}
+              aria-current={s.id === current ? 'location' : undefined}
+              onClick={() => {
+                picked.current = s.id
+                setCurrent(s.id)
+                setNavOpen(false)
+              }}
+            >
+              <span className="link-wipe">{s.label}</span>
             </a>
           ))}
         </nav>
+      </SideDrawer>
+
+      <div className={local.layout}>
 
         <div className={styles.stack}>
           {/* Account */}

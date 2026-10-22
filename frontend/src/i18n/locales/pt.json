@@ -124,7 +124,27 @@
     "activityTitle": "Atividade recente",
     "activityCreated": "“{{idea}}” criada",
     "activityMeasured": "Rodada {{round}} medida de “{{idea}}”",
-    "activityEmpty": "Nada ainda. A atividade aparece conforme as campanhas rodam."
+    "activityEmpty": "Nada ainda. A atividade aparece conforme as campanhas rodam.",
+    "secStart": "Criar uma campanha",
+    "secPerformance": "Desempenho",
+    "secCampaigns": "Campanhas",
+    "secHelp": "Ajuda e atividade",
+    "helpBtn": "Ajuda",
+    "helpTitle": "Ajuda e recursos",
+    "helpSub": "Travado ou curioso? Tudo o que precisa está aqui.",
+    "helpDocs": "Ler a documentação",
+    "helpDocsSub": "Como funcionam campanhas, aprovações e o ciclo de aprendizado",
+    "helpStatus": "Status do sistema",
+    "helpStatusSub": "Confira se todos os serviços estão no ar",
+    "helpContact": "Falar com o suporte",
+    "helpContactSub": "Tire uma dúvida ou relate um problema",
+    "helpShortcut": "cria uma campanha direto do editor.",
+    "trendRounds": "Rodadas medidas",
+    "trendAvg": "Recompensa média",
+    "trendLatest": "Última rodada",
+    "planManage": "Gerenciar cobrança",
+    "armsNote": "Cada nova rodada testa a variante com a melhor recompensa esperada, explorando um pouco para dar chance às novas.",
+    "activityCalendar": "Ver tudo no calendário"
   },
   "cd": {
     "back": "Todas as campanhas",
@@ -250,7 +270,8 @@
     "usernameInvalid": "Use 2–32 caracteres: letras, números, espaços, pontos, hifens ou sublinhados.",
     "usernameMissing": "Ainda não definido. Adicione um para sabermos como te chamar.",
     "removeKey": "Remover",
-    "removed": "Chave de {{capability}} removida. As campanhas agora usam os provedores incluídos no plano."
+    "removed": "Chave de {{capability}} removida. As campanhas agora usam os provedores incluídos no plano.",
+    "sections": "Seções"
   },
   "campaignDetail": {
     "backLink": "← Todas as campanhas",
@@ -570,5 +591,8 @@
     "finance": "Finanças",
     "creator": "Criador",
     "general": "Cliente"
+  },
+  "drawer": {
+    "close": "Fechar"
   }
 }

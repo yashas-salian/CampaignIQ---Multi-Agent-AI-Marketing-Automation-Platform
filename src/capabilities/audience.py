@@ -1,3 +1,4 @@
+import re
 from typing import Literal
 
 from pydantic import BaseModel
@@ -16,7 +17,7 @@ _AGE_BRACKETS = ("18-24", "25-34", "35-44", "45-54", "55+")
 _INCOME_TIERS = ("low", "mid", "high")
 
 # Who the persona is, visually: picks the 3D figure shown on persona cards
-# (frontend/public/personas/<archetype>.webp). Must match render_personas.py.
+# (frontend/public/personas/<archetype>-<gender>.webp). Must match render_personas.py.
 ARCHETYPES = (
     "teacher", "doctor", "nurse", "student", "developer", "chef", "athlete", "parent", "retiree",
     "professional", "entrepreneur", "designer", "farmer", "traveler", "gamer", "scientist",
@@ -48,6 +49,24 @@ _ARCHETYPE_HINTS = [
 ]
 
 
+# The figure's gender must match the persona's, so it comes from the model,
+# which wrote the persona. "unspecified" (no figure, initials instead) when the
+# model gives neither and the description has no pronouns to go on.
+GENDERS = ("female", "male", "unspecified")
+_FEMALE = re.compile(r"\b(she|her|hers|herself|woman|women|mother|mom|mum|wife|girl|grandmother)\b")
+_MALE = re.compile(r"\b(he|him|his|himself|man|men|father|dad|husband|boy|grandfather)\b")
+
+
+def guess_gender(*texts: str) -> str:
+    blob = " ".join(t for t in texts if t).lower()
+    female, male = len(_FEMALE.findall(blob)), len(_MALE.findall(blob))
+    if female > male:
+        return "female"
+    if male > female:
+        return "male"
+    return "unspecified"
+
+
 def guess_archetype(*texts: str) -> str:
     blob = " ".join(t for t in texts if t).lower()
     for archetype, words in _ARCHETYPE_HINTS:
@@ -65,6 +84,7 @@ class Persona(BaseModel):
     age_bracket: AgeBracket
     income_tier: IncomeTier
     archetype: str = "general"
+    gender: str = "unspecified"
 
 
 def _coerce_to_str(value: object) -> str:
@@ -98,6 +118,7 @@ def generate_personas(
         age_brackets=list(_AGE_BRACKETS),
         income_tiers=list(_INCOME_TIERS),
         archetypes=list(ARCHETYPES),
+        genders=["female", "male"],
     )
     personas_raw = generate_json(get_llm(user_id), prompt, system=system)
     return [
@@ -110,6 +131,7 @@ def generate_personas(
             age_bracket=_coerce_literal(p.get("age_bracket"), _AGE_BRACKETS, "25-34"),
             income_tier=_coerce_literal(p.get("income_tier"), _INCOME_TIERS, "mid"),
             archetype=_archetype(p),
+            gender=_gender(p),
         )
         for p in personas_raw
     ]
@@ -123,3 +145,12 @@ def _archetype(p: dict) -> str:
     if picked in ARCHETYPES and picked != "general":
         return picked
     return guess_archetype(_coerce_to_str(p.get("name", "")), _coerce_to_str(p.get("demographics", "")))
+
+
+def _gender(p: dict) -> str:
+    # Never guessed from the name: the model states it, else the pronouns in
+    # the description decide, else "unspecified".
+    picked = _coerce_to_str(p.get("gender", "")).strip().lower()
+    if picked in ("female", "male"):
+        return picked
+    return guess_gender(*(_coerce_to_str(p.get(k, "")) for k in ("demographics", "psychographics", "messaging_angle")))

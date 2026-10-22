@@ -390,6 +390,8 @@ export default function Dashboard() {
   const avgFeasibility = scored.length ? scored.reduce((s, c) => s + (c.feasibility_score ?? 0), 0) / scored.length : 0
   const totalEngagement = metrics.reduce((s, m) => s + engagementOf(m), 0)
   const bestReward = roundRewards.reduce((best, r) => Math.max(best, r.reward), 0)
+  const avgReward = roundRewards.length ? roundRewards.reduce((s, r) => s + r.reward, 0) / roundRewards.length : 0
+  const latestReward = roundRewards.length ? roundRewards[roundRewards.length - 1].reward : null
   const needsYou = campaigns.filter((c) => NEEDS_ACTION.includes(c.status))
 
   const kpiReady = !firstLoad
@@ -435,7 +437,6 @@ export default function Dashboard() {
     label: t(`dash.st_${s}`),
     value: campaigns.filter((c) => c.status === s).length,
   }))
-  const pipelineMax = Math.max(1, ...pipelineRows.map((r) => r.value))
 
   const activity = useMemo(() => {
     const events = [
@@ -449,7 +450,7 @@ export default function Dashboard() {
         round: r.round,
       })),
     ]
-    return events.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 6)
+    return events.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 8)
   }, [campaigns, roundRewards, byId])
 
   const visible = campaigns.filter((c) => {
@@ -470,6 +471,10 @@ export default function Dashboard() {
   // Username (or the name Google/GitHub gave us); never the email address.
   const name = displayName(session?.user)
   const roundsCap = tier === 'subscribed' ? PAID_ROUNDS : FREE_ROUNDS
+
+  function jumpToHelp() {
+    document.getElementById('help')?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
+  }
 
   function selectPipeline(status: string) {
     const s = status as CampaignStatus
@@ -507,6 +512,13 @@ export default function Dashboard() {
               <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
+          <button type="button" className={styles.helpBtn} onClick={jumpToHelp}>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            <span className={styles.helpLabel}>{t('dash.helpBtn')}</span>
+          </button>
           <button type="button" className={styles.primaryBtn} onClick={focusComposer}>
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
@@ -534,47 +546,21 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* KPIs */}
-      <section className={styles.kpis}>
-        {firstLoad ? (
-          [0, 1, 2, 3].map((i) => (
-            <div key={i} className={`${styles.panel} ${styles.kpi}`}>
-              <Skeleton h={12} w="45%" />
-              <Skeleton h={34} w="35%" />
-              <Skeleton h={10} w="60%" />
+      {/* ===== Start a campaign: composer + plan & usage, equal height ===== */}
+      <h2 className={styles.sectionTitle}>{t('dash.secStart')}</h2>
+      <section className={`${styles.panel} ${styles.composer} ${styles.hero} ${styles.enter}`} style={{ '--i': 1 } as CSSProperties}>
+          <div className={styles.heroHead}>
+            <span className={styles.heroIcon} aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 3l2.2 5.3L20 9l-4.4 3.8L17 18.5 12 15.6 7 18.5l1.4-5.7L4 9l5.8-.7z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <div>
+              <h2>{t('dashboard.createTitle')}</h2>
+              <p className={styles.panelSub}>{t('dash.composerHint')}</p>
             </div>
-          ))
-        ) : (
-          <>
-            <Kpi index={0} label={t('dash.kpiActive')} value={activeShown} hint={t('dash.kpiActiveHint', { count: finished })} />
-            <Kpi
-              index={1}
-              label={t('dash.kpiFeasibility')}
-              value={scored.length ? feasShown : '—'}
-              hint={t('dash.kpiFeasibilityHint', { count: scored.length })}
-            >
-              {scored.length > 0 && (
-                <span className={styles.kpiMeter} aria-hidden="true">
-                  <span style={{ '--w': `${avgFeasibility}%` } as CSSProperties} />
-                </span>
-              )}
-            </Kpi>
-            <Kpi index={2} label={t('dash.kpiEngagement')} value={engShown} hint={t('dash.kpiEngagementHint')} />
-            <Kpi index={3} label={t('dash.kpiReward')} value={roundRewards.length ? rewardShown : '—'} hint={t('dash.kpiRewardHint')}>
-              <Sparkline values={trend.slice(-12).map((p) => p.reward)} />
-            </Kpi>
-          </>
-        )}
-      </section>
-
-      {/* Composer + plan/guide */}
-      <section className={styles.gridMain}>
-        <div className={`${styles.panel} ${styles.composer} ${styles.enter}`} style={{ '--i': 4 } as CSSProperties}>
-          <div className={styles.panelHead}>
-            <h2>{t('dashboard.createTitle')}</h2>
             <kbd className={styles.kbd}>Ctrl ↵</kbd>
           </div>
-          <p className={styles.panelSub}>{t('dash.composerHint')}</p>
           <div className={styles.textareaWrap}>
             <textarea
               ref={composerRef}
@@ -582,7 +568,7 @@ export default function Dashboard() {
               onChange={(e) => setIdea(e.target.value)}
               onKeyDown={onComposerKey}
               placeholder={t('dashboard.ideaPlaceholder')}
-              rows={3}
+              rows={4}
               maxLength={500}
               className={styles.textarea}
             />
@@ -628,190 +614,102 @@ export default function Dashboard() {
               </button>
             </p>
           )}
-        </div>
 
-        <div className={styles.sideStack}>
-          <div className={`${styles.panel} ${styles.plan} ${styles.enter}`} style={{ '--i': 5 } as CSSProperties}>
-            <div className={styles.panelHead}>
-              <h2>{t('dash.planTitle')}</h2>
+          {/* Plan limits sit with the composer: they decide whether a campaign can start now. */}
+          <div className={styles.heroPlan}>
+            <div className={styles.heroPlanHead}>
+              <span>{t('dash.planTitle')}</span>
               <span className={`${styles.tierBadge} ${tier === 'subscribed' ? styles.tierPaid : ''}`}>
                 {tier === 'subscribed' ? t('dash.planSubscribed') : t('dash.planFree')}
               </span>
+              <small>{t('dash.planRounds', { rounds: roundsCap })}</small>
             </div>
-            <p className={styles.planRounds}>{t('dash.planRounds', { rounds: roundsCap })}</p>
             {usage && <UsageMeters usage={usage} />}
-            <Link to="/settings" className={`${styles.planLink} link-wipe`}>
-              {t('dash.planKeys')} →
-            </Link>
-          </div>
-
-          <div className={`${styles.panel} ${styles.guide} ${styles.enter}`} style={{ '--i': 6 } as CSSProperties}>
-            {/* Placeholder until a real walkthrough video exists. */}
-            <div className={styles.video}>
-              <span className={styles.play} aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M8 5.5v13l11-6.5z" />
-                </svg>
-              </span>
-              <span className={styles.videoLabel}>{t('dash.videoPlaceholder')}</span>
+            <div className={styles.heroPlanLinks}>
+              <Link to="/settings#billing" className={`${styles.planLink} ${styles.upgradeLink} link-wipe`}>
+                {tier === 'subscribed' ? t('dash.planManage') : t('billing.upgrade')} →
+              </Link>
+              <Link to="/settings#keys" className={`${styles.planLink} link-wipe`}>
+                {t('dash.planKeys')} →
+              </Link>
             </div>
-            <h3>{t('dash.guideTitle')}</h3>
-            <p>{t('dash.guideBody')}</p>
           </div>
-        </div>
       </section>
 
-      {/* Trend + pipeline */}
-      <section className={styles.gridMain}>
-        <div className={`${styles.panel} ${styles.enter}`} style={{ '--i': 7 } as CSSProperties}>
+      {/* ===== Performance: every number in one place ===== */}
+      <h2 className={styles.sectionTitle}>{t('dash.secPerformance')}</h2>
+      <section className={styles.kpis}>
+        {firstLoad ? (
+          [0, 1, 2, 3].map((i) => (
+            <div key={i} className={`${styles.panel} ${styles.kpi}`}>
+              <Skeleton h={12} w="45%" />
+              <Skeleton h={34} w="35%" />
+              <Skeleton h={10} w="60%" />
+            </div>
+          ))
+        ) : (
+          <>
+            <Kpi index={3} label={t('dash.kpiActive')} value={activeShown} hint={t('dash.kpiActiveHint', { count: finished })} />
+            <Kpi
+              index={4}
+              label={t('dash.kpiFeasibility')}
+              value={scored.length ? feasShown : '—'}
+              hint={t('dash.kpiFeasibilityHint', { count: scored.length })}
+            >
+              {scored.length > 0 && (
+                <span className={styles.kpiMeter} aria-hidden="true">
+                  <span style={{ '--w': `${avgFeasibility}%` } as CSSProperties} />
+                </span>
+              )}
+            </Kpi>
+            <Kpi index={5} label={t('dash.kpiEngagement')} value={engShown} hint={t('dash.kpiEngagementHint')} />
+            <Kpi index={6} label={t('dash.kpiReward')} value={roundRewards.length ? rewardShown : '—'} hint={t('dash.kpiRewardHint')}>
+              <Sparkline values={trend.slice(-12).map((p) => p.reward)} />
+            </Kpi>
+          </>
+        )}
+      </section>
+
+      <section className={styles.row}>
+        <div className={`${styles.panel} ${styles.trendPanel} ${styles.enter}`} style={{ '--i': 7 } as CSSProperties}>
           <div className={styles.panelHead}>
             <div>
               <h2>{t('dash.trendTitle')}</h2>
               <p className={styles.panelSub}>{t('dash.trendSub')}</p>
             </div>
           </div>
-          {firstLoad ? (
-            <Skeleton h={220} />
-          ) : trend.length === 0 ? (
-            <div className={styles.emptyChart}>
-              <svg viewBox="0 0 120 48" aria-hidden="true">
-                <path d="M4 40 L30 30 L52 34 L78 18 L116 10" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 5" strokeLinecap="round" />
-              </svg>
-              <p>{t('dash.trendEmpty')}</p>
-            </div>
-          ) : (
-            <RewardChart points={trend} ariaLabel={t('dash.trendTitle')} />
-          )}
-        </div>
-
-        <div className={`${styles.panel} ${styles.enter}`} style={{ '--i': 8 } as CSSProperties}>
-          <div className={styles.panelHead}>
+          <div className={styles.trendBody}>
+            {firstLoad ? (
+              <Skeleton h={220} />
+            ) : trend.length === 0 ? (
+              <div className={styles.emptyChart}>
+                <svg viewBox="0 0 120 48" aria-hidden="true">
+                  <path d="M4 40 L30 30 L52 34 L78 18 L116 10" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 5" strokeLinecap="round" />
+                </svg>
+                <p>{t('dash.trendEmpty')}</p>
+              </div>
+            ) : (
+              <RewardChart points={trend} ariaLabel={t('dash.trendTitle')} />
+            )}
+          </div>
+          <dl className={styles.trendStats}>
             <div>
-              <h2>{t('dash.pipelineTitle')}</h2>
-              <p className={styles.panelSub}>{t('dash.pipelineSub')}</p>
+              <dt>{t('dash.trendRounds')}</dt>
+              <dd>{roundRewards.length}</dd>
             </div>
-          </div>
-          {firstLoad ? (
-            <div className={styles.skelStack}>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} h={22} />
-              ))}
+            <div>
+              <dt>{t('dash.trendAvg')}</dt>
+              <dd>{roundRewards.length ? avgReward.toFixed(2) : '—'}</dd>
             </div>
-          ) : (
-            <BarList rows={pipelineRows} max={pipelineMax} format={(v) => String(v)} onSelect={selectPipeline} />
-          )}
-        </div>
-      </section>
-
-      {/* Campaigns + insights rail */}
-      <section className={styles.gridMain}>
-        <div className={`${styles.panel} ${styles.tablePanel} ${styles.enter}`} style={{ '--i': 9 } as CSSProperties} id="campaigns">
-          <div className={styles.tableHead}>
-            <h2>{t('dash.campaignsTitle')}</h2>
-            <div className={styles.search}>
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-                <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('dash.search')} aria-label={t('dash.search')} />
+            <div>
+              <dt>{t('dash.trendLatest')}</dt>
+              <dd>{latestReward !== null ? latestReward.toFixed(2) : '—'}</dd>
             </div>
-          </div>
-
-          <div className={styles.tabs} role="tablist">
-            {(['all', 'action', 'running', 'done'] as const).map((f) => (
-              <button
-                key={f}
-                type="button"
-                role="tab"
-                aria-selected={filter === f}
-                className={`${styles.tab} ${filter === f ? styles.tabActive : ''}`}
-                onClick={() => setFilter(f)}
-              >
-                {t(`dash.filter${f[0].toUpperCase()}${f.slice(1)}`)}
-                <span className={styles.tabCount}>{counts[f]}</span>
-              </button>
-            ))}
-          </div>
-
-          {firstLoad ? (
-            <div className={styles.skelStack}>
-              {[0, 1, 2, 3].map((i) => (
-                <Skeleton key={i} h={56} />
-              ))}
-            </div>
-          ) : campaigns.length === 0 ? (
-            <div className={styles.empty}>
-              <div className={styles.emptyArt} aria-hidden="true">
-                <LogoMark />
-              </div>
-              <h3>{t('dash.emptyTitle')}</h3>
-              <p>{t('dash.emptyBody')}</p>
-              <button type="button" className={styles.primaryBtn} onClick={focusComposer}>
-                {t('dash.newCampaign')}
-              </button>
-            </div>
-          ) : visible.length === 0 ? (
-            <p className={styles.noMatch}>{t('dash.noMatch')}</p>
-          ) : (
-            <div className={styles.table} role="table">
-              <div className={`${styles.tr} ${styles.th}`} role="row">
-                <span role="columnheader">{t('dash.colCampaign')}</span>
-                <span role="columnheader">{t('dash.colStatus')}</span>
-                <span role="columnheader">{t('dash.colFeasibility')}</span>
-                <span role="columnheader">{t('dash.colRound')}</span>
-                <span role="columnheader">{t('dash.colCreated')}</span>
-              </div>
-              {visible.map((c, i) => {
-                const lang = CAMPAIGN_LANGUAGES.find((l) => l.code === c.target_language)
-                return (
-                  <div
-                    key={c.id}
-                    role="row"
-                    tabIndex={0}
-                    className={`${styles.tr} ${styles.row}`}
-                    style={{ '--i': i } as CSSProperties}
-                    onClick={() => navigate(`/campaigns/${c.id}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') navigate(`/campaigns/${c.id}`)
-                    }}
-                  >
-                    <span role="cell" className={styles.cellIdea}>
-                      <strong>{c.idea}</strong>
-                      <small>
-                        {humanize(c.domain_category)}
-                        {lang ? ` · ${lang.label}` : ''}
-                      </small>
-                    </span>
-                    <span role="cell">
-                      <StatusPill status={c.status} />
-                    </span>
-                    <span role="cell" className={styles.cellFeas}>
-                      {c.feasibility_score ?? '—'}
-                      {c.feasibility_score !== null && (
-                        <span className={styles.miniBar} aria-hidden="true">
-                          <span style={{ width: `${c.feasibility_score}%` }} />
-                        </span>
-                      )}
-                    </span>
-                    <span role="cell" className={styles.mono}>
-                      {c.current_round}
-                      {c.max_rounds ? ` / ${c.max_rounds}` : ''}
-                    </span>
-                    <span role="cell" className={styles.cellTime}>
-                      {relTime(c.created_at)}
-                      <svg className={styles.rowArrow} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          </dl>
         </div>
 
-        <aside className={styles.sideStack}>
-          <div className={`${styles.panel} ${styles.enter}`} style={{ '--i': 10 } as CSSProperties}>
+        <div className={styles.sideStack}>
+          <div className={`${styles.panel} ${styles.enter}`} style={{ '--i': 8 } as CSSProperties}>
             <div className={styles.panelHead}>
               <h2>{t('dash.channelsTitle')}</h2>
             </div>
@@ -824,9 +722,7 @@ export default function Dashboard() {
                 </span>
                 <div>
                   <strong>Bluesky</strong>
-                  <span>
-                    {channelTotals.hasBluesky ? t('dash.blueskyDetail', channelTotals.bluesky) : t('dash.channelEmpty')}
-                  </span>
+                  <span>{channelTotals.hasBluesky ? t('dash.blueskyDetail', channelTotals.bluesky) : t('dash.channelEmpty')}</span>
                 </div>
                 <b className={styles.channelTotal}>
                   {channelTotals.bluesky.likes + channelTotals.bluesky.reposts + channelTotals.bluesky.replies}
@@ -848,7 +744,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className={`${styles.panel} ${styles.enter}`} style={{ '--i': 11 } as CSSProperties}>
+          <div className={`${styles.panel} ${styles.grow} ${styles.enter}`} style={{ '--i': 9 } as CSSProperties}>
             <div className={styles.panelHead}>
               <div>
                 <h2>{t('dash.armsTitle')}</h2>
@@ -860,31 +756,222 @@ export default function Dashboard() {
             ) : (
               <BarList rows={armRows} max={1} format={(v) => v.toFixed(2)} />
             )}
+            <p className={styles.panelNote}>{t('dash.armsNote')}</p>
           </div>
+        </div>
+      </section>
 
-          <div className={`${styles.panel} ${styles.enter}`} style={{ '--i': 12 } as CSSProperties}>
-            <div className={styles.panelHead}>
-              <h2>{t('dash.activityTitle')}</h2>
-            </div>
-            {activity.length === 0 ? (
-              <p className={styles.muted}>{t('dash.activityEmpty')}</p>
-            ) : (
-              <ol className={styles.activity}>
-                {activity.map((e) => (
-                  <li key={e.key}>
-                    <span className={`${styles.activityDot} ${e.kind === 'measured' ? styles.activityDotAccent : ''}`} aria-hidden="true" />
-                    <Link to={`/campaigns/${e.id}`} className={styles.activityText}>
-                      {e.kind === 'created'
-                        ? t('dash.activityCreated', { idea: e.idea })
-                        : t('dash.activityMeasured', { idea: e.idea, round: e.round })}
-                    </Link>
-                    <time dateTime={e.at}>{relTime(e.at)}</time>
-                  </li>
-                ))}
-              </ol>
-            )}
+      {/* ===== Campaigns: full-width table, pipeline strip on top filters it ===== */}
+      <h2 className={styles.sectionTitle}>{t('dash.secCampaigns')}</h2>
+      <section className={`${styles.panel} ${styles.tablePanel} ${styles.enter}`} style={{ '--i': 10 } as CSSProperties} id="campaigns">
+        <div className={styles.tableHead}>
+          <div>
+            <h2>{t('dash.campaignsTitle')}</h2>
+            <p className={styles.panelSub}>{t('dash.pipelineSub')}</p>
           </div>
-        </aside>
+          <div className={styles.search}>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+              <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('dash.search')} aria-label={t('dash.search')} />
+          </div>
+        </div>
+
+        {!firstLoad && campaigns.length > 0 && (
+          <div className={styles.pipeline} aria-label={t('dash.pipelineTitle')}>
+            <div className={styles.pipelineBar} aria-hidden="true">
+              {pipelineRows
+                .filter((r) => r.value > 0)
+                .map((r) => (
+                  <span key={r.key} className={styles[`seg_${r.key}`]} style={{ flexGrow: r.value }} title={`${r.label}: ${r.value}`} />
+                ))}
+            </div>
+            <ul className={styles.pipelineLegend}>
+              {pipelineRows.map((r) => (
+                <li key={r.key}>
+                  <button type="button" className={`${styles.legendItem} ${r.value === 0 ? styles.legendZero : ''}`} onClick={() => selectPipeline(r.key)} disabled={r.value === 0}>
+                    <span className={`${styles.legendDot} ${styles[`seg_${r.key}`]}`} aria-hidden="true" />
+                    {r.label}
+                    <b>{r.value}</b>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className={styles.tabs} role="tablist">
+          {(['all', 'action', 'running', 'done'] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              role="tab"
+              aria-selected={filter === f}
+              className={`${styles.tab} ${filter === f ? styles.tabActive : ''}`}
+              onClick={() => setFilter(f)}
+            >
+              {t(`dash.filter${f[0].toUpperCase()}${f.slice(1)}`)}
+              <span className={styles.tabCount}>{counts[f]}</span>
+            </button>
+          ))}
+        </div>
+
+        {firstLoad ? (
+          <div className={styles.skelStack}>
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} h={56} />
+            ))}
+          </div>
+        ) : campaigns.length === 0 ? (
+          <div className={styles.empty}>
+            <div className={styles.emptyArt} aria-hidden="true">
+              <LogoMark />
+            </div>
+            <h3>{t('dash.emptyTitle')}</h3>
+            <p>{t('dash.emptyBody')}</p>
+            <button type="button" className={styles.primaryBtn} onClick={focusComposer}>
+              {t('dash.newCampaign')}
+            </button>
+          </div>
+        ) : visible.length === 0 ? (
+          <p className={styles.noMatch}>{t('dash.noMatch')}</p>
+        ) : (
+          <div className={styles.table} role="table">
+            <div className={`${styles.tr} ${styles.th}`} role="row">
+              <span role="columnheader">{t('dash.colCampaign')}</span>
+              <span role="columnheader">{t('dash.colStatus')}</span>
+              <span role="columnheader">{t('dash.colFeasibility')}</span>
+              <span role="columnheader">{t('dash.colRound')}</span>
+              <span role="columnheader">{t('dash.colCreated')}</span>
+            </div>
+            {visible.map((c, i) => {
+              const lang = CAMPAIGN_LANGUAGES.find((l) => l.code === c.target_language)
+              return (
+                <div
+                  key={c.id}
+                  role="row"
+                  tabIndex={0}
+                  className={`${styles.tr} ${styles.row}`}
+                  style={{ '--i': i } as CSSProperties}
+                  onClick={() => navigate(`/campaigns/${c.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') navigate(`/campaigns/${c.id}`)
+                  }}
+                >
+                  <span role="cell" className={styles.cellIdea}>
+                    <strong>{c.idea}</strong>
+                    <small>
+                      {humanize(c.domain_category)}
+                      {lang ? ` · ${lang.label}` : ''}
+                    </small>
+                  </span>
+                  <span role="cell">
+                    <StatusPill status={c.status} />
+                  </span>
+                  <span role="cell" className={styles.cellFeas}>
+                    {c.feasibility_score ?? '—'}
+                    {c.feasibility_score !== null && (
+                      <span className={styles.miniBar} aria-hidden="true">
+                        <span style={{ width: `${c.feasibility_score}%` }} />
+                      </span>
+                    )}
+                  </span>
+                  <span role="cell" className={styles.mono}>
+                    {c.current_round}
+                    {c.max_rounds ? ` / ${c.max_rounds}` : ''}
+                  </span>
+                  <span role="cell" className={styles.cellTime}>
+                    {relTime(c.created_at)}
+                    <svg className={styles.rowArrow} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ===== Help & activity ===== */}
+      <h2 className={styles.sectionTitle}>{t('dash.secHelp')}</h2>
+      <section className={styles.rowHalves}>
+        <div className={`${styles.panel} ${styles.help} ${styles.enter}`} style={{ '--i': 11 } as CSSProperties} id="help">
+          <div className={styles.panelHead}>
+            <div>
+              <h2>{t('dash.helpTitle')}</h2>
+              <p className={styles.panelSub}>{t('dash.helpSub')}</p>
+            </div>
+          </div>
+          <div className={styles.helpBody}>
+            {/* Placeholder until a real walkthrough video exists. */}
+            <div className={styles.video}>
+              <span className={styles.play} aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5.5v13l11-6.5z" />
+                </svg>
+              </span>
+              <span className={styles.videoLabel}>{t('dash.videoPlaceholder')}</span>
+            </div>
+            <div className={styles.helpIntro}>
+              <h3>{t('dash.guideTitle')}</h3>
+              <p>{t('dash.guideBody')}</p>
+            </div>
+          </div>
+          <ul className={styles.helpLinks}>
+            {(
+              [
+                ['/docs', 'helpDocs', 'M5 4h10l4 4v12H5zM14 4v5h5M8 13h8M8 17h6'],
+                ['/status', 'helpStatus', 'M3 12h4l3-7 4 14 3-7h4'],
+                ['/contact', 'helpContact', 'M4 6h16v10H8l-4 4zM8 10h8'],
+              ] as const
+            ).map(([to, key, d]) => (
+              <li key={to}>
+                <Link to={to} className={`${styles.helpLink} wipe-host`}>
+                  <span className={styles.helpIcon} aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d={d} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <span className={styles.helpText}>
+                    <span className="link-wipe">{t(`dash.${key}`)}</span>
+                    <small>{t(`dash.${key}Sub`)}</small>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className={styles.helpTip}>
+            <kbd className={styles.kbd}>Ctrl ↵</kbd> {t('dash.helpShortcut')}
+          </p>
+        </div>
+
+        <div className={`${styles.panel} ${styles.activityPanel} ${styles.enter}`} style={{ '--i': 12 } as CSSProperties}>
+          <div className={styles.panelHead}>
+            <h2>{t('dash.activityTitle')}</h2>
+          </div>
+          {activity.length === 0 ? (
+            <p className={styles.muted}>{t('dash.activityEmpty')}</p>
+          ) : (
+            <ol className={styles.activity}>
+              {activity.map((e) => (
+                <li key={e.key}>
+                  <span className={`${styles.activityDot} ${e.kind === 'measured' ? styles.activityDotAccent : ''}`} aria-hidden="true" />
+                  <Link to={`/campaigns/${e.id}`} className={styles.activityText}>
+                    {e.kind === 'created'
+                      ? t('dash.activityCreated', { idea: e.idea })
+                      : t('dash.activityMeasured', { idea: e.idea, round: e.round })}
+                  </Link>
+                  <time dateTime={e.at}>{relTime(e.at)}</time>
+                </li>
+              ))}
+            </ol>
+          )}
+          <Link to="/calendar" className={`${styles.planLink} link-wipe`}>
+            {t('dash.activityCalendar')} →
+          </Link>
+        </div>
       </section>
     </div>
   )

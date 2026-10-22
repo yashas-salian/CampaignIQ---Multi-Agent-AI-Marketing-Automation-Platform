@@ -124,7 +124,27 @@
     "activityTitle": "Actividad reciente",
     "activityCreated": "Creaste “{{idea}}”",
     "activityMeasured": "Ronda {{round}} medida de “{{idea}}”",
-    "activityEmpty": "Nada aún. La actividad aparece mientras se ejecutan las campañas."
+    "activityEmpty": "Nada aún. La actividad aparece mientras se ejecutan las campañas.",
+    "secStart": "Crear una campaña",
+    "secPerformance": "Rendimiento",
+    "secCampaigns": "Campañas",
+    "secHelp": "Ayuda y actividad",
+    "helpBtn": "Ayuda",
+    "helpTitle": "Ayuda y recursos",
+    "helpSub": "¿Atascado o con curiosidad? Aquí está todo lo que necesitas.",
+    "helpDocs": "Leer la documentación",
+    "helpDocsSub": "Cómo funcionan las campañas, las aprobaciones y el ciclo de aprendizaje",
+    "helpStatus": "Estado del sistema",
+    "helpStatusSub": "Comprueba que todos los servicios funcionan",
+    "helpContact": "Contactar con soporte",
+    "helpContactSub": "Haz una pregunta o informa de un problema",
+    "helpShortcut": "crea una campaña directamente desde el editor.",
+    "trendRounds": "Rondas medidas",
+    "trendAvg": "Recompensa media",
+    "trendLatest": "Última ronda",
+    "planManage": "Gestionar la facturación",
+    "armsNote": "Cada ronda nueva prueba la variante con la mejor recompensa esperada, explorando un poco para que las nuevas tengan su oportunidad.",
+    "activityCalendar": "Ver todo en el calendario"
   },
   "cd": {
     "back": "Todas las campañas",
@@ -250,7 +270,8 @@
     "usernameInvalid": "Usa 2–32 caracteres: letras, números, espacios, puntos, guiones o guiones bajos.",
     "usernameMissing": "Aún no está definido. Añade uno para saber cómo llamarte.",
     "removeKey": "Eliminar",
-    "removed": "Clave de {{capability}} eliminada. Las campañas usan ahora los proveedores incluidos en el plan."
+    "removed": "Clave de {{capability}} eliminada. Las campañas usan ahora los proveedores incluidos en el plan.",
+    "sections": "Secciones"
   },
   "campaignDetail": {
     "backLink": "← Todas las campañas",
@@ -570,5 +591,8 @@
     "finance": "Finanzas",
     "creator": "Creador",
     "general": "Cliente"
+  },
+  "drawer": {
+    "close": "Cerrar"
   }
 }

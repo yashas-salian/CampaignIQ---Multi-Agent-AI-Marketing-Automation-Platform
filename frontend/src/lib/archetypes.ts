@@ -31,6 +31,21 @@ const HINTS: [Archetype, string[]][] = [
   ['professional', ['professional', 'manager', 'executive', 'consultant', 'office', 'corporate']],
 ]
 
+// Mirrors guess_gender() in audience.py: the AI's stated gender wins; older
+// personas use the pronouns in their description. Never guessed from the name.
+export type Gender = 'female' | 'male' | 'unspecified'
+const FEMALE = /\b(she|her|hers|herself|woman|women|mother|mom|mum|wife|girl|grandmother)\b/g
+const MALE = /\b(he|him|his|himself|man|men|father|dad|husband|boy|grandfather)\b/g
+
+export function genderFor(gender: unknown, ...texts: unknown[]): Gender {
+  const picked = typeof gender === 'string' ? gender.trim().toLowerCase() : ''
+  if (picked === 'female' || picked === 'male') return picked
+  const blob = texts.filter((t) => typeof t === 'string').join(' ').toLowerCase()
+  const female = blob.match(FEMALE)?.length ?? 0
+  const male = blob.match(MALE)?.length ?? 0
+  return female > male ? 'female' : male > female ? 'male' : 'unspecified'
+}
+
 export function archetypeFor(archetype: unknown, ...texts: unknown[]): Archetype {
   const picked = typeof archetype === 'string' ? archetype.trim().toLowerCase() : ''
   if ((ARCHETYPES as readonly string[]).includes(picked) && picked !== 'general') return picked as Archetype

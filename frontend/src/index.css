@@ -89,6 +89,10 @@ h1, h2, h3 {
 
 a { color: inherit; }
 
+/* Long URLs, keys and paths in code break onto the next line rather than
+   widening the page on phones. */
+code { overflow-wrap: anywhere; }
+
 /* Site-wide link hover: the text fills with orange from left to right while
    an orange underline draws in the same direction. Use .link-wipe on the text
    itself; put .wipe-host on a larger clickable parent (e.g. a nav cell) to

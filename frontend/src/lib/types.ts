@@ -41,6 +41,7 @@ export interface Persona {
   messaging_angle: string
   is_primary: boolean
   archetype?: string | null
+  gender?: string | null
 }
 
 export interface Iteration {
