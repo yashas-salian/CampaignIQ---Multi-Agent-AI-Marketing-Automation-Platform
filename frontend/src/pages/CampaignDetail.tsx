@@ -7,6 +7,7 @@ import { useSession } from '../lib/useAuth'
 import { useOrg } from '../lib/useOrg'
 import CampaignComments from '../components/CampaignComments'
 import CopyEditor from '../components/CopyEditor'
+import PersonaFigure from '../components/PersonaFigure'
 import { supabase } from '../lib/supabaseClient'
 import type { Campaign, CampaignStatus, GateDecision, Iteration, Persona } from '../lib/types'
 import styles from '../styles/app.module.css'
@@ -553,14 +554,7 @@ export default function CampaignDetail() {
               {personas.map((p) => (
                 <article key={p.id} className={`${local.persona} ${p.is_primary ? local.personaPrimary : ''}`}>
                   <div className={local.personaHead}>
-                    <span className={local.avatar} aria-hidden="true">
-                      {p.name
-                        .split(/\s+/)
-                        .slice(0, 2)
-                        .map((w) => w[0])
-                        .join('')
-                        .toUpperCase()}
-                    </span>
+                    <PersonaFigure archetype={p.archetype} name={p.name} demographics={p.demographics} />
                     <div className={local.personaName}>
                       <strong>{p.name}</strong>
                       {p.is_primary ? (

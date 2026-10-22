@@ -548,5 +548,27 @@
     "brand": "अपनी ब्रांड किट सेट करें",
     "team": "टीम बनाएँ और किसी को आमंत्रित करें",
     "connect": "Slack या API जोड़ें"
+  },
+  "persona": {
+    "teacher": "शिक्षक",
+    "doctor": "डॉक्टर",
+    "nurse": "नर्स",
+    "student": "छात्र",
+    "developer": "डेवलपर",
+    "chef": "शेफ़",
+    "athlete": "खिलाड़ी",
+    "parent": "अभिभावक",
+    "retiree": "सेवानिवृत्त",
+    "professional": "पेशेवर",
+    "entrepreneur": "उद्यमी",
+    "designer": "क्रिएटिव",
+    "farmer": "किसान",
+    "traveler": "यात्री",
+    "gamer": "गेमर",
+    "scientist": "वैज्ञानिक",
+    "tradesperson": "कारीगर",
+    "finance": "वित्त",
+    "creator": "क्रिएटर",
+    "general": "ग्राहक"
   }
 }

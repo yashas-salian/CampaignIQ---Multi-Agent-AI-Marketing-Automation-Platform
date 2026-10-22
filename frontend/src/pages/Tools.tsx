@@ -1,6 +1,8 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
+import PersonaFigure from '../components/PersonaFigure'
 import { CAMPAIGN_LANGUAGES } from '../lib/languages'
 import { supabase } from '../lib/supabaseClient'
 import styles from '../styles/app.module.css'
@@ -127,6 +129,7 @@ function ResultView({ capability, result }: { capability: string; result: unknow
       <div className={local.personas}>
         {r.map((p, i) => (
           <article key={i} className={local.persona} style={{ '--i': i } as CSSProperties}>
+            <PersonaFigure archetype={p.archetype} name={p.name} demographics={p.demographics} size="lg" />
             <strong>{String(p.name ?? `#${i + 1}`)}</strong>
             {['demographics', 'psychographics'].map((k) => (p[k] ? <p key={k}>{String(p[k])}</p> : null))}
             <div className={local.personaChips}>

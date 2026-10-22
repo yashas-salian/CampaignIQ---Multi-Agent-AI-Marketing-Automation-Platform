@@ -548,5 +548,27 @@
     "brand": "Set up your brand kit",
     "team": "Create a team and invite someone",
     "connect": "Connect Slack or the API"
+  },
+  "persona": {
+    "teacher": "Teacher",
+    "doctor": "Doctor",
+    "nurse": "Nurse",
+    "student": "Student",
+    "developer": "Developer",
+    "chef": "Chef",
+    "athlete": "Athlete",
+    "parent": "Parent",
+    "retiree": "Retiree",
+    "professional": "Professional",
+    "entrepreneur": "Entrepreneur",
+    "designer": "Creative",
+    "farmer": "Farmer",
+    "traveler": "Traveller",
+    "gamer": "Gamer",
+    "scientist": "Scientist",
+    "tradesperson": "Tradesperson",
+    "finance": "Finance",
+    "creator": "Creator",
+    "general": "Customer"
   }
 }

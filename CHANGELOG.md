@@ -14,6 +14,11 @@ GitHub Release notes.
 ## [Unreleased]
 
 ### Added
+- **3D persona figures** on campaign persona cards and Tools → Personas results:
+  - **The set:** a fixed set of 20 archetypes (teacher with books, doctor in a white coat with a stethoscope, chef, developer, …), each a stylised 3D character in `frontend/public/personas/`, re-rendered with `frontend/scripts/render_personas.py`.
+  - **Choosing a figure:** the personas prompt (`audience.personas` 1.1.0) picks the archetype. An off-list or "general" answer falls back to keyword matching on the name and demographics. That same fallback covers personas created before this change, both in Python and in `lib/archetypes.ts`.
+  - **Storage:** a new `personas.archetype` column (migration `20261022000900`).
+- **Remove a saved provider key** in Settings → Provider keys; its Vault secret is deleted with it.
 - **Onboarding checklist** on the Dashboard: 6 steps worked out from real data, dismissible.
 - **Public docs** (`/docs`).
 - **Public status page** (`/status`): fed by an `uptime.yml` workflow that probes the site, database API, sign-in and Edge Functions every 15 minutes, showing 24-hour and 7-day uptime and 48-hour hourly bars.

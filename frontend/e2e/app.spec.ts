@@ -82,3 +82,37 @@ test('the admin console turns non-operators away', async ({ page }) => {
   await page.goto('/admin')
   await expect(page).toHaveURL(/\/dashboard$/)
 })
+
+test('persona cards show a 3D figure per archetype, guessing for older personas', async ({ page }) => {
+  await signIn(page)
+  const now = new Date().toISOString()
+  const campaign = {
+    id: 'c1', org_id: ORG.id, idea: 'Lesson planner for teachers', domain_category: 'education', feasibility_score: 70,
+    feasibility_rationale: 'ok', status: 'awaiting_gate_1', current_round: 0, reddit_subreddit: null, email_to: null,
+    cta_url: null, use_image_template: false, use_email_template: false, max_rounds: null, max_duration_minutes: null,
+    campaign_summary: null, distributed_at: null, stop_requested: false, target_language: 'en', created_at: now, updated_at: now,
+  }
+  const persona = (id: string, name: string, demographics: string, archetype: string | null) => ({
+    id, campaign_id: 'c1', name, demographics, psychographics: '-', channel_fit: 'email', messaging_angle: '-',
+    is_primary: id === 'p1', archetype,
+  })
+  const personas = [
+    persona('p1', 'Maya', '34, maths teacher', 'teacher'),
+    persona('p2', 'Dr. Okafor', 'hospital physician', null), // pre-archetype row: guessed from text
+  ]
+  await page.route('**/rest/v1/campaigns?*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(campaign) }))
+  await page.route('**/rest/v1/personas?*', (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(personas) })
+      : route.fallback(),
+  )
+  await page.goto('/campaigns/c1')
+  const figures = page.locator('figure img')
+  await expect(figures).toHaveCount(2)
+  await expect(figures.nth(0)).toHaveAttribute('src', '/personas/teacher.webp')
+  await expect(figures.nth(1)).toHaveAttribute('src', '/personas/doctor.webp')
+  await expect(page.getByText('Teacher', { exact: true })).toBeVisible()
+  // The image actually loads from public/ (no broken figure); it's lazy, so bring it into view first.
+  await figures.nth(0).scrollIntoViewIfNeeded()
+  await expect.poll(() => figures.nth(0).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBeGreaterThan(0)
+})

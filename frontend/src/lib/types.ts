@@ -40,6 +40,7 @@ export interface Persona {
   channel_fit: string
   messaging_angle: string
   is_primary: boolean
+  archetype?: string | null
 }
 
 export interface Iteration {

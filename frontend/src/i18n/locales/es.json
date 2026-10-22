@@ -548,5 +548,27 @@
     "brand": "Configura tu kit de marca",
     "team": "Crea un equipo e invita a alguien",
     "connect": "Conecta Slack o la API"
+  },
+  "persona": {
+    "teacher": "Docente",
+    "doctor": "Médico",
+    "nurse": "Enfermería",
+    "student": "Estudiante",
+    "developer": "Desarrollador",
+    "chef": "Chef",
+    "athlete": "Deportista",
+    "parent": "Familia",
+    "retiree": "Jubilado",
+    "professional": "Profesional",
+    "entrepreneur": "Emprendedor",
+    "designer": "Creativo",
+    "farmer": "Agricultor",
+    "traveler": "Viajero",
+    "gamer": "Gamer",
+    "scientist": "Científico",
+    "tradesperson": "Oficios",
+    "finance": "Finanzas",
+    "creator": "Creador",
+    "general": "Cliente"
   }
 }

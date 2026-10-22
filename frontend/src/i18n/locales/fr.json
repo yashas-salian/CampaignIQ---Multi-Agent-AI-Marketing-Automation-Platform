@@ -548,5 +548,27 @@
     "brand": "Configurer votre charte de marque",
     "team": "Créer une équipe et inviter quelqu'un",
     "connect": "Connecter Slack ou l'API"
+  },
+  "persona": {
+    "teacher": "Enseignant",
+    "doctor": "Médecin",
+    "nurse": "Infirmier",
+    "student": "Étudiant",
+    "developer": "Développeur",
+    "chef": "Chef",
+    "athlete": "Sportif",
+    "parent": "Parent",
+    "retiree": "Retraité",
+    "professional": "Cadre",
+    "entrepreneur": "Entrepreneur",
+    "designer": "Créatif",
+    "farmer": "Agriculteur",
+    "traveler": "Voyageur",
+    "gamer": "Joueur",
+    "scientist": "Scientifique",
+    "tradesperson": "Artisan",
+    "finance": "Finance",
+    "creator": "Créateur",
+    "general": "Client"
   }
 }

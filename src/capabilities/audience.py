@@ -15,6 +15,46 @@ IncomeTier = Literal["low", "mid", "high"]
 _AGE_BRACKETS = ("18-24", "25-34", "35-44", "45-54", "55+")
 _INCOME_TIERS = ("low", "mid", "high")
 
+# Who the persona is, visually: picks the 3D figure shown on persona cards
+# (frontend/public/personas/<archetype>.webp). Must match render_personas.py.
+ARCHETYPES = (
+    "teacher", "doctor", "nurse", "student", "developer", "chef", "athlete", "parent", "retiree",
+    "professional", "entrepreneur", "designer", "farmer", "traveler", "gamer", "scientist",
+    "tradesperson", "finance", "creator", "general",
+)
+
+# Keyword fallback for personas written before archetypes existed, or when the
+# model's answer isn't on the list. First match wins, so specific roles go first.
+_ARCHETYPE_HINTS = [
+    ("nurse", ("nurse", "nursing")),
+    ("doctor", ("doctor", "physician", "surgeon", "dentist", "medical", "clinician")),
+    ("teacher", ("teacher", "educator", "professor", "tutor", "lecturer")),
+    ("student", ("student", "undergrad", "college", "university", "school")),
+    ("developer", ("developer", "engineer", "programmer", "software", "coder", "devops")),
+    ("chef", ("chef", "cook", "baker", "restaurant", "culinary")),
+    ("athlete", ("athlete", "runner", "fitness", "gym", "yoga", "sport", "cyclist")),
+    ("parent", ("parent", "mother", "father", "mom", "dad", "mum")),
+    ("retiree", ("retiree", "retired", "pensioner", "senior", "grandparent")),
+    ("scientist", ("scientist", "researcher", "lab", "biologist", "chemist")),
+    ("designer", ("designer", "artist", "creative", "illustrator", "architect")),
+    ("farmer", ("farmer", "agricultur", "grower")),
+    ("traveler", ("traveler", "traveller", "backpacker", "tourist", "nomad")),
+    ("gamer", ("gamer", "gaming", "esports")),
+    ("tradesperson", ("construction", "electrician", "plumber", "mechanic", "tradesperson", "carpenter")),
+    ("finance", ("finance", "accountant", "analyst", "banker", "investor")),
+    ("creator", ("creator", "influencer", "youtuber", "streamer", "blogger")),
+    ("entrepreneur", ("entrepreneur", "founder", "business owner", "shop owner", "freelancer", "self-employed")),
+    ("professional", ("professional", "manager", "executive", "consultant", "office", "corporate")),
+]
+
+
+def guess_archetype(*texts: str) -> str:
+    blob = " ".join(t for t in texts if t).lower()
+    for archetype, words in _ARCHETYPE_HINTS:
+        if any(w in blob for w in words):
+            return archetype
+    return "general"
+
 
 class Persona(BaseModel):
     name: str
@@ -24,6 +64,7 @@ class Persona(BaseModel):
     messaging_angle: str
     age_bracket: AgeBracket
     income_tier: IncomeTier
+    archetype: str = "general"
 
 
 def _coerce_to_str(value: object) -> str:
@@ -56,6 +97,7 @@ def generate_personas(
         language=language_name(target_language),
         age_brackets=list(_AGE_BRACKETS),
         income_tiers=list(_INCOME_TIERS),
+        archetypes=list(ARCHETYPES),
     )
     personas_raw = generate_json(get_llm(user_id), prompt, system=system)
     return [
@@ -67,6 +109,17 @@ def generate_personas(
             messaging_angle=_coerce_to_str(p["messaging_angle"]),
             age_bracket=_coerce_literal(p.get("age_bracket"), _AGE_BRACKETS, "25-34"),
             income_tier=_coerce_literal(p.get("income_tier"), _INCOME_TIERS, "mid"),
+            archetype=_archetype(p),
         )
         for p in personas_raw
     ]
+
+
+def _archetype(p: dict) -> str:
+    # Trust the model's pick when it is on the list (any case); "general" or an
+    # off-list answer falls back to the keyword guess, so a "Nurse Priya" the
+    # model left as "general" still gets the nurse figure.
+    picked = _coerce_to_str(p.get("archetype", "")).strip().lower()
+    if picked in ARCHETYPES and picked != "general":
+        return picked
+    return guess_archetype(_coerce_to_str(p.get("name", "")), _coerce_to_str(p.get("demographics", "")))
