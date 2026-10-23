@@ -109,3 +109,45 @@ def update_arm(arm_index: int, context: np.ndarray, reward: float) -> None:
             "total_reward": float(arm["total_reward"]) + reward,
         }
     ).eq("arm_index", arm_index).execute()
+
+
+def _arm_view(arm: dict, contexts: list[np.ndarray]) -> dict:
+    """One arm's standing for this audience: expected reward, uncertainty bonus, history."""
+    a_inv = np.linalg.inv(np.array(arm["a_matrix"]))
+    theta = a_inv @ np.array(arm["b_vector"])
+    # Averaged over the active channels so both terms stay on the 0-1 reward scale.
+    expected = float(np.mean([theta @ x for x in contexts]))
+    bonus = float(np.mean([ALPHA * np.sqrt(x @ a_inv @ x) for x in contexts]))
+    pulls = int(arm.get("pulls") or 0)
+    return {
+        "arm_index": arm["arm_index"],
+        "image_style": arm["image_style"],
+        "copy_tone": arm["copy_tone"],
+        "expected": round(expected, 3),
+        "bonus": round(bonus, 3),
+        "score": round(expected + bonus, 3),
+        "pulls": pulls,
+        "mean_reward": round(float(arm.get("total_reward") or 0) / pulls, 3) if pulls else None,
+    }
+
+
+def explain_choice(
+    age_bracket: str, income_tier: str, domain_category: str, active_channels: list[str], chosen_index: int
+) -> dict:
+    """Why an arm was picked, for the "Why this ad?" panel: its expected reward,
+    how much of its score is still exploration, and the runners-up."""
+    contexts = [build_context_vector(age_bracket, income_tier, channel, domain_category) for channel in active_channels]
+    views = sorted((_arm_view(arm, contexts) for arm in _get_all_arms()), key=lambda v: (-v["score"], v["arm_index"]))
+    chosen = next(v for v in views if v["arm_index"] == chosen_index)
+    return {
+        "algorithm": "LinUCB",
+        "alpha": ALPHA,
+        "context": {"age_bracket": age_bracket, "income_tier": income_tier, "domain_category": domain_category, "channels": active_channels},
+        "chosen": chosen,
+        # Exploiting when the evidence outweighs the uncertainty bonus, exploring otherwise.
+        "mode": "exploit" if chosen["expected"] >= chosen["bonus"] else "explore",
+        "rank": views.index(chosen) + 1,
+        "alternatives": [v for v in views if v["arm_index"] != chosen_index][:3],
+        "arms_tried": sum(1 for v in views if v["pulls"]),
+        "total_rounds": sum(v["pulls"] for v in views),
+    }

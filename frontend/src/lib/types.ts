@@ -1,3 +1,5 @@
+import type { FocusGroupResult } from '../components/FocusGroup'
+import type { ArmExplanation } from '../components/ArmExplain'
 export type CampaignStatus =
   | 'created'
   | 'awaiting_gate_1'
@@ -60,6 +62,8 @@ export interface Iteration {
   copy_tone: string | null
   arm_index: number | null
   guardrail_flags: GuardrailFlags | null
+  arm_explain?: ArmExplanation | null
+  focus_group?: FocusGroupResult | null
   copy_text_b?: string | null
   image_style_b?: string | null
   copy_tone_b?: string | null

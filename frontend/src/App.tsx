@@ -1,6 +1,9 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import Toaster from './components/Toaster'
+import PageLoader, { LoadingMarker } from './components/PageLoader'
+import { signOutWithToast } from './lib/notify'
 import { UI_LOCALES } from './i18n'
 import LogoMark from './components/LogoMark'
 import Select from './components/Select'
@@ -25,6 +28,8 @@ const Admin = lazy(() => import('./pages/Admin'))
 const Metrics = lazy(() => import('./pages/Metrics'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Tools = lazy(() => import('./pages/Tools'))
+const ToolsHistory = lazy(() => import('./pages/ToolsHistory'))
+const ModelCard = lazy(() => import('./pages/ModelCard'))
 // Secondary public pages, also on demand.
 const About = lazy(() => import('./pages/About'))
 const Contact = lazy(() => import('./pages/Contact'))
@@ -47,13 +52,12 @@ function ScrollToTop() {
 
 /** Lazy public pages show nothing while loading; their own entrance animation covers it. */
 function Lazy({ children }: { children: ReactNode }) {
-  return <Suspense fallback={null}>{children}</Suspense>
+  return <Suspense fallback={<LoadingMarker />}>{children}</Suspense>
 }
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, loading } = useSession()
-  const { t } = useTranslation()
-  const fallback = <p className={`p-8 ${styles.muted}`}>{t('common.loading')}</p>
+  const fallback = <LoadingMarker />
   const { pathname, search } = useLocation()
   if (loading) return fallback
   if (!session) {
@@ -97,7 +101,7 @@ function ThemeToggle() {
 
 // The app bar belongs to the logged-in app only; public pages (and the 404)
 // render their own header even for a logged-in visitor.
-const APP_PREFIXES = ['/dashboard', '/calendar', '/campaigns', '/tools', '/settings', '/admin']
+const APP_PREFIXES = ['/dashboard', '/calendar', '/campaigns', '/tools', '/settings', '/admin', '/models']
 
 /**
  * Username cell with a dropdown (account email, Settings, Sign out). Opens on
@@ -182,6 +186,9 @@ function AccountMenu({ name, email }: { name: string | null; email: string }) {
         <Link role="menuitem" to="/settings#account" className={styles.menuItem} onClick={() => setOpen(false)}>
           {t('common.settings')}
         </Link>
+        <Link role="menuitem" to="/models" className={styles.menuItem} onClick={() => setOpen(false)}>
+          {t('mc.nav')}
+        </Link>
         <Link role="menuitem" to="/settings#team" className={styles.menuItem} onClick={() => setOpen(false)}>
           {t('org.team')}
         </Link>
@@ -190,7 +197,7 @@ function AccountMenu({ name, email }: { name: string | null; email: string }) {
             {t('admin.title')}
           </Link>
         )}
-        <button role="menuitem" type="button" className={`${styles.menuItem} ${styles.menuDanger}`} onClick={() => supabase.auth.signOut()}>
+        <button role="menuitem" type="button" className={`${styles.menuItem} ${styles.menuDanger}`} onClick={() => signOutWithToast(t)}>
           {t('st.signOut')}
         </button>
       </div>
@@ -308,6 +315,22 @@ function App() {
             }
           />
           <Route
+            path="/tools/history"
+            element={
+              <ProtectedRoute>
+                <ToolsHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/models"
+            element={
+              <ProtectedRoute>
+                <ModelCard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/settings"
             element={
               <ProtectedRoute>
@@ -325,6 +348,8 @@ function App() {
           />
           <Route path="*" element={<Lazy><NotFound /></Lazy>} />
         </Routes>
+        <PageLoader />
+        <Toaster />
         </OrgProvider>
       </BrowserRouter>
     </ThemeProvider>

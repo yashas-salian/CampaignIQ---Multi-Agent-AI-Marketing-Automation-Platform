@@ -99,6 +99,24 @@ _CATALOG = [
         ),
     ),
     Prompt(
+        id="focus_group.react",
+        version="1.0.0",
+        system=(
+            "You simulate a small focus group of real people seeing an ad in their feed. Each person reacts "
+            f"honestly in their own voice, including indifference or objections. {_JSON_ONLY}"
+        ),
+        template=(
+            "Ad copy:\n{copy}\n"
+            "Image description:\n{image_prompt}\n\n"
+            "The focus group, one person per line:\n{panel}\n\n"
+            "For each person, in the same order, give their honest first reaction. Respond with ONLY a JSON "
+            'array with one object per person, each with exactly these keys: "name" (as given), "reaction" '
+            '(exactly one of "click", "scroll", "object", always in English: would click, would scroll past, '
+            'or would actively object), "likelihood" (integer 0-100, how likely they are to click) and "quote" '
+            "(one first-person sentence under 25 words, in {language}, saying why)."
+        ),
+    ),
+    Prompt(
         id="feedback.decide",
         version="1.0.0",
         system=f"You are a marketing performance analyst deciding whether a campaign is working. {_JSON_ONLY}",

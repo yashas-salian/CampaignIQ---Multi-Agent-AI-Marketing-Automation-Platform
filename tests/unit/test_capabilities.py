@@ -118,6 +118,22 @@ class TestFeedbackCorrection:
         directive = run_feedback_correction("idea", metrics, current_round=3, max_rounds=3)
         assert directive.continue_campaign is False
 
+    def test_unmeasured_round_continues_without_an_llm_call(self, monkeypatch):
+        # DRY_RUN (or every delivery failed): no channel was measured. That is no
+        # signal, so the campaign must not be stopped as if it scored zero.
+        monkeypatch.setattr("src.capabilities.feedback_correction.get_llm", lambda *a: pytest.fail("no LLM without data"))
+        metrics = MetricsResult(channel_rewards={}, overall_reward=0.0, raw={})
+        directive = run_feedback_correction("idea", metrics, current_round=1, max_rounds=3)
+        assert directive.continue_campaign is True
+
+    def test_measured_zero_still_asks_the_model(self, monkeypatch, fake_llm):
+        monkeypatch.setattr(
+            "src.capabilities.feedback_correction.get_llm",
+            lambda *a: fake_llm('{"continue_campaign": false, "reasoning": "no clicks", "adjustments": ""}'),
+        )
+        metrics = MetricsResult(channel_rewards={"email": 0.0}, overall_reward=0.0, raw={})
+        assert run_feedback_correction("idea", metrics, current_round=1, max_rounds=3).continue_campaign is False
+
     def test_summary_aggregates_rewards_and_engagement(self, monkeypatch):
         monkeypatch.setattr("src.db.supabase_client.get_all_iterations", lambda cid: [{}, {}])
         monkeypatch.setattr(

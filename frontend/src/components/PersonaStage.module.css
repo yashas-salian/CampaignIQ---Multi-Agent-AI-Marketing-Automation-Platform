@@ -1,0 +1,29 @@
+/* The figure stands on its own above the info card: no frame, no background. */
+.stage {
+  position: relative; height: 340px; display: grid; place-items: end center;
+}
+/* Soft floor shadow so the figure reads as standing, not floating. */
+.stage::after {
+  content: ''; position: absolute; bottom: 4px; left: 50%; width: 46%; height: 18px; transform: translateX(-50%);
+  border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, 0.28), transparent); pointer-events: none;
+}
+.canvas { position: absolute; inset: 0; cursor: grab; touch-action: pan-y; border-radius: 16px; }
+.canvas:active { cursor: grabbing; }
+.canvas:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: 2px; }
+.canvas canvas { display: block; width: 100% !important; height: 100% !important; }
+/* Until a 3D model exists: the 2D figure, as large as the stage allows. */
+.still {
+  position: relative; z-index: 1; height: 100%; max-width: 100%; aspect-ratio: 1; object-fit: cover;
+  border-radius: 24px;
+}
+.initials {
+  position: relative; z-index: 1; align-self: center; width: 150px; height: 150px; border-radius: 50%;
+  display: grid; place-items: center; font-family: var(--font-display); font-size: 52px; font-weight: 600;
+  color: var(--mos-accent); background: var(--mos-bg-raised); border: 1px solid var(--mos-surface-border);
+}
+.hint {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 2; pointer-events: none;
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--mos-text-muted); opacity: 0.8;
+}
+@media (max-width: 900px) { .stage { height: 300px; } }

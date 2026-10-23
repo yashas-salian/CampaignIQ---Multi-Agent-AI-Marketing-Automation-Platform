@@ -4,41 +4,41 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabaseClient'
 import styles from '../styles/app.module.css'
 import local from './TeamSettings.module.css'
+import { toast } from '../lib/toast'
+import { signOutWithToast, toastFailure } from '../lib/notify'
 
 /** GDPR self-service: download everything about me, or delete my account. */
 export default function PrivacySettings() {
   const { t } = useTranslation()
   const [busy, setBusy] = useState<'export' | 'delete' | null>(null)
   const [confirmText, setConfirmText] = useState('')
-  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
   async function exportData() {
     setBusy('export')
-    setMessage(null)
     const { data, error } = await supabase.rpc('export_my_data')
     setBusy(null)
     if (error || !data) {
-      setMessage({ ok: false, text: error?.message ?? t('privacy.exportFailed') })
+      toastFailure(t, error ?? t('privacy.exportFailed'))
       return
     }
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
     const a = Object.assign(document.createElement('a'), { href: url, download: `marketingos-data-${new Date().toISOString().slice(0, 10)}.json` })
     a.click()
     URL.revokeObjectURL(url)
+    toast.success(t('toast.exportStarted'))
   }
 
   async function deleteAccount() {
     setBusy('delete')
-    setMessage(null)
     const { error, response } = await supabase.functions.invoke('delete-account', { body: { confirm: 'DELETE' } })
     if (error) {
       // 409 carries the reason (e.g. last owner of a team) in the body.
       const body = response ? ((await response.json().catch(() => null)) as { error?: string } | null) : null
-      setMessage({ ok: false, text: body?.error ?? error.message })
+      toastFailure(t, body?.error ?? error.message)
       setBusy(null)
       return
     }
-    await supabase.auth.signOut()
+    await signOutWithToast(t)
   }
 
   return (
@@ -65,12 +65,6 @@ export default function PrivacySettings() {
           </button>
         </div>
       </div>
-
-      {message && (
-        <p className={message.ok ? styles.muted : local.error} role="alert">
-          {message.text}
-        </p>
-      )}
     </div>
   )
 }

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import i18next from 'i18next'
 
 import { roleCan, type Role } from './roles'
+import { toastLoadError } from './notify'
 import { supabase } from './supabaseClient'
 import { useSession } from './useAuth'
 import { OrgContext, type Org, type OrgState } from './useOrg'
@@ -29,10 +31,14 @@ export default function OrgProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       return
     }
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('memberships')
       .select('role, organizations(id, name, personal)')
       .eq('user_id', userId)
+    if (toastLoadError(i18next.t, error, () => reload())) {
+      setLoading(false)
+      return
+    }
     const list: Org[] = (data ?? [])
       .map((m) => {
         const o = m.organizations as unknown as { id: string; name: string; personal: boolean } | null

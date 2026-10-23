@@ -107,8 +107,11 @@ test('persona cards show a 3D figure matching role and gender, guessing for olde
       ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(personas) })
       : route.fallback(),
   )
+  // No 3D models here: this checks the picture fallback (the 3D path has its own test).
+  await page.route('**/personas/models/**', (route) => route.fulfill({ status: 404, body: '' }))
   await page.goto('/campaigns/c1')
-  const figures = page.locator('figure img')
+  // The 2D figure stands in until a 3D model exists for that role and gender.
+  const figures = page.locator('img[src^="/personas/"]')
   await expect(figures).toHaveCount(2)
   await expect(figures.nth(0)).toHaveAttribute('src', '/personas/teacher-female.webp')
   await expect(figures.nth(1)).toHaveAttribute('src', '/personas/doctor-female.webp')
@@ -177,4 +180,145 @@ test('settings: scrolling to the bottom marks the last section, a picked section
   await nav.getByRole('link', { name: /templates/i }).click()
   await page.waitForTimeout(800)
   await expect.poll(currentLabel).toMatch(/templates/i)
+})
+
+// A one-triangle model, enough to prove the 3D path mounts a canvas.
+const TINY_GLB = 'Z2xURgIAAACYAQAAWAEAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAifSwic2NlbmUiOjAsInNjZW5lcyI6W3sibm9kZXMiOlswXX1dLCJub2RlcyI6W3sibWVzaCI6MH1dLCJtZXNoZXMiOlt7InByaW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjB9fV19XSwiYnVmZmVycyI6W3siYnl0ZUxlbmd0aCI6MzZ9XSwiYnVmZmVyVmlld3MiOlt7ImJ1ZmZlciI6MCwiYnl0ZU9mZnNldCI6MCwiYnl0ZUxlbmd0aCI6MzZ9XSwiYWNjZXNzb3JzIjpbeyJidWZmZXJWaWV3IjowLCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MywidHlwZSI6IlZFQzMiLCJtaW4iOlstMC41LDAsMF0sIm1heCI6WzAuNSwxLjgsMF19XX0gICQAAABCSU4AAAAAvwAAAAAAAAAAAAAAPwAAAAAAAAAAAAAAAGZm5j8AAAAA'
+
+test('a persona with a 3D model shows a rotatable canvas instead of the picture', async ({ page }) => {
+  await signIn(page)
+  const now = new Date().toISOString()
+  const campaign = {
+    id: 'c1', org_id: ORG.id, idea: 'Lesson planner', domain_category: 'education', feasibility_score: 70, feasibility_rationale: 'ok',
+    status: 'awaiting_gate_1', current_round: 0, reddit_subreddit: null, email_to: null, cta_url: null, use_image_template: false,
+    use_email_template: false, max_rounds: null, max_duration_minutes: null, campaign_summary: null, distributed_at: null,
+    stop_requested: false, target_language: 'en', created_at: now, updated_at: now,
+  }
+  const persona = { id: 'p1', campaign_id: 'c1', name: 'Maya', demographics: '34', psychographics: '-', channel_fit: 'email', messaging_angle: '-', is_primary: true, archetype: 'teacher', gender: 'female' }
+  await page.route('**/rest/v1/campaigns?*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(campaign) }))
+  await page.route('**/rest/v1/personas?*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([persona]) }))
+  await page.route('**/personas/models/teacher-female.glb', (route) =>
+    route.fulfill({ status: 200, contentType: 'model/gltf-binary', body: Buffer.from(TINY_GLB, 'base64') }),
+  )
+  await page.goto('/campaigns/c1')
+  // Software WebGL in CI is slow under parallel load: allow it time to build the scene.
+  const stage = page.getByRole('img', { name: /3d figure: teacher/i })
+  await expect(stage).toBeVisible({ timeout: 20000 })
+  await expect(stage.locator('canvas')).toHaveCount(1, { timeout: 20000 })
+  await expect(stage).toHaveAttribute('data-ready', 'true', { timeout: 20000 })
+  // Keyboard turning works without a mouse.
+  await stage.focus()
+  await page.keyboard.press('ArrowRight')
+})
+
+const RUNS = [
+  { id: 'r1', capability: 'personas', status: 'completed', params: { idea: 'Meal kits for night-shift nurses', target_language: 'en' }, result: [{ name: 'Priya' }, { name: 'Omar' }], error: null, created_at: '2026-10-20T10:00:00Z' },
+  { id: 'r2', capability: 'feasibility', status: 'failed', params: { idea: 'Budget app for freelancers', target_language: 'es' }, result: null, error: 'Groq quota exceeded', created_at: '2026-09-05T10:00:00Z' },
+  { id: 'r3', capability: 'image', status: 'completed', params: { prompt: 'Sunrise over a running track' }, result: { image_base64: 'x' }, error: null, created_at: '2025-12-31T10:00:00Z' },
+]
+
+test('tools: the input clears after Run, and the drawer links to the full history', async ({ page }) => {
+  await signIn(page)
+  await page.route('**/functions/v1/trigger-capability-run', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ run_id: 'new-run' }) }))
+  await page.goto('/tools')
+  const box = page.getByPlaceholder(/./).first()
+  await box.fill('Protein snacks for gamers')
+  await page.getByRole('button', { name: /^run/i }).click()
+  await expect(box).toHaveValue('')
+
+  await page.getByRole('button', { name: /recent runs/i }).click()
+  await page.getByRole('link', { name: /see all history/i }).click()
+  await expect(page).toHaveURL(/\/tools\/history$/)
+})
+
+test('tools history: search and filters cover every run, and a run opens back in Tools', async ({ page }) => {
+  await signIn(page)
+  await page.route('**/rest/v1/capability_runs?*', (route) => {
+    const url = route.request().url()
+    const one = /id=eq\.([^&]+)/.exec(url)?.[1]
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(one ? RUNS.find((r) => r.id === one) ?? null : RUNS) })
+  })
+  await page.goto('/tools/history')
+  await expect(page.getByText('3 runs')).toBeVisible()
+
+  // Search reaches into results and errors, not just the typed idea.
+  await page.getByRole('textbox', { name: /search runs/i }).fill('priya')
+  await expect(page.getByText('1 run', { exact: true })).toBeVisible()
+  await expect(page.getByText(/night-shift nurses/)).toBeVisible()
+  await page.getByRole('textbox', { name: /search runs/i }).fill('quota')
+  await expect(page.getByText(/budget app for freelancers/i)).toBeVisible()
+
+  // Filters: a year, then clear.
+  await page.getByRole('button', { name: /clear filters/i }).first().click()
+  await page.getByRole('combobox', { name: /^when$/i }).click()
+  await page.getByRole('option', { name: /a year/i }).click()
+  await page.getByRole('combobox', { name: /^year$/i }).click()
+  await page.getByRole('option', { name: '2025' }).click()
+  await expect(page.getByText(/sunrise over a running track/i)).toBeVisible()
+  await expect(page.getByText(/night-shift nurses/)).toHaveCount(0)
+
+  await page.getByText(/sunrise over a running track/i).click()
+  await expect(page).toHaveURL(/\/tools$/)
+})
+
+test('campaign page: interview a persona, and Gate 2 shows the audience verdict and why this ad', async ({ page }) => {
+  await signIn(page)
+  const now = new Date().toISOString()
+  const campaign = {
+    id: 'c1', org_id: ORG.id, idea: 'Lesson planner', domain_category: 'education', feasibility_score: 70, feasibility_rationale: 'ok',
+    status: 'awaiting_gate_2', current_round: 1, reddit_subreddit: null, email_to: null, cta_url: null, use_image_template: false,
+    use_email_template: false, max_rounds: 3, max_duration_minutes: null, campaign_summary: null, distributed_at: null,
+    stop_requested: false, target_language: 'en', created_at: now, updated_at: now,
+  }
+  const persona = { id: '9b2f1c7e-0000-4000-8000-000000000001', campaign_id: 'c1', name: 'Maya Rao', demographics: '34, maths teacher', psychographics: 'busy', channel_fit: 'email', messaging_angle: 'saves time', is_primary: true, archetype: 'teacher', gender: 'female' }
+  const iteration = {
+    id: 'i1', campaign_id: 'c1', round_number: 1, preflight_attempt: 1, copy_text: 'Plan a week of lessons in 10 minutes.', image_prompt: 'desk',
+    preflight_score: 64, preflight_passed: true, bluesky_post_uri: null, reddit_post_url: null, email_id: null, image_style: 'minimalist', copy_tone: 'direct_factual', arm_index: 0, guardrail_flags: null,
+    focus_group: { reactions: [{ name: 'Maya Rao', archetype: 'teacher', gender: 'female', reaction: 'click', likelihood: 82, quote: 'This would save my Sundays.' }], verdict: { click: 1, scroll: 0, object: 0 }, average_likelihood: 82 },
+    arm_explain: { algorithm: 'LinUCB', alpha: 0.5, context: { age_bracket: '25-34', income_tier: 'mid', domain_category: 'education', channels: ['email'] }, chosen: { arm_index: 0, image_style: 'minimalist', copy_tone: 'direct_factual', expected: 0, bonus: 0.5, score: 0.5, pulls: 0, mean_reward: null }, mode: 'explore', rank: 1, alternatives: [], arms_tried: 0, total_rounds: 0 },
+  }
+  await page.route('**/rest/v1/campaigns?*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(campaign) }))
+  await page.route('**/rest/v1/personas?*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([persona]) }))
+  await page.route('**/rest/v1/iterations?*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([iteration]) }))
+  await page.route('**/rest/v1/gate_decisions?*', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'g1', campaign_id: 'c1', gate_number: 2, round_number: 1, decision: null, decided_at: null }) }),
+  )
+  await page.route('**/personas/models/**', (route) => route.fulfill({ status: 404, body: '' }))
+  await page.route('**/functions/v1/persona-chat', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ answer: 'Honestly, about 300 rupees a month.', remaining: 19 }) }),
+  )
+  await page.goto('/campaigns/c1')
+
+  // Gate 2: the personas' verdict, before approving.
+  await expect(page.getByRole('region', { name: /audience verdict/i }).first()).toBeVisible()
+  await expect(page.getByText('This would save my Sundays.').first()).toBeVisible()
+  // Why this ad?
+  await page.getByText(/why this ad\?/i).first().click()
+  await expect(page.getByText(/to learn/i).first()).toBeVisible()
+
+  // Interview the persona.
+  await page.getByRole('button', { name: /interview maya/i }).click()
+  const chat = page.getByRole('dialog', { name: /interview with maya rao/i })
+  await expect(chat).toBeVisible()
+  await chat.getByRole('textbox').fill('What price feels fair?')
+  await chat.getByRole('button', { name: /send/i }).click()
+  await expect(chat.getByText('Honestly, about 300 rupees a month.')).toBeVisible()
+  await expect(chat.getByText(/19 questions left/i)).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(chat).toBeHidden()
+})
+
+test('model card shows our model against its base, the learning loop and deployment', async ({ page }) => {
+  await signIn(page)
+  await page.route('**/rest/v1/rpc/model_card', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      versions: [{ version: 'v1', revision: null, trained_at: '2026-10-21T10:00:00Z', base_model: 'Qwen2.5-1.5B-Instruct', method: 'LoRA', data: { synthetic_examples: 560, corrections_used: 0, labels: 12 }, metrics: { golden: 0.8333, golden_n: 18, heldout: 0.75, heldout_n: 96 }, baseline_metrics: { label: 'Base Qwen2.5-1.5B', golden: 0.5556, heldout: 0.5417 }, notes: null }],
+      deployment: { active_revision: null, candidate_revision: null, mode: 'off', canary_percent: 0, updated_at: '2026-10-21T10:00:00Z' },
+      shadow: { compared: 0, agreement: null }, corrections: { total: 4, since_last_training: 4, last_30_days: 4 },
+    }) }),
+  )
+  await page.goto('/models')
+  await expect(page.getByRole('heading', { name: /domain classifier/i })).toBeVisible()
+  await expect(page.getByText('83%').first()).toBeVisible()
+  await expect(page.getByText('+28 pts')).toBeVisible()
 })

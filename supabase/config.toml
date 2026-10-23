@@ -445,3 +445,6 @@ verify_jwt = true
 [functions.stripe-webhook]
 # Authenticated by the Stripe-Signature header, not a Supabase JWT.
 verify_jwt = false
+
+[functions.persona-chat]
+verify_jwt = true

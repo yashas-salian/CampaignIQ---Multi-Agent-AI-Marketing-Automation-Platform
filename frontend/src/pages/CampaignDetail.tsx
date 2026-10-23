@@ -7,7 +7,14 @@ import { useSession } from '../lib/useAuth'
 import { useOrg } from '../lib/useOrg'
 import CampaignComments from '../components/CampaignComments'
 import CopyEditor from '../components/CopyEditor'
-import PersonaFigure from '../components/PersonaFigure'
+import ArmExplain from '../components/ArmExplain'
+import FocusGroup from '../components/FocusGroup'
+import PersonaChat from '../components/PersonaChat'
+import PersonaStage from '../components/PersonaStage'
+import { archetypeFor } from '../lib/archetypes'
+import { toast } from '../lib/toast'
+import { toastFailure, toastLoadError } from '../lib/notify'
+import { usePageLoading } from '../lib/loading'
 import { supabase } from '../lib/supabaseClient'
 import type { Campaign, CampaignStatus, GateDecision, Iteration, Persona } from '../lib/types'
 import styles from '../styles/app.module.css'
@@ -186,17 +193,21 @@ export default function CampaignDetail() {
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [stopping, setStopping] = useState(false)
+  const [chatWith, setChatWith] = useState<Persona | null>(null)
   const [confirm, setConfirm] = useState<'reject' | 'stop' | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
   const [category, setCategory] = useState('')
+
+  usePageLoading(!campaign && !missing)
 
   const load = useCallback(async () => {
     if (!id) return
-    const [{ data: campaignData }, { data: personaData }, { data: iterationData }] = await Promise.all([
+    const [{ data: campaignData, error: campaignError }, { data: personaData }, { data: iterationData }] = await Promise.all([
       supabase.from('campaigns').select('*').eq('id', id).maybeSingle(),
       supabase.from('personas').select('*').eq('campaign_id', id),
       supabase.from('iterations').select('*').eq('campaign_id', id).order('round_number').order('preflight_attempt'),
     ])
+    // A failed request isn't "not found": say so and offer a retry.
+    if (toastLoadError(t, campaignError, () => load())) return
     if (!campaignData) {
       setMissing(true)
       return
@@ -230,7 +241,7 @@ export default function CampaignDetail() {
       setPendingGate(null)
       setVotes([])
     }
-  }, [id])
+  }, [id, t])
 
   useEffect(() => {
     load()
@@ -258,12 +269,6 @@ export default function CampaignDetail() {
     return () => clearTimeout(timer)
   }, [confirm])
 
-  useEffect(() => {
-    if (!notice) return
-    const timer = setTimeout(() => setNotice(null), 6000)
-    return () => clearTimeout(timer)
-  }, [notice])
-
   async function resumeNow() {
     // Best-effort: the scheduled sweep is the reliability backstop if this fails.
     try {
@@ -286,7 +291,11 @@ export default function CampaignDetail() {
     const predicted = campaign?.domain_category
     const corrected = pendingGate.gate_number === 1 && decision !== 'reject' && category && predicted && category !== predicted
     if (corrected && campaign) {
-      await supabase.from('campaigns').update({ domain_category: category }).eq('id', campaign.id)
+      const { error: categoryError } = await supabase.from('campaigns').update({ domain_category: category }).eq('id', campaign.id)
+      if (toastFailure(t, categoryError)) {
+        setSubmitting(false)
+        return
+      }
       const { error: correctionError } = await supabase.from('domain_corrections').insert({
         campaign_id: campaign.id,
         idea: campaign.idea,
@@ -304,13 +313,13 @@ export default function CampaignDetail() {
       .insert({ gate_decision_id: pendingGate.id, decision, comment: comment || null })
     if (voteError) {
       setSubmitting(false)
-      setNotice(voteError.message)
+      toastFailure(t, voteError)
       return
     }
     await resumeNow()
     setSubmitting(false)
     setComment('')
-    setNotice(t('cd.decisionSent'))
+    toast.success(t('cd.decisionSent'))
     await load()
   }
 
@@ -322,8 +331,11 @@ export default function CampaignDetail() {
     }
     setConfirm(null)
     setStopping(true)
-    await supabase.from('campaigns').update({ stop_requested: true }).eq('id', id)
-    await resumeNow()
+    const { error } = await supabase.from('campaigns').update({ stop_requested: true }).eq('id', id)
+    if (!toastFailure(t, error)) {
+      await resumeNow()
+      toast.success(t('cd.stopRequested'))
+    }
     setStopping(false)
     await load()
   }
@@ -334,8 +346,10 @@ export default function CampaignDetail() {
     setPersonas((prev) =>
       prev.map((p) => ({ ...p, is_primary: p.id === personaId })).sort((a, b) => Number(b.is_primary) - Number(a.is_primary)),
     )
-    await supabase.from('personas').update({ is_primary: false }).eq('campaign_id', id)
-    await supabase.from('personas').update({ is_primary: true }).eq('id', personaId)
+    const { error: clearError } = await supabase.from('personas').update({ is_primary: false }).eq('campaign_id', id)
+    const { error } = clearError ? { error: clearError } : await supabase.from('personas').update({ is_primary: true }).eq('id', personaId)
+    // On failure the reload puts the real order back.
+    toastFailure(t, error)
     await load()
   }
 
@@ -435,12 +449,6 @@ export default function CampaignDetail() {
         </div>
       </header>
 
-      {notice && (
-        <p className={`${styles.toast} ${styles.toastOk}`} role="status">
-          {notice}
-        </p>
-      )}
-
       {gateOpen && (
         <section className={`${styles.panel} ${local.gate} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties} aria-live="polite">
           <div className={local.gateHead}>
@@ -451,6 +459,7 @@ export default function CampaignDetail() {
             </div>
           </div>
           {pendingGate.gate_number === 2 && <BrandSafety flags={rounds[0]?.guardrail_flags ?? null} />}
+          {pendingGate.gate_number === 2 && rounds[0]?.focus_group && <FocusGroup result={rounds[0].focus_group} />}
           {pendingGate.gate_number === 2 && canApprove && !alreadyVoted && rounds[0]?.copy_text && (
             <CopyEditor campaignId={campaign.id} round={rounds[0].round_number} variant="a" text={rounds[0].copy_text} people={voters} onSaved={load} />
           )}
@@ -541,30 +550,41 @@ export default function CampaignDetail() {
         </ol>
       </section>
 
-      <div className={styles.grid2}>
-        <section className={`${styles.panel} ${styles.enter}`} style={{ '--i': 4 } as CSSProperties}>
-          <div className={styles.panelHead}>
-            <h2>{t('campaignDetail.personasTitle')}</h2>
-            <span className={styles.chip}>{personas.length}</span>
-          </div>
-          {personas.length === 0 ? (
-            <p className={styles.muted}>{t('cd.noPersonas')}</p>
-          ) : (
-            <div className={local.personas}>
-              {personas.map((p) => (
-                <article key={p.id} className={`${local.persona} ${p.is_primary ? local.personaPrimary : ''}`}>
-                  <div className={local.personaHead}>
-                    <PersonaFigure archetype={p.archetype} gender={p.gender} name={p.name} demographics={p.demographics} psychographics={p.psychographics} />
-                    <div className={local.personaName}>
-                      <strong>{p.name}</strong>
-                      {p.is_primary ? (
-                        <span className={local.primaryBadge}>{t('campaignDetail.primaryBadge')}</span>
-                      ) : canApprove && (
-                        <button type="button" className={`${local.makePrimary} link-wipe`} onClick={() => setPrimaryPersona(p.id)}>
-                          {t('campaignDetail.makePrimary')}
-                        </button>
-                      )}
-                    </div>
+      {/* Feasibility first (it's scored before personas), as one wide card. */}
+      <section className={`${styles.panel} ${local.feasPanel} ${styles.enter}`} style={{ '--i': 4 } as CSSProperties}>
+        <ScoreRing score={campaign.feasibility_score} />
+        <div className={local.feasText}>
+          <h2>{t('campaignDetail.feasibilityTitle')}</h2>
+          <p className={`${styles.muted} ${local.rationale}`}>{campaign.feasibility_rationale || t('cd.noRationale')}</p>
+        </div>
+      </section>
+
+      {chatWith && <PersonaChat target={{ kind: 'persona', id: chatWith.id }} persona={chatWith} onClose={() => setChatWith(null)} />}
+
+      {/* Personas side by side: each figure stands above its own info card. */}
+      <section className={`${styles.panel} ${styles.enter}`} style={{ '--i': 5 } as CSSProperties}>
+        <div className={styles.panelHead}>
+          <h2>{t('campaignDetail.personasTitle')}</h2>
+          <span className={styles.chip}>{personas.length}</span>
+        </div>
+        {personas.length === 0 ? (
+          <p className={styles.muted}>{t('cd.noPersonas')}</p>
+        ) : (
+          <div className={local.personas}>
+            {personas.map((p) => (
+              <div key={p.id} className={local.personaCol}>
+                <PersonaStage archetype={p.archetype} gender={p.gender} name={p.name} demographics={p.demographics} psychographics={p.psychographics} />
+                <article className={`${local.persona} ${p.is_primary ? local.personaPrimary : ''}`}>
+                  <span className={local.role}>{t(`persona.${archetypeFor(p.archetype, p.name, p.demographics)}`)}</span>
+                  <div className={local.personaName}>
+                    <strong>{p.name}</strong>
+                    {p.is_primary ? (
+                      <span className={local.primaryBadge}>{t('campaignDetail.primaryBadge')}</span>
+                    ) : canApprove && (
+                      <button type="button" className={`${local.makePrimary} link-wipe`} onClick={() => setPrimaryPersona(p.id)}>
+                        {t('campaignDetail.makePrimary')}
+                      </button>
+                    )}
                   </div>
                   <p>{p.demographics}</p>
                   <p>{p.psychographics}</p>
@@ -578,20 +598,16 @@ export default function CampaignDetail() {
                       <dd>{p.messaging_angle}</dd>
                     </div>
                   </dl>
+                  <button type="button" className={local.interview} onClick={() => setChatWith(p)}>
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /><path d="M8 10h8M8 13h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+                    {t('chat.open', { name: p.name.split(' ')[0] })}
+                  </button>
                 </article>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className={`${styles.panel} ${styles.enter}`} style={{ '--i': 5 } as CSSProperties}>
-          <div className={styles.panelHead}>
-            <h2>{t('campaignDetail.feasibilityTitle')}</h2>
+              </div>
+            ))}
           </div>
-          <ScoreRing score={campaign.feasibility_score} />
-          <p className={`${styles.muted} ${local.rationale}`}>{campaign.feasibility_rationale || t('cd.noRationale')}</p>
-        </section>
-      </div>
+        )}
+      </section>
 
       <section className={`${styles.panel} ${styles.enter}`} style={{ '--i': 6 } as CSSProperties}>
         <div className={styles.panelHead}>
@@ -662,6 +678,8 @@ export default function CampaignDetail() {
                           )}
                           {it.email_id && <span className={`${styles.chip} ${styles.chipOk}`}>Email</span>}
                         </div>
+                        {!gateOpen && it.focus_group && <FocusGroup result={it.focus_group} compact />}
+                        {it.arm_explain && <ArmExplain explain={it.arm_explain} />}
                       </div>
                     </div>
                   </div>

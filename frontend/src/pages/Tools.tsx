@@ -1,57 +1,20 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link, useSearchParams } from 'react-router-dom'
 
-import PersonaFigure from '../components/PersonaFigure'
+import PersonaStage from '../components/PersonaStage'
+import PersonaChat from '../components/PersonaChat'
+import { archetypeFor } from '../lib/archetypes'
+import { CAP_META, CAPABILITIES, RUN_COLUMNS, isCapability, runInput, type Capability, type Run } from '../lib/capabilityRuns'
 import SideDrawer from '../components/SideDrawer'
+import { toast } from '../lib/toast'
+import { toastLoadError } from '../lib/notify'
 import { CAMPAIGN_LANGUAGES } from '../lib/languages'
 import { supabase } from '../lib/supabaseClient'
 import styles from '../styles/app.module.css'
 import local from './Tools.module.css'
 import Select from '../components/Select'
-
-const CAPABILITIES = ['feasibility', 'personas', 'image'] as const
-type Capability = (typeof CAPABILITIES)[number]
-type RunStatus = 'pending' | 'running' | 'completed' | 'failed'
-
-interface Run {
-  id: string
-  capability: string
-  status: RunStatus
-  params: Record<string, unknown>
-  result: unknown
-  error: string | null
-  created_at: string
-}
-
-const CAP_META: Record<Capability, { title: string; desc: string; icon: ReactNode }> = {
-  feasibility: {
-    title: 'tl.capFeasibility',
-    desc: 'tl.capFeasibilityDesc',
-    icon: <path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />,
-  },
-  personas: {
-    title: 'tl.capPersonas',
-    desc: 'tl.capPersonasDesc',
-    icon: (
-      <>
-        <circle cx="9" cy="8" r="3.5" stroke="currentColor" strokeWidth="2" />
-        <path d="M2.5 20c1-3.5 3.6-5.5 6.5-5.5s5.5 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.7 3 2.5 3.5 5.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </>
-    ),
-  },
-  image: {
-    title: 'tl.capImage',
-    desc: 'tl.capImageDesc',
-    icon: (
-      <>
-        <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="2" />
-        <path d="M3 15l5-5 4 4 3-3 6 6" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-        <circle cx="15.5" cy="8.5" r="1.5" fill="currentColor" />
-      </>
-    ),
-  },
-}
 
 const PROGRESS: { key: string; label: string }[] = [
   { key: 'dispatched', label: 'tl.stepDispatch' },
@@ -60,7 +23,6 @@ const PROGRESS: { key: string; label: string }[] = [
   { key: 'completed', label: 'tl.stDone' },
 ]
 
-const isCapability = (c: string): c is Capability => (CAPABILITIES as readonly string[]).includes(c)
 const humanize = (s: string) => s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
 
 /** Drops huge base64 blobs from the raw JSON view. */
@@ -73,8 +35,9 @@ function compact(value: unknown): unknown {
   return value
 }
 
-function ResultView({ capability, result }: { capability: string; result: unknown }) {
+function ResultView({ capability, result, runId }: { capability: string; result: unknown; runId: string }) {
   const { t } = useTranslation()
+  const [chatIndex, setChatIndex] = useState<number | null>(null)
   const r = result as Record<string, unknown> | Record<string, unknown>[] | null
 
   if (capability === 'image' && r && !Array.isArray(r) && typeof r.image_base64 === 'string') {
@@ -129,8 +92,10 @@ function ResultView({ capability, result }: { capability: string; result: unknow
     return (
       <div className={local.personas}>
         {r.map((p, i) => (
-          <article key={i} className={local.persona} style={{ '--i': i } as CSSProperties}>
-            <PersonaFigure archetype={p.archetype} gender={p.gender} name={p.name} demographics={p.demographics} psychographics={p.psychographics} size="lg" />
+          <div key={i} className={local.personaCol} style={{ '--i': i } as CSSProperties}>
+          <PersonaStage archetype={p.archetype} gender={p.gender} name={p.name} demographics={p.demographics} psychographics={p.psychographics} />
+          <article className={local.persona}>
+            <span className={local.role}>{t(`persona.${archetypeFor(p.archetype, p.name, p.demographics)}`)}</span>
             <strong>{String(p.name ?? `#${i + 1}`)}</strong>
             {['demographics', 'psychographics'].map((k) => (p[k] ? <p key={k}>{String(p[k])}</p> : null))}
             <div className={local.personaChips}>
@@ -143,8 +108,20 @@ function ResultView({ capability, result }: { capability: string; result: unknow
               )}
             </div>
             {p.messaging_angle ? <p className={local.angle}>“{String(p.messaging_angle)}”</p> : null}
+            <button type="button" className={local.interview} onClick={() => setChatIndex(i)}>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /><path d="M8 10h8M8 13h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+              {t('chat.open', { name: String(p.name ?? '').split(' ')[0] })}
+            </button>
           </article>
+          </div>
         ))}
+        {chatIndex !== null && r[chatIndex] && (
+          <PersonaChat
+            target={{ kind: 'run', runId, index: chatIndex }}
+            persona={{ ...r[chatIndex], name: String(r[chatIndex].name ?? '') }}
+            onClose={() => setChatIndex(null)}
+          />
+        )}
       </div>
     )
   }
@@ -159,19 +136,21 @@ export default function Tools() {
   const [prompt, setPrompt] = useState('')
   const [language, setLanguage] = useState('en')
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [runs, setRuns] = useState<Run[]>([])
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [params, setParams] = useSearchParams()
+  const [opened, setOpened] = useState<Run | null>(null)
 
   const loadRuns = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('capability_runs')
-      .select('id,capability,status,params,result,error,created_at')
+      .select(RUN_COLUMNS)
       .order('created_at', { ascending: false })
       .limit(8)
+    if (toastLoadError(t, error, () => loadRuns())) return
     setRuns((data as Run[]) ?? [])
-  }, [])
+  }, [t])
 
   useEffect(() => {
     loadRuns()
@@ -192,19 +171,40 @@ export default function Tools() {
     const value = capability === 'image' ? prompt.trim() : idea.trim()
     if (!value || submitting) return
     setSubmitting(true)
-    setError(null)
     const params = capability === 'image' ? { prompt: value } : { idea: value, target_language: language }
     const { data, error: invokeError } = await supabase.functions.invoke('trigger-capability-run', {
       body: { capability, params },
     })
     setSubmitting(false)
     if (invokeError) {
-      setError(t('tl.failedDispatch', { message: invokeError.message }))
+      toast.error(t('tl.failedDispatch', { message: invokeError.message }))
       return
     }
     setActiveId(data.run_id)
+    // The run is on its way: clear the box for the next one (the input stays visible in history).
+    if (capability === 'image') setPrompt('')
+    else setIdea('')
     await loadRuns()
   }
+
+  // Arriving from Tools history with ?run=<id>: show that run and its inputs.
+  const wantedRun = params.get('run')
+  useEffect(() => {
+    if (!wantedRun) return
+    supabase
+      .from('capability_runs')
+      .select(RUN_COLUMNS)
+      .eq('id', wantedRun)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (toastLoadError(t, error, () => setParams({ run: wantedRun }))) return
+        if (data) {
+          setOpened(data as Run)
+          reuse(data as Run)
+        }
+        setParams({}, { replace: true })
+      })
+  }, [wantedRun, t, setParams])
 
   function reuse(run: Run) {
     if (!isCapability(run.capability)) return
@@ -215,7 +215,7 @@ export default function Tools() {
     setActiveId(run.id)
   }
 
-  const active = runs.find((r) => r.id === activeId) ?? null
+  const active = runs.find((r) => r.id === activeId) ?? (opened?.id === activeId ? opened : null)
   const progressIndex = !active ? (submitting ? 0 : -1) : active.status === 'pending' ? 1 : active.status === 'running' ? 2 : 3
   const failed = active?.status === 'failed'
   const inputValue = capability === 'image' ? prompt : idea
@@ -300,11 +300,6 @@ export default function Tools() {
                 )}
               </button>
             </div>
-            {error && (
-              <p className={`${styles.toast} ${styles.toastError}`} role="alert">
-                {error}
-              </p>
-            )}
           </section>
 
           <section className={`${styles.panel} ${styles.enter}`} style={{ '--i': 5 } as CSSProperties} aria-live="polite">
@@ -344,7 +339,7 @@ export default function Tools() {
             )}
             {active?.status === 'completed' && (
               <div className={local.result}>
-                <ResultView capability={active.capability} result={active.result} />
+                <ResultView capability={active.capability} result={active.result} runId={active.id} />
                 <details className={styles.details}>
                   <summary>{t('tl.rawJson')}</summary>
                   <pre className={styles.code}>{JSON.stringify(compact(active.result), null, 2)}</pre>
@@ -367,7 +362,7 @@ export default function Tools() {
           ) : (
             <ul className={local.history}>
               {runs.map((r) => {
-                const input = String(r.params.idea ?? r.params.prompt ?? '')
+                const input = runInput(r)
                 return (
                   <li key={r.id}>
                     <button type="button" className={`${local.historyItem} ${r.id === activeId ? local.historyActive : ''}`} onClick={() => {
@@ -386,6 +381,9 @@ export default function Tools() {
               })}
             </ul>
           )}
+          <Link to="/tools/history" className={`${local.allHistory} link-wipe`} onClick={() => setHistoryOpen(false)}>
+            {t('hist.seeAll')} →
+          </Link>
       </SideDrawer>
     </div>
   )

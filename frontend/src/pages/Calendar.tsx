@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom'
 
 import type { Campaign, Metric } from '../lib/types'
 import { supabase } from '../lib/supabaseClient'
+import { toastLoadError } from '../lib/notify'
+import { usePageLoading } from '../lib/loading'
 import { useOrg } from '../lib/useOrg'
 import styles from '../styles/app.module.css'
 import local from './Calendar.module.css'
@@ -49,14 +51,20 @@ export default function Calendar() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([])
   const [gates, setGates] = useState<Gate[]>([])
   const [metrics, setMetrics] = useState<Metric[]>([])
+  const [loaded, setLoaded] = useState(false)
+  usePageLoading(!loaded)
 
   const load = useCallback(async () => {
     if (!active) return
-    const { data: c } = await supabase.from('campaigns').select('*').eq('org_id', active.id).order('created_at', { ascending: false })
+    const { data: c, error } = await supabase.from('campaigns').select('*').eq('org_id', active.id).order('created_at', { ascending: false })
+    if (toastLoadError(t, error, () => load())) return
     const list = (c as Campaign[] | null) ?? []
     setCampaigns(list)
     const ids = list.map((x) => x.id)
-    if (!ids.length) return
+    if (!ids.length) {
+      setLoaded(true)
+      return
+    }
     const [{ data: d }, { data: g }, { data: m }] = await Promise.all([
       supabase.from('deliveries').select('campaign_id,round_number,channel,status,updated_at').in('campaign_id', ids).in('status', ['sent', 'dry_run']),
       supabase.from('gate_decisions').select('campaign_id,gate_number,round_number,created_at').in('campaign_id', ids).is('decided_at', null),
@@ -65,7 +73,8 @@ export default function Calendar() {
     setDeliveries((d as Delivery[] | null) ?? [])
     setGates((g as Gate[] | null) ?? [])
     setMetrics((m as Metric[] | null) ?? [])
-  }, [active])
+    setLoaded(true)
+  }, [active, t])
 
   useEffect(() => {
     load()

@@ -10,6 +10,9 @@ import SideDrawer from '../components/SideDrawer'
 import UsageStats from '../components/UsageStats'
 import PrivacySettings from '../components/PrivacySettings'
 import TeamSettings from '../components/TeamSettings'
+import { toast } from '../lib/toast'
+import { signOutWithToast, toastFailure, toastLoadError } from '../lib/notify'
+import { usePageLoading } from '../lib/loading'
 import { useOrg } from '../lib/useOrg'
 import { isValidUsername, normalizeUsername, saveUsername, usernameOf } from '../lib/profile'
 import { supabase } from '../lib/supabaseClient'
@@ -48,12 +51,14 @@ const KEY_ICONS: Record<KeyCapability, ReactNode> = {
   judge: <path d="M12 3l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.4 6.7 19.1l1-5.8L3.5 9.2l5.9-.9z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />,
 }
 
+// Inline only for field validation (an invalid username); results are toasts.
 function NoticeLine({ notice, onClose }: { notice: Notice; onClose: () => void }) {
+  const { t } = useTranslation()
   if (!notice) return null
   return (
     <p className={`${styles.toast} ${notice.kind === 'ok' ? styles.toastOk : styles.toastError}`} role={notice.kind === 'ok' ? 'status' : 'alert'}>
       {notice.text}
-      <button type="button" onClick={onClose} aria-label="Dismiss">
+      <button type="button" onClick={onClose} aria-label={t('toast.dismiss')}>
         ×
       </button>
     </p>
@@ -68,12 +73,10 @@ export default function Settings() {
   const [inputs, setInputs] = useState<Record<string, string>>({})
   const [reveal, setReveal] = useState<Record<string, boolean>>({})
   const [submitting, setSubmitting] = useState<string | null>(null)
-  const [keyNotice, setKeyNotice] = useState<Notice>(null)
   const [tier, setTier] = useState<'free' | 'subscribed'>('free')
 
   const [templates, setTemplates] = useState<Record<string, Template>>({})
   const [emailHtml, setEmailHtml] = useState('')
-  const [templateNotice, setTemplateNotice] = useState<Notice>(null)
   const [savingTemplate, setSavingTemplate] = useState<'image' | 'email' | null>(null)
   const [dragging, setDragging] = useState(false)
   const savedUsername = usernameOf(session?.user)
@@ -87,40 +90,32 @@ export default function Settings() {
   }, [savedUsername])
 
   const load = useCallback(async () => {
-    const [{ data }, { data: sub }] = await Promise.all([
+    const [{ data, error }, { data: sub }] = await Promise.all([
       supabase.from('provider_keys_masked').select('*'),
       supabase.from('subscriptions').select('status').maybeSingle(),
     ])
+    if (toastLoadError(t, error, () => load())) return
     const byCapability: Record<string, MaskedKey> = {}
     for (const row of (data as MaskedKey[]) ?? []) byCapability[row.capability] = row
     setKeys(byCapability)
     setTier(sub?.status === 'subscribed' ? 'subscribed' : 'free')
-  }, [])
+  }, [t])
 
   const loadTemplates = useCallback(async () => {
-    const { data } = await supabase.from('templates').select('*')
+    const { data, error } = await supabase.from('templates').select('*')
+    if (toastLoadError(t, error, () => loadTemplates())) return
     const byType: Record<string, Template> = {}
     for (const row of (data as Template[]) ?? []) byType[row.template_type] = row
     setTemplates(byType)
     setEmailHtml(byType.email?.email_html ?? '')
-  }, [])
+  }, [t])
 
+  // Cover the page until keys and templates are in, so no field shows empty first.
+  const [loaded, setLoaded] = useState(false)
+  usePageLoading(!loaded)
   useEffect(() => {
-    load()
-    loadTemplates()
+    Promise.all([load(), loadTemplates()]).finally(() => setLoaded(true))
   }, [load, loadTemplates])
-
-  // Notices clear themselves.
-  useEffect(() => {
-    if (!keyNotice) return
-    const id = setTimeout(() => setKeyNotice(null), 7000)
-    return () => clearTimeout(id)
-  }, [keyNotice])
-  useEffect(() => {
-    if (!templateNotice) return
-    const id = setTimeout(() => setTemplateNotice(null), 7000)
-    return () => clearTimeout(id)
-  }, [templateNotice])
 
   // Deleting the row also deletes its Vault secret (database trigger); campaigns
   // then fall back to the plan's own providers.
@@ -128,11 +123,7 @@ export default function Settings() {
     setSubmitting(capability)
     const { error } = await supabase.from('provider_keys').delete().eq('capability', capability)
     setSubmitting(null)
-    setKeyNotice(
-      error
-        ? { kind: 'error', text: t('st.failed', { message: error.message }) }
-        : { kind: 'ok', text: t('st.removed', { capability: t(`st.cap_${capability}`) }) },
-    )
+    if (!toastFailure(t, error)) toast.success(t('st.removed', { capability: t(`st.cap_${capability}`) }))
     await load()
   }
 
@@ -140,16 +131,12 @@ export default function Settings() {
     const apiKey = inputs[capability]?.trim()
     if (!apiKey) return
     setSubmitting(capability)
-    setKeyNotice(null)
     const { data, error } = await supabase.functions.invoke('submit-provider-key', {
       body: { capability, api_key: apiKey },
     })
     setSubmitting(null)
-    if (error) {
-      setKeyNotice({ kind: 'error', text: t('st.failed', { message: error.message }) })
-      return
-    }
-    setKeyNotice({ kind: 'ok', text: t('st.saved', { capability: t(`st.cap_${capability}`), masked: data.masked_key }) })
+    if (toastFailure(t, error)) return
+    toast.success(t('st.saved', { capability: t(`st.cap_${capability}`), masked: data.masked_key }))
     setInputs((prev) => ({ ...prev, [capability]: '' }))
     setReveal((prev) => ({ ...prev, [capability]: false }))
     await load()
@@ -157,20 +144,30 @@ export default function Settings() {
 
   async function uploadImageTemplate(file: File) {
     const userId = session?.user.id
-    if (!userId || !file.type.startsWith('image/')) return
+    if (!userId) return
+    if (!file.type.startsWith('image/')) {
+      toast.error(t('st.notImage'))
+      return
+    }
     setSavingTemplate('image')
-    setTemplateNotice(null)
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve((reader.result as string).split(',')[1])
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
+    let base64: string
+    try {
+      base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve((reader.result as string).split(',')[1])
+        reader.onerror = () => reject(reader.error ?? new Error(t('st.fileUnreadable')))
+        reader.readAsDataURL(file)
+      })
+    } catch (readError) {
+      setSavingTemplate(null)
+      toastFailure(t, readError)
+      return
+    }
     const { error } = await supabase
       .from('templates')
       .upsert({ user_id: userId, template_type: 'image', image_base64: base64 }, { onConflict: 'user_id,template_type' })
     setSavingTemplate(null)
-    setTemplateNotice(error ? { kind: 'error', text: t('st.failed', { message: error.message }) } : { kind: 'ok', text: t('st.imageSaved') })
+    if (!toastFailure(t, error)) toast.success(t('st.imageSaved'))
     if (!error) await loadTemplates()
   }
 
@@ -178,12 +175,11 @@ export default function Settings() {
     const userId = session?.user.id
     if (!userId) return
     setSavingTemplate('email')
-    setTemplateNotice(null)
     const { error } = await supabase
       .from('templates')
       .upsert({ user_id: userId, template_type: 'email', email_html: emailHtml }, { onConflict: 'user_id,template_type' })
     setSavingTemplate(null)
-    setTemplateNotice(error ? { kind: 'error', text: t('st.failed', { message: error.message }) } : { kind: 'ok', text: t('st.emailSaved') })
+    if (!toastFailure(t, error)) toast.success(t('st.emailSaved'))
     if (!error) await loadTemplates()
   }
 
@@ -204,7 +200,7 @@ export default function Settings() {
     const { error } = await saveUsername(usernameDraft)
     setSavingName(false)
     // On success Supabase emits USER_UPDATED, so every useSession() (greeting, etc.) picks up the new name.
-    setNameNotice(error ? { kind: 'error', text: t('st.failed', { message: error.message }) } : { kind: 'ok', text: t('st.usernameSaved') })
+    if (!toastFailure(t, error)) toast.success(t('st.usernameSaved'))
   }
 
   // The backend swaps "{{copy}}" for the ad copy (distribution_email.py); preview the same way.
@@ -354,7 +350,7 @@ export default function Settings() {
               </div>
             </dl>
             <div className={local.accountFoot}>
-              <button type="button" className={`${styles.btn} ${styles.danger}`} onClick={() => supabase.auth.signOut()}>
+              <button type="button" className={`${styles.btn} ${styles.danger}`} onClick={() => signOutWithToast(t)}>
                 {t('st.signOut')}
               </button>
               <nav className={local.legalLinks} aria-label="Legal">
@@ -449,7 +445,6 @@ export default function Settings() {
               </svg>
               {t('st.securityNote')}
             </p>
-            <NoticeLine notice={keyNotice} onClose={() => setKeyNotice(null)} />
             <div className={local.keys}>
               {CAPABILITIES.map((capability) => {
                 const existing = keys[capability]
@@ -537,7 +532,6 @@ export default function Settings() {
                 <p className={styles.panelSub}>{t('settings.templatesSubtitle')}</p>
               </div>
             </div>
-            <NoticeLine notice={templateNotice} onClose={() => setTemplateNotice(null)} />
 
             <div className={local.templates}>
               <div className={local.tplBlock}>

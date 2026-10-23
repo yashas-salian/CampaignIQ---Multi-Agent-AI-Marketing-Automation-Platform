@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabaseClient'
 import { useOrg } from '../lib/useOrg'
 import styles from '../styles/app.module.css'
 import local from './TeamSettings.module.css'
+import { toast } from '../lib/toast'
+import { toastFailure } from '../lib/notify'
 
 interface Billing {
   status: string | null
@@ -19,28 +21,38 @@ export default function BillingSettings() {
   const [plan, setPlan] = useState<string>('free')
   const [billing, setBilling] = useState<Billing | null>(null)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const returned = new URLSearchParams(window.location.search).get('billing')
+
+  // Back from checkout: thank once, then drop the flag so a reload doesn't repeat it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('billing') !== 'success') return
+    toast.success(t('billing.thanks'))
+    params.delete('billing')
+    const query = params.toString()
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`)
+  }, [t])
 
   useEffect(() => {
     if (!active) return
-    supabase.rpc('org_usage', { p_org: active.id }).then(({ data }) => setPlan((data as { plan?: string } | null)?.plan ?? 'free'))
+    supabase.rpc('org_usage', { p_org: active.id }).then(({ data, error }) => {
+      if (error) toastFailure(t, error)
+      else setPlan((data as { plan?: string } | null)?.plan ?? 'free')
+    })
     supabase
       .from('org_billing')
       .select('status,current_period_end,stripe_customer_id')
       .eq('org_id', active.id)
       .maybeSingle()
       .then(({ data }) => setBilling((data as Billing | null) ?? null))
-  }, [active])
+  }, [active, t])
 
   async function go(action: 'checkout' | 'portal') {
     if (!active) return
     setBusy(true)
-    setError(null)
     const { data, error: err, response } = await supabase.functions.invoke('billing', { body: { action, org_id: active.id } })
     if (err) {
       const body = response ? ((await response.json().catch(() => null)) as { error?: string } | null) : null
-      setError(body?.error ?? err.message)
+      toastFailure(t, body?.error ?? err.message)
       setBusy(false)
       return
     }
@@ -51,7 +63,6 @@ export default function BillingSettings() {
   const renews = billing?.current_period_end ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(billing.current_period_end)) : null
   return (
     <div className={local.team}>
-      {returned === 'success' && <p className={styles.muted}>{t('billing.thanks')}</p>}
       <div className={local.member}>
         <div className={local.who}>
           <strong>{t('billing.plan', { plan: plan.toUpperCase() })}</strong>
@@ -72,7 +83,6 @@ export default function BillingSettings() {
         )}
       </div>
       <p className={styles.muted}>{owner ? t('billing.testNote') : t('billing.ownersOnly')}</p>
-      {error && <p className={local.error} role="alert">{error}</p>}
     </div>
   )
 }

@@ -22,6 +22,8 @@ class Creative(BaseModel):
     copy_tone: str
     arm_index: int
     guardrails: GuardrailResult = GuardrailResult()
+    # Why the bandit picked this arm (bandit.explain_choice); shown as "Why this ad?".
+    arm_explain: dict | None = None
 
 
 # Extra copy attempts when brand-safety checks block a draft (see guardrails.py).
@@ -105,4 +107,15 @@ def generate_creative(
         copy_tone=copy_tone,
         arm_index=arm_index,
         guardrails=checks,
+        arm_explain=_explain(persona, domain_category, active_channels, arm_index),
     )
+
+
+def _explain(persona: Persona, domain_category: str, active_channels: list[str], arm_index: int) -> dict | None:
+    # An explanation is nice to have: never let it fail a creative.
+    try:
+        from src.tools.bandit import explain_choice
+
+        return explain_choice(persona.age_bracket, persona.income_tier, domain_category, active_channels, arm_index)
+    except Exception:
+        return None

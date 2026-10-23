@@ -5,9 +5,11 @@ import { ROLES, roleCan, type Role } from '../lib/roles'
 import { useOrg } from '../lib/useOrg'
 import { supabase } from '../lib/supabaseClient'
 import { useSession } from '../lib/useAuth'
+import { copyWithToast, toastFailure, toastLoadError } from '../lib/notify'
 import styles from '../styles/app.module.css'
 import local from './TeamSettings.module.css'
 import Select from './Select'
+import { toast } from '../lib/toast'
 
 interface Member {
   user_id: string
@@ -38,7 +40,6 @@ export default function TeamSettings() {
   const [inviteRole, setInviteRole] = useState<Role>('marketer')
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [newOrg, setNewOrg] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   const orgId = active?.id
@@ -47,25 +48,26 @@ export default function TeamSettings() {
 
   const load = useCallback(async () => {
     if (!orgId) return
-    const [{ data: m }, { data: i }] = await Promise.all([
+    const [{ data: m, error: membersError }, { data: i }] = await Promise.all([
       supabase.rpc('org_members', { p_org: orgId }),
       manage
         ? supabase.from('invitations').select('id,email,role,expires_at').eq('org_id', orgId).is('accepted_at', null)
         : Promise.resolve({ data: [] as Invitation[] }),
     ])
+    if (toastLoadError(t, membersError, () => load())) return
     setMembers((m as Member[] | null) ?? [])
     setInvites((i as Invitation[] | null) ?? [])
-  }, [orgId, manage])
+  }, [orgId, manage, t])
 
   useEffect(() => {
     load()
   }, [load])
 
-  async function run(action: () => PromiseLike<{ error: { message: string } | null }>) {
+  // Every member/invite change: a success toast, or the failure.
+  async function run(action: () => PromiseLike<{ error: { message: string } | null }>, done: string) {
     setBusy(true)
-    setError(null)
     const { error: err } = await action()
-    if (err) setError(err.message)
+    if (!toastFailure(t, err)) toast.success(done)
     await Promise.all([load(), reload()])
     setBusy(false)
   }
@@ -74,13 +76,13 @@ export default function TeamSettings() {
     e.preventDefault()
     if (!newOrg.trim()) return
     setBusy(true)
-    setError(null)
-    const { data, error: err } = await supabase.rpc('create_organization', { p_name: newOrg.trim() })
-    if (err) setError(err.message)
-    else {
+    const name = newOrg.trim()
+    const { data, error: err } = await supabase.rpc('create_organization', { p_name: name })
+    if (!toastFailure(t, err)) {
       setNewOrg('')
       await reload()
       setActive(data as string)
+      toast.success(t('toast.orgCreated', { name }))
     }
     setBusy(false)
   }
@@ -89,15 +91,13 @@ export default function TeamSettings() {
     e.preventDefault()
     if (!orgId || !inviteEmail.trim()) return
     setBusy(true)
-    setError(null)
     setInviteLink(null)
     const { data, error: err } = await supabase.rpc('create_invitation', {
       p_org: orgId,
       p_email: inviteEmail.trim(),
       p_role: inviteRole,
     })
-    if (err) setError(err.message)
-    else {
+    if (!toastFailure(t, err)) {
       setInviteLink(`${window.location.origin}/invite/${data as string}`)
       setInviteEmail('')
       await load()
@@ -115,7 +115,11 @@ export default function TeamSettings() {
           <span>{t('org.current')}</span>
           <Select
             value={active.id}
-            onChange={setActive}
+            onChange={(orgId) => {
+              setActive(orgId)
+              const name = orgs.find((o) => o.id === orgId)?.name
+              if (name) toast.info(t('toast.orgSwitched', { name }))
+            }}
             aria-label={t('org.current')}
             options={orgs.map((o) => ({
               value: o.id,
@@ -154,7 +158,12 @@ export default function TeamSettings() {
                       value={m.role}
                       disabled={busy}
                       aria-label={t('org.roleFor', { who: m.email })}
-                      onChange={(role) => run(() => supabase.rpc('set_member_role', { p_org: active.id, p_user: m.user_id, p_role: role }))}
+                      onChange={(role) =>
+                        run(
+                          () => supabase.rpc('set_member_role', { p_org: active.id, p_user: m.user_id, p_role: role }),
+                          t('toast.roleChanged', { who: m.username || m.email, role: t(`org.role_${role}`) }),
+                        )
+                      }
                       options={assignable.map((r) => ({ value: r, label: t(`org.role_${r}`) }))}
                     />
                   ) : (
@@ -165,7 +174,12 @@ export default function TeamSettings() {
                       type="button"
                       className={`${styles.btn} ${styles.danger} ${local.small}`}
                       disabled={busy}
-                      onClick={() => run(() => supabase.rpc('remove_member', { p_org: active.id, p_user: m.user_id }))}
+                      onClick={() =>
+                        run(
+                          () => supabase.rpc('remove_member', { p_org: active.id, p_user: m.user_id }),
+                          self ? t('toast.leftOrg', { name: active.name }) : t('toast.memberRemoved', { who: m.username || m.email }),
+                        )
+                      }
                     >
                       {self ? t('org.leave') : t('org.remove')}
                     </button>
@@ -201,7 +215,7 @@ export default function TeamSettings() {
               <p className={styles.muted}>{t('org.inviteLinkNote')}</p>
               <div className={local.inline}>
                 <input className={styles.input} readOnly value={inviteLink} onFocus={(e) => e.target.select()} aria-label={t('org.inviteLink')} />
-                <button type="button" className={`${styles.btn} ${styles.ghost}`} onClick={() => navigator.clipboard?.writeText(inviteLink)}>
+                <button type="button" className={`${styles.btn} ${styles.ghost}`} onClick={() => copyWithToast(t, inviteLink)}>
                   {t('org.copy')}
                 </button>
               </div>
@@ -223,7 +237,7 @@ export default function TeamSettings() {
                       type="button"
                       className={`${styles.btn} ${styles.danger} ${local.small}`}
                       disabled={busy}
-                      onClick={() => run(() => supabase.from('invitations').delete().eq('id', i.id))}
+                      onClick={() => run(() => supabase.from('invitations').delete().eq('id', i.id), t('toast.inviteRevoked', { email: i.email }))}
                     >
                       {t('org.revoke')}
                     </button>
@@ -238,11 +252,6 @@ export default function TeamSettings() {
       {manage && <ApprovalPolicy orgId={active.id} />}
 
       {!roleCan(active.role, 'create') && <p className={styles.muted}>{t('org.readOnlyNote', { role: t(`org.role_${active.role}`) })}</p>}
-      {error && (
-        <p className={local.error} role="alert">
-          {error}
-        </p>
-      )}
     </div>
   )
 }
@@ -258,7 +267,6 @@ interface Policy {
 function ApprovalPolicy({ orgId }: { orgId: string }) {
   const { t } = useTranslation()
   const [policy, setPolicy] = useState<Policy>({ required_approvals: 1, forbid_self_approval: false, approval_sla_hours: null, slack_webhook_url: null })
-  const [saved, setSaved] = useState<string | null>(null)
 
   useEffect(() => {
     supabase
@@ -266,15 +274,18 @@ function ApprovalPolicy({ orgId }: { orgId: string }) {
       .select('required_approvals,forbid_self_approval,approval_sla_hours,slack_webhook_url')
       .eq('org_id', orgId)
       .maybeSingle()
-      .then(({ data }) => data && setPolicy(data as Policy))
-  }, [orgId])
+      .then(({ data, error }) => {
+        if (error) toastFailure(t, error)
+        else if (data) setPolicy(data as Policy)
+      })
+  }, [orgId, t])
 
   async function save(e: FormEvent) {
     e.preventDefault()
     const { error } = await supabase
       .from('org_settings')
       .upsert({ org_id: orgId, ...policy, slack_webhook_url: policy.slack_webhook_url?.trim() || null, updated_at: new Date().toISOString() })
-    setSaved(error ? error.message : t('approvals.saved'))
+    if (!toastFailure(t, error)) toast.success(t('approvals.savedToast'))
   }
 
   return (
@@ -319,7 +330,6 @@ function ApprovalPolicy({ orgId }: { orgId: string }) {
       </label>
       <div className={local.inline}>
         <button className={`${styles.btn} ${styles.primary}`}>{t('approvals.save')}</button>
-        {saved && <span className={styles.muted}>{saved}</span>}
       </div>
     </form>
   )

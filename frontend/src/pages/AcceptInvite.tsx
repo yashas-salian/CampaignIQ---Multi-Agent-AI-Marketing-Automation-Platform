@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { toast } from '../lib/toast'
 
 import { useOrg } from '../lib/useOrg'
 import { supabase } from '../lib/supabaseClient'
@@ -26,8 +27,9 @@ export default function AcceptInvite() {
       await reload()
       setActive(data as string)
       navigate('/dashboard', { replace: true })
+      toast.success(t('toast.inviteAccepted'))
     })
-  }, [token, reload, setActive, navigate])
+  }, [token, reload, setActive, navigate, t])
 
   return (
     <div className={styles.page}>

@@ -20,6 +20,42 @@ GitHub Release notes.
   - **Older personas:** the archetype falls back to keywords in the name and description. Gender falls back to the pronouns in the description and is never guessed from the name.
   - **No clear gender:** the card shows initials instead of a figure.
   - **Storage:** new `personas.archetype` and `personas.gender` columns (migrations `20261022000900`, `20261022001000`).
+- **Interview your personas** (`persona-chat` Edge Function, `components/PersonaChat`):
+  - **What it does:** "Interview <name>" on every persona, both campaign and Tools. The persona answers in character, grounded in its profile and the campaign idea, in the campaign's language, with suggested questions.
+  - **Where answers come from:** a BYOK key when the user has saved one, otherwise Groq's free tier within the organisation's daily AI budget. Usage is logged to `llm_usage`.
+  - **Limits and storage:** 20 questions per persona per person per day. Chats live in `persona_chats`, readable only by their author.
+  - **Setup:** needs the `GROQ_API_KEY` function secret.
+- **Synthetic focus group before Gate 2** (`capabilities/focus_group.py`, prompt `focus_group.react` 1.0.0, `iterations.focus_group`):
+  - **What it does:** all of a campaign's personas react to the final draft (would click / scroll past / object, with a click chance and a one-line quote). The approver sees this "Audience verdict" at Gate 2 and on each round.
+  - **Safety:** advice only. A failure never blocks the gate.
+- **"Why this ad?" and "What MarketingOS has learned":**
+  - **Recorded reasoning:** the bandit records its reasoning when it picks an arm (`bandit.explain_choice`, `iterations.arm_explain`). That covers expected reward against the exploration bonus, explore vs exploit, the runners-up and how many rounds back it.
+  - **Per round:** each round shows this as evidence/exploration bars.
+  - **On the Dashboard:** the learned panel turns measured results into sentences per industry (for example, which copy tone or visual style beats the average), plus the size of the shared learning loop.
+- **Model card** (`/models`, `model_versions` table, `model_card()`):
+  - **What it shows:** our fine-tuned domain classifier against its base model on the hand-labelled and held-out test sets, plus speed and cost, common confusions, the Gate 1 correction loop, live deployment (shadow/canary, agreement) and version history.
+  - **Updates:** the weekly retrain now records each promoted version.
+- **Tools run history** (`/tools/history`, linked from the Recent runs sidebar):
+  - **Search:** across inputs, results, persona names and errors.
+  - **Filters:** tool, status, language, and when (today, 7/30 days, a month, a year, or a custom range).
+  - **Results:** grouped by month; a run opens back in Tools. The Tools input now clears after Run.
+- **Page loader** (`lib/loading.ts`, `components/PageLoader`, `LoaderMascot`):
+  - **Look:** a frosted, blurred cover while a page or its first data loads, so half-loaded pages never show. The MarketingOS robot is animated in SVG: the growth swoosh draws round, the bars rise, the megaphone broadcasts, and it bobs and blinks. The caption walks through the product (scoring, personas, creative, measuring).
+  - **Timing:** it appears only after 150 ms and stays at least 400 ms.
+  - **Failures:** it steps aside on a failed load so the Retry toast can be used.
+- **Rotatable 3D persona figures** on the campaign page and in Tools → Personas:
+  - **Viewer:** each persona's model stands above its info card with no background. Drag or use the arrow keys to turn it; it spins slowly when idle and pauses while held. It's lazy-loaded with three.js and only drawn while on screen.
+  - **Models:** `frontend/public/personas/models/<role>-<gender>.glb`, made from the 2D figures with Microsoft's TRELLIS demo on Hugging Face (`frontend/scripts/make_persona_models.py`, needs `HF_TOKEN`). The 2D figure is shown until a model exists.
+  - **Layout:** three personas side by side on desktop (2 on tablets, 1 on phones). Feasibility moved into a full-width card above them.
+- **App-wide toasts** (`lib/toast.ts`, `components/Toaster`, helpers in `lib/notify.ts`):
+  - **Placement and look:** bottom-right on desktop, full width on phones. A plain card where only the icon tile carries the colour, with a pausable countdown line.
+  - **Behaviour:** identical messages are de-duplicated, and errors are announced right away (success and info politely).
+  - **Coverage:**
+    - Results of actions across Dashboard, Campaign detail, Tools, Settings (keys, templates, username, team, approvals, brand kit, API & webhooks, billing, privacy), Admin, Audit log, Comments, Copy editor and invitations.
+    - "Copied" confirmations.
+    - Offline / back-online notices.
+    - A "Couldn't load — Retry" toast when a page's data fails to load.
+  - **Stays inline:** field validation, login results and page states.
 - **Dashboard reorganised** into four labelled groups, with no gaps between panels. Panels in a row stretch to the same height, and the shorter side fills with useful content.
   - **Start a campaign:** a full-width spotlight composer. Today's plan limits and upgrade link sit along its bottom.
   - **Performance:** every metric in one place. The KPI cards, then reward over time (with rounds measured, average and latest reward) beside engagement by channel and winning creative arms.
@@ -122,6 +158,18 @@ GitHub Release notes.
 - **Database migrations** with the Supabase CLI (`supabase/migrations`). The baseline is a dump of production. Every change is checked on a fresh database, and migrations and Edge Functions deploy from main.
 
 ### Fixed
+- **Security: `bandit_arms` (the shared learning model) is now protected by row-level security.** Before, it had no RLS and full grants for anon/authenticated, so anyone with the public anon key could rewrite or wipe it. Now signed-in members can only read it, and only the workers write it.
+- **Campaigns no longer end after round 1 when nothing was measured** (DRY_RUN, or no delivery went out). The continue/stop step treated "no data" as a zero score; such rounds now continue (round and time caps still apply). Found in smoke test #10.
+- **The loader, photo captions and the campaign preview badge are actually blurred now.** The CSS minifier kept only the `-webkit-` prefixed `backdrop-filter`, so Chrome applied no blur at all.
+- **Ad copy with long links wraps** instead of widening the campaign page on phones.
+- **Feedback fixes:**
+  - A failed gate vote no longer shows in success green.
+  - Brand-kit and approval-policy saves now look different on success and on failure.
+  - A failed comment keeps its text.
+  - Admin "verify audit" no longer crashes when the request fails.
+  - A failed campaign or metrics load no longer shows "not found".
+  - About 25 actions that failed silently now say so.
+- **Removed the coloured side-stripe styling** from notices and the ad-copy block (now an evenly bordered quote panel).
 - **No sideways scrolling on phones and tablets:**
   - **Top bar:** its page links now share the screen width.
   - **Dashboard:** the campaign table's search and status tabs wrap.

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { supabase } from '../lib/supabaseClient'
 import { useSession } from '../lib/useAuth'
+import { toastFailure, toastLoadError } from '../lib/notify'
 import styles from '../styles/app.module.css'
 import Select from './Select'
 import local from './Collab.module.css'
@@ -25,13 +26,14 @@ export default function CampaignComments({ campaignId, orgId, rounds }: { campai
   const [round, setRound] = useState<string>('')
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('campaign_comments')
       .select('id,user_id,round_number,body,created_at')
       .eq('campaign_id', campaignId)
       .order('created_at')
+    if (toastLoadError(t, error, () => load())) return
     setComments((data as Comment[] | null) ?? [])
-  }, [campaignId])
+  }, [campaignId, t])
 
   useEffect(() => {
     load()
@@ -50,7 +52,9 @@ export default function CampaignComments({ campaignId, orgId, rounds }: { campai
   async function post(e: FormEvent) {
     e.preventDefault()
     if (!body.trim()) return
-    await supabase.from('campaign_comments').insert({ campaign_id: campaignId, body: body.trim(), round_number: round ? Number(round) : null })
+    const { error } = await supabase.from('campaign_comments').insert({ campaign_id: campaignId, body: body.trim(), round_number: round ? Number(round) : null })
+    // A failed post keeps the text so nothing typed is lost.
+    if (toastFailure(t, error)) return
     setBody('')
     load()
   }
@@ -67,7 +71,11 @@ export default function CampaignComments({ campaignId, orgId, rounds }: { campai
               {c.round_number && <span className={styles.chip}>{t('collab.round', { n: c.round_number })}</span>}
               <time dateTime={c.created_at}>{when.format(new Date(c.created_at))}</time>
               {c.user_id === session?.user.id && (
-                <button type="button" className={local.linkBtn} onClick={async () => { await supabase.from('campaign_comments').delete().eq('id', c.id); load() }}>
+                <button type="button" className={local.linkBtn} onClick={async () => {
+                  const { error } = await supabase.from('campaign_comments').delete().eq('id', c.id)
+                  toastFailure(t, error)
+                  load()
+                }}>
                   {t('collab.delete')}
                 </button>
               )}

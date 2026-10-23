@@ -6,6 +6,9 @@ import LogoMark from '../components/LogoMark'
 import RewardChart, { type RewardPoint } from '../components/RewardChart'
 import { CAMPAIGN_LANGUAGES } from '../lib/languages'
 import Onboarding from '../components/Onboarding'
+import { toast } from '../lib/toast'
+import { toastLoadError } from '../lib/notify'
+import { usePageLoading } from '../lib/loading'
 import { useOrg } from '../lib/useOrg'
 import { supabase } from '../lib/supabaseClient'
 import { displayName } from '../lib/profile'
@@ -258,16 +261,17 @@ export default function Dashboard() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [metrics, setMetrics] = useState<Metric[]>([])
   const [arms, setArms] = useState<IterationArm[]>([])
+  const [loop, setLoop] = useState<{ rounds: number; tried: number } | null>(null)
   const [tier, setTier] = useState<'free' | 'subscribed'>('free')
   const [usage, setUsage] = useState<OrgUsage | null>(null)
   const [firstLoad, setFirstLoad] = useState(true)
+  usePageLoading(firstLoad)
   const [refreshing, setRefreshing] = useState(false)
 
   const [idea, setIdea] = useState('')
   const [targetLanguage, setTargetLanguage] = useState('en')
   const [abTest, setAbTest] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [toast, setToast] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null)
 
   const [filter, setFilter] = useState<Filter>('all')
   const { active: org, can } = useOrg()
@@ -284,16 +288,22 @@ export default function Dashboard() {
       supabase.from('iterations').select('campaign_id,round_number,preflight_attempt,image_style,copy_tone'),
       supabase.from('subscriptions').select('status').maybeSingle(),
     ])
+    // Campaigns are the page; the rest degrade to empty. Say so rather than show a blank dashboard.
+    toastLoadError(t, c.error, () => load())
     // RLS returns every organisation the user belongs to; show the active one.
     const inOrg = new Set(((c.data as Campaign[]) ?? []).map((x) => x.id))
     setCampaigns((c.data as Campaign[]) ?? [])
     setMetrics(((m.data as Metric[]) ?? []).filter((x) => inOrg.has(x.campaign_id)))
     setArms(((it.data as IterationArm[]) ?? []).filter((x) => inOrg.has(x.campaign_id)))
     setTier(sub.data?.status === 'subscribed' ? 'subscribed' : 'free')
+    // The shared learning loop's size (every campaign on MarketingOS feeds it).
+    const { data: armStats } = await supabase.from('bandit_arms').select('pulls')
+    const pulls = ((armStats as { pulls: number }[] | null) ?? []).map((a) => a.pulls ?? 0)
+    setLoop(pulls.length ? { rounds: pulls.reduce((a, b) => a + b, 0), tried: pulls.filter((p) => p > 0).length } : null)
     const { data: u } = await supabase.rpc('org_usage', { p_org: orgId })
     setUsage((u as OrgUsage | null) ?? null)
     setFirstLoad(false)
-  }, [orgId])
+  }, [orgId, t])
 
   useEffect(() => {
     load()
@@ -312,13 +322,6 @@ export default function Dashboard() {
     }
   }, [load])
 
-  // Toasts clear themselves.
-  useEffect(() => {
-    if (!toast) return
-    const id = setTimeout(() => setToast(null), toast.kind === 'ok' ? 8000 : 12000)
-    return () => clearTimeout(id)
-  }, [toast])
-
   async function refresh() {
     setRefreshing(true)
     await load()
@@ -328,7 +331,6 @@ export default function Dashboard() {
   async function createCampaign() {
     if (!idea.trim() || creating || !canCreate) return
     setCreating(true)
-    setToast(null)
     const { error, response } = await supabase.functions.invoke('create-campaign', {
       body: { idea: idea.trim(), target_language: targetLanguage, org_id: orgId, ab_test: abTest },
     })
@@ -339,10 +341,10 @@ export default function Dashboard() {
       if (response?.status === 429) {
         message = ((await response.json().catch(() => null)) as { error?: string } | null)?.error ?? message
       }
-      setToast({ kind: 'error', text: t('dash.dispatchFailed', { message }) })
+      toast.error(t('dash.dispatchFailed', { message }))
       return
     }
-    setToast({ kind: 'ok', text: t('dash.dispatched') })
+    toast.success(t('dash.dispatched'))
     setIdea('')
   }
 
@@ -411,14 +413,19 @@ export default function Dashboard() {
     }
   }, [metrics])
 
-  // Arm leaderboard: the final pre-flight attempt of each measured round.
-  const armRows = useMemo(() => {
-    const finalAttempt = new Map<string, IterationArm>()
+  // The final pre-flight attempt of each measured round: the creative that ran.
+  const finalAttempt = useMemo(() => {
+    const map = new Map<string, IterationArm>()
     for (const it of arms) {
       const key = `${it.campaign_id}:${it.round_number}`
-      const prev = finalAttempt.get(key)
-      if (!prev || it.preflight_attempt > prev.preflight_attempt) finalAttempt.set(key, it)
+      const prev = map.get(key)
+      if (!prev || it.preflight_attempt > prev.preflight_attempt) map.set(key, it)
     }
+    return map
+  }, [arms])
+
+  // Arm leaderboard.
+  const armRows = useMemo(() => {
     const perArm = new Map<string, number[]>()
     for (const r of roundRewards) {
       const it = finalAttempt.get(r.key)
@@ -429,8 +436,44 @@ export default function Dashboard() {
     return [...perArm.entries()]
       .map(([arm, rs]) => ({ key: arm, label: arm, value: rs.reduce((a, b) => a + b, 0) / rs.length, note: `n=${rs.length}` }))
       .sort((a, b) => b.value - a.value)
-      .slice(0, 5)
-  }, [arms, roundRewards])
+      .slice(0, 3)
+  }, [finalAttempt, roundRewards])
+
+  // What the results say, in sentences: a copy tone or visual style that does
+  // clearly better (or worse) than average within one industry, with 2+ rounds.
+  const insights = useMemo(() => {
+    const all = roundRewards.map((r) => r.reward)
+    const overall = all.length ? all.reduce((a, b) => a + b, 0) / all.length : 0
+    const groups = new Map<string, { kind: 'tone' | 'style'; value: string; domain: string; rewards: number[] }>()
+    for (const r of roundRewards) {
+      const it = finalAttempt.get(r.key)
+      const domain = byId.get(r.campaign_id)?.domain_category
+      if (!it || !domain) continue
+      for (const [kind, value] of [['tone', it.copy_tone], ['style', it.image_style]] as const) {
+        if (!value) continue
+        const key = `${kind}|${value}|${domain}`
+        const g = groups.get(key) ?? { kind, value, domain, rewards: [] }
+        g.rewards.push(r.reward)
+        groups.set(key, g)
+      }
+    }
+    const scored = [...groups.values()]
+      .filter((g) => g.rewards.length >= 2)
+      .map((g) => ({ ...g, mean: g.rewards.reduce((a, b) => a + b, 0) / g.rewards.length }))
+    const best = scored.filter((g) => overall > 0 && g.mean >= overall * 1.2).sort((a, b) => b.mean - a.mean).slice(0, 2)
+    const worst = scored.filter((g) => g.mean <= overall * 0.8).sort((a, b) => a.mean - b.mean).slice(0, 1)
+    return [...best.map((g) => ({ ...g, up: true })), ...worst.map((g) => ({ ...g, up: false }))].map((g) => ({
+      key: `${g.kind}|${g.value}|${g.domain}`,
+      up: g.up,
+      text: t(g.up ? 'learn.best' : 'learn.worst', {
+        what: t(g.kind === 'tone' ? 'learn.tone' : 'learn.style', { name: humanize(g.value) }),
+        domain: humanize(g.domain),
+        mean: g.mean.toFixed(2),
+        n: g.rewards.length,
+        lift: overall > 0 ? (g.mean / overall).toFixed(1) : '—',
+      }),
+    }))
+  }, [roundRewards, finalAttempt, byId, t])
 
   const pipelineRows = STATUS_ORDER.map((s) => ({
     key: s,
@@ -606,15 +649,6 @@ export default function Dashboard() {
               )}
             </button>
           </div>
-          {toast && (
-            <p className={`${styles.toast} ${toast.kind === 'ok' ? styles.toastOk : styles.toastError}`} role={toast.kind === 'ok' ? 'status' : 'alert'}>
-              {toast.text}
-              <button type="button" onClick={() => setToast(null)} aria-label="Dismiss">
-                ×
-              </button>
-            </p>
-          )}
-
           {/* Plan limits sit with the composer: they decide whether a campaign can start now. */}
           <div className={styles.heroPlan}>
             <div className={styles.heroPlanHead}>
@@ -747,16 +781,31 @@ export default function Dashboard() {
           <div className={`${styles.panel} ${styles.grow} ${styles.enter}`} style={{ '--i': 9 } as CSSProperties}>
             <div className={styles.panelHead}>
               <div>
-                <h2>{t('dash.armsTitle')}</h2>
-                <p className={styles.panelSub}>{t('dash.armsSub')}</p>
+                <h2>{t('learn.title')}</h2>
+                <p className={styles.panelSub}>{t('learn.sub')}</p>
               </div>
             </div>
-            {armRows.length === 0 ? (
-              <p className={styles.muted}>{t('dash.armsEmpty')}</p>
+            {insights.length > 0 ? (
+              <ul className={styles.insights}>
+                {insights.map((i) => (
+                  <li key={i.key} className={i.up ? styles.insightUp : styles.insightDown}>
+                    <span aria-hidden="true">{i.up ? '↑' : '↓'}</span>
+                    {i.text}
+                  </li>
+                ))}
+              </ul>
             ) : (
-              <BarList rows={armRows} max={1} format={(v) => v.toFixed(2)} />
+              <p className={styles.muted}>{t('learn.empty')}</p>
             )}
-            <p className={styles.panelNote}>{t('dash.armsNote')}</p>
+            {armRows.length > 0 && (
+              <>
+                <h3 className={styles.miniHead}>{t('learn.topArms')}</h3>
+                <BarList rows={armRows} max={1} format={(v) => v.toFixed(2)} />
+              </>
+            )}
+            <p className={styles.panelNote}>
+              {loop ? t('learn.loop', { rounds: loop.rounds, tried: loop.tried }) : t('dash.armsNote')}
+            </p>
           </div>
         </div>
       </section>
@@ -925,6 +974,7 @@ export default function Dashboard() {
                 ['/docs', 'helpDocs', 'M5 4h10l4 4v12H5zM14 4v5h5M8 13h8M8 17h6'],
                 ['/status', 'helpStatus', 'M3 12h4l3-7 4 14 3-7h4'],
                 ['/contact', 'helpContact', 'M4 6h16v10H8l-4 4zM8 10h8'],
+                ['/models', 'helpModel', 'M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5'],
               ] as const
             ).map(([to, key, d]) => (
               <li key={to}>

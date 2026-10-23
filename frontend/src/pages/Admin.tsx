@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { Navigate } from 'react-router-dom'
 
 import Select from '../components/Select'
+import { LoadingMarker } from '../components/PageLoader'
+import { toast } from '../lib/toast'
+import { toastFailure, toastLoadError } from '../lib/notify'
 import { supabase } from '../lib/supabaseClient'
 import styles from '../styles/app.module.css'
 import local from './Admin.module.css'
@@ -50,17 +53,18 @@ export default function Admin() {
   const [newFlag, setNewFlag] = useState('')
 
   const load = useCallback(async () => {
-    const [{ data: o }, { data: list }, { data: d }, { data: f }] = await Promise.all([
+    const [{ data: o, error }, { data: list }, { data: d }, { data: f }] = await Promise.all([
       supabase.rpc('admin_overview'),
       supabase.rpc('admin_orgs', { p_search: search }),
       supabase.rpc('admin_dead_deliveries'),
       supabase.rpc('admin_flags'),
     ])
+    if (toastLoadError(t, error, () => load())) return
     setOverview((o as Record<string, number> | null) ?? {})
     setOrgs((list as OrgRow[] | null) ?? [])
     setDead((d as DeadRow[] | null) ?? [])
     setFlags((f as Flag[] | null) ?? [])
-  }, [search])
+  }, [search, t])
 
   useEffect(() => {
     supabase.rpc('is_platform_admin').then(({ data }) => setAllowed(Boolean(data)))
@@ -69,15 +73,21 @@ export default function Admin() {
     if (allowed) load()
   }, [allowed, load])
 
+  // An operator action: confirm it, or show why it failed; then refresh.
+  async function act(call: PromiseLike<{ error: { message: string } | null }>, done: string) {
+    const { error } = await call
+    if (!toastFailure(t, error)) toast.success(done)
+    load()
+  }
+
   if (allowed === false) return <Navigate to="/dashboard" replace />
-  if (allowed === null) return <p className={`p-8 ${styles.muted}`}>{t('common.loading')}</p>
+  if (allowed === null) return <LoadingMarker />
 
   async function addFlag(e: FormEvent) {
     e.preventDefault()
     if (!/^[a-z][a-z0-9_]{1,63}$/.test(newFlag)) return
-    await supabase.rpc('admin_set_flag', { p_key: newFlag, p_enabled: false, p_rollout: 100 })
+    await act(supabase.rpc('admin_set_flag', { p_key: newFlag, p_enabled: false, p_rollout: 100 }), t('toast.flagAdded', { key: newFlag }))
     setNewFlag('')
-    load()
   }
 
   const tiles = ['users', 'organizations', 'active_campaigns', 'campaigns_24h', 'llm_tokens_24h', 'llm_failures_24h', 'dead_deliveries', 'failed_webhooks', 'paid_orgs']
@@ -128,7 +138,7 @@ export default function Admin() {
                       aria-label={t('admin.plan')}
                       value={o.plan}
                       options={PLANS}
-                      onChange={async (plan) => { await supabase.rpc('admin_set_plan', { p_org: o.id, p_plan: plan }); load() }}
+                      onChange={(plan) => act(supabase.rpc('admin_set_plan', { p_org: o.id, p_plan: plan }), t('toast.planSet', { name: o.name, plan }))}
                     />
                   </td>
                 </tr>
@@ -146,7 +156,7 @@ export default function Admin() {
               <li key={d.id}>
                 <code>{d.channel}</code> · {t('admin.round', { n: d.round_number })} · <span className={styles.muted}>{d.campaign_id.slice(0, 8)}</span>
                 <span className={local.err}>{d.last_error}</span>
-                <button type="button" className={`${styles.btn} ${styles.ghost}`} onClick={async () => { await supabase.rpc('admin_retry_delivery', { p_delivery: d.id }); load() }}>
+                <button type="button" className={`${styles.btn} ${styles.ghost}`} onClick={() => act(supabase.rpc('admin_retry_delivery', { p_delivery: d.id }), t('toast.retryQueued'))}>
                   {t('admin.retry')}
                 </button>
               </li>
@@ -163,13 +173,16 @@ export default function Admin() {
               <code>{f.key}</code>
               <span className={styles.muted}>{f.description}</span>
               <label className={local.toggle}>
-                <input type="checkbox" checked={f.enabled} onChange={async (e) => { await supabase.rpc('admin_set_flag', { p_key: f.key, p_enabled: e.target.checked, p_rollout: f.rollout_percent }); load() }} />
+                <input type="checkbox" checked={f.enabled} onChange={(e) => act(supabase.rpc('admin_set_flag', { p_key: f.key, p_enabled: e.target.checked, p_rollout: f.rollout_percent }), t('toast.flagSaved', { key: f.key }))} />
                 {t('admin.on')}
               </label>
               <input
                 className={`${styles.input} ${local.pct}`}
                 type="number" min={0} max={100} defaultValue={f.rollout_percent} aria-label={t('admin.rollout')}
-                onBlur={async (e) => { await supabase.rpc('admin_set_flag', { p_key: f.key, p_enabled: f.enabled, p_rollout: Number(e.target.value) }); load() }}
+                onBlur={(e) => {
+                  if (Number(e.target.value) === f.rollout_percent) return
+                  act(supabase.rpc('admin_set_flag', { p_key: f.key, p_enabled: f.enabled, p_rollout: Number(e.target.value) }), t('toast.flagSaved', { key: f.key }))
+                }}
               />%
             </li>
           ))}
@@ -184,7 +197,8 @@ export default function Admin() {
         <div className={styles.panelHead}><h2>{t('admin.auditTitle')}</h2></div>
         <div className={local.inline}>
           <button type="button" className={`${styles.btn} ${styles.ghost}`} onClick={async () => {
-            const { data } = await supabase.rpc('admin_verify_audit')
+            const { data, error } = await supabase.rpc('admin_verify_audit')
+            if (toastFailure(t, error) || !data) return
             const r = data as { intact: boolean; first_broken_id: number | null; rows: number }
             setAudit(r.intact ? t('admin.auditOk', { rows: r.rows }) : t('admin.auditBroken', { id: r.first_broken_id }))
           }}>{t('admin.verify')}</button>

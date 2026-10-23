@@ -131,6 +131,13 @@
 @media (max-width: 1000px) { .row, .rowHalves { grid-template-columns: minmax(0, 1fr); } }
 .sideStack { display: flex; flex-direction: column; gap: 16px; }
 .grow { flex: 1; display: flex; flex-direction: column; }
+/* Learned insights: one sentence each, an arrow for better / worse than average. */
+.insights { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 8px; }
+.insights li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: start; font-size: 13px; line-height: 1.5; padding: 10px 12px; border-radius: 12px; background: var(--mos-bg-raised); }
+.insights li span { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+.insightUp span { color: var(--mos-success); background: color-mix(in srgb, var(--mos-success) 14%, transparent); }
+.insightDown span { color: var(--mos-danger); background: color-mix(in srgb, var(--mos-danger) 14%, transparent); }
+.miniHead { font-size: 12px !important; font-weight: 600 !important; color: var(--mos-text-muted); margin: 4px 0 10px !important; }
 .panelNote { margin-top: auto !important; padding-top: 14px; font-size: 12.5px; line-height: 1.5; color: var(--mos-text-muted); }
 
 /* ---------- Composer ---------- */
@@ -161,15 +168,6 @@
   color: var(--mos-text); background: var(--mos-bg); border: 1px solid var(--mos-surface-border);
 }
 .select:focus { outline: none; border-color: var(--mos-accent); }
-.toast {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-  padding: 12px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5;
-  animation: rise 0.45s var(--mos-ease) both;
-}
-.toast button { border: none; background: none; color: inherit; font-size: 18px; line-height: 1; cursor: pointer; opacity: 0.7; }
-.toast button:hover { opacity: 1; }
-.toastOk { background: color-mix(in srgb, var(--mos-success) 12%, transparent); border: 1px solid color-mix(in srgb, var(--mos-success) 35%, transparent); }
-.toastError { color: var(--mos-danger); background: color-mix(in srgb, var(--mos-danger) 10%, transparent); border: 1px solid color-mix(in srgb, var(--mos-danger) 35%, transparent); }
 
 /* ---------- Plan + guide ---------- */
 .plan .panelHead { margin-bottom: 8px; }
@@ -234,7 +232,7 @@
 .helpBody { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: center; }
 .helpIntro h3 { font-family: var(--font-display); font-size: 16px; font-weight: 600; margin-bottom: 6px !important; }
 .helpIntro p { font-size: 13.5px; color: var(--mos-text-muted); line-height: 1.5; }
-.helpLinks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.helpLinks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 @media (max-width: 1240px) and (min-width: 1001px), (max-width: 700px) { .helpLinks { grid-template-columns: minmax(0, 1fr); } }
 .helpLink {
   display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; text-decoration: none; color: var(--mos-text);

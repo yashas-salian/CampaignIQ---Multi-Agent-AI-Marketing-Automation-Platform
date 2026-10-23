@@ -1,6 +1,7 @@
 import type { CSSProperties, FormEvent } from 'react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { toast } from '../lib/toast'
 import PublicLayout from '../components/PublicLayout'
 import { ArrowIcon } from '../components/PublicNav'
 import { CONTACT_EMAIL, REPO_URL } from '../lib/site'
@@ -15,7 +16,6 @@ export default function Contact() {
   const [topic, setTopic] = useState(TOPICS[0])
   const [message, setMessage] = useState('')
   const [opened, setOpened] = useState(false)
-  const [copied, setCopied] = useState(false)
 
   // No backend stores this: it hands a prefilled draft to the visitor's own mail app.
   function onSubmit(e: FormEvent) {
@@ -29,10 +29,10 @@ export default function Contact() {
   async function copyEmail() {
     try {
       await navigator.clipboard.writeText(CONTACT_EMAIL)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      toast.success('Email address copied.')
     } catch {
-      // Clipboard blocked: the address is still visible to copy by hand.
+      // Clipboard blocked: the address is still on screen to copy by hand.
+      toast.error("Couldn't copy. Select the address above and copy it by hand.")
     }
   }
 
@@ -106,7 +106,7 @@ export default function Contact() {
                 Write an email
               </a>
               <button type="button" className={local.copy} onClick={copyEmail}>
-                {copied ? 'Copied ✓' : 'Copy address'}
+                Copy address
               </button>
             </div>
           </div>

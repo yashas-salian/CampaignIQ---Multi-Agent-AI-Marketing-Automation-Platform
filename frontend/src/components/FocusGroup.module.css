@@ -1,0 +1,27 @@
+.panel { border-radius: 16px; padding: 16px; background: var(--mos-bg-raised); border: 1px solid var(--mos-surface-border); }
+.head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.head h3 { font-family: var(--font-display); font-size: 15px; font-weight: 600; }
+.head p { margin-top: 2px !important; font-size: 12.5px; color: var(--mos-text-muted); }
+.summary { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.summary strong { font-family: var(--font-display); font-size: 16px; }
+.summary span { font-size: 12px; color: var(--mos-text-muted); }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.list li {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: start;
+  padding: 10px; border-radius: 12px; background: var(--mos-surface);
+  animation: rise 0.45s var(--mos-ease) both; animation-delay: calc(var(--i) * 80ms);
+}
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+.face { width: 44px; height: 44px; border-radius: 12px; object-fit: cover; display: grid; place-items: center; background: var(--mos-bg-raised); color: var(--mos-accent); font-weight: 600; }
+.body { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.who { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13.5px; }
+.reaction { font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; }
+.click { color: var(--mos-success); background: color-mix(in srgb, var(--mos-success) 13%, transparent); }
+.scroll { color: var(--mos-text-muted); background: color-mix(in srgb, var(--mos-text) 8%, transparent); }
+.object { color: var(--mos-danger); background: color-mix(in srgb, var(--mos-danger) 12%, transparent); }
+.meter { margin-left: auto; width: 64px; height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--mos-text) 8%, transparent); overflow: hidden; }
+.meter span { display: block; height: 100%; width: var(--w); border-radius: inherit; background: var(--mos-accent); }
+.body q { font-size: 13px; line-height: 1.5; color: var(--mos-text); quotes: '“' '”'; overflow-wrap: anywhere; }
+.note { margin-top: 10px !important; font-size: 11.5px; color: var(--mos-text-muted); }
+.compact { padding: 12px; }
+.compact .list li { padding: 8px; }

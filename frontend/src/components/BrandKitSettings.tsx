@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabaseClient'
 import { useOrg } from '../lib/useOrg'
 import styles from '../styles/app.module.css'
 import local from './TeamSettings.module.css'
+import { toast } from '../lib/toast'
+import { toastFailure } from '../lib/notify'
 
 interface Kit {
   voice: string
@@ -24,7 +26,6 @@ export default function BrandKitSettings() {
   const [kit, setKit] = useState<Kit>(EMPTY)
   const [preferred, setPreferred] = useState('')
   const [forbidden, setForbidden] = useState('')
-  const [saved, setSaved] = useState<string | null>(null)
   const editable = can('manage')
 
   useEffect(() => {
@@ -34,13 +35,14 @@ export default function BrandKitSettings() {
       .select('voice,preferred_words,forbidden_words,required_phrase,brand_color')
       .eq('org_id', active.id)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (toastFailure(t, error)) return
         const k = (data as Kit | null) ?? EMPTY
         setKit(k)
         setPreferred(k.preferred_words.join(', '))
         setForbidden(k.forbidden_words.join(', '))
       })
-  }, [active])
+  }, [active, t])
 
   async function save(e: FormEvent) {
     e.preventDefault()
@@ -54,7 +56,7 @@ export default function BrandKitSettings() {
       brand_color: kit.brand_color || null,
       updated_at: new Date().toISOString(),
     })
-    setSaved(error ? error.message : t('brand.saved'))
+    if (!toastFailure(t, error)) toast.success(t('brand.savedToast'))
   }
 
   return (
@@ -107,7 +109,6 @@ export default function BrandKitSettings() {
       {editable && (
         <div className={local.inline}>
           <button className={`${styles.btn} ${styles.primary}`}>{t('brand.save')}</button>
-          {saved && <span className={styles.muted}>{saved}</span>}
         </div>
       )}
     </form>

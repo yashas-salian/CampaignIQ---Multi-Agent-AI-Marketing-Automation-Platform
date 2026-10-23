@@ -30,6 +30,7 @@ def preflight_node(state: CampaignState) -> CampaignState:
         image_style=best_creative.image_style,
         copy_tone=best_creative.copy_tone,
         arm_index=best_creative.arm_index,
+        arm_explain=best_creative.arm_explain,
         # Shown at Gate 2: blocking issues left after the rewrites, and claims to review.
         guardrail_flags=best_creative.guardrails.model_dump(),
     )

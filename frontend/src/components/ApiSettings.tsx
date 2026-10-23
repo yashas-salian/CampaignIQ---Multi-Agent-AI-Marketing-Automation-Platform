@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabaseClient'
 import { useOrg } from '../lib/useOrg'
 import styles from '../styles/app.module.css'
 import local from './TeamSettings.module.css'
+import { toast } from '../lib/toast'
+import { copyWithToast, toastFailure, toastLoadError } from '../lib/notify'
 
 interface ApiKey {
   id: string
@@ -47,15 +49,15 @@ export default function ApiSettings() {
   const [newKey, setNewKey] = useState<string | null>(null)
   const [hookUrl, setHookUrl] = useState('')
   const [events, setEvents] = useState<string[]>(['*'])
-  const [error, setError] = useState<string | null>(null)
 
   const orgId = active?.id
   const load = useCallback(async () => {
     if (!orgId) return
-    const [{ data: k }, { data: w }] = await Promise.all([
+    const [{ data: k, error: keysError }, { data: w }] = await Promise.all([
       supabase.from('api_keys').select('id,name,prefix,scopes,created_at,last_used_at,revoked_at').eq('org_id', orgId).order('created_at', { ascending: false }),
       supabase.from('webhooks').select('id,url,secret,events,active').eq('org_id', orgId).order('created_at'),
     ])
+    if (toastLoadError(t, keysError, () => load())) return
     setKeys((k as ApiKey[] | null) ?? [])
     const hookList = (w as Webhook[] | null) ?? []
     setHooks(hookList)
@@ -68,7 +70,7 @@ export default function ApiSettings() {
         .limit(10)
       setDeliveries((d as Delivery[] | null) ?? [])
     }
-  }, [orgId])
+  }, [orgId, t])
 
   useEffect(() => {
     load()
@@ -77,9 +79,8 @@ export default function ApiSettings() {
   async function createKey(e: FormEvent) {
     e.preventDefault()
     if (!orgId || !keyName.trim()) return
-    setError(null)
     const { data, error: err } = await supabase.rpc('create_api_key', { p_org: orgId, p_name: keyName.trim(), p_scopes: canWrite ? ['read', 'write'] : ['read'] })
-    if (err) return setError(err.message)
+    if (toastFailure(t, err)) return
     setNewKey(data as string)
     setKeyName('')
     load()
@@ -88,9 +89,9 @@ export default function ApiSettings() {
   async function addHook(e: FormEvent) {
     e.preventDefault()
     if (!orgId) return
-    setError(null)
     const { error: err } = await supabase.from('webhooks').insert({ org_id: orgId, url: hookUrl.trim(), events })
-    if (err) return setError(err.message)
+    if (toastFailure(t, err)) return
+    toast.success(t('toast.webhookAdded'))
     setHookUrl('')
     load()
   }
@@ -115,7 +116,11 @@ export default function ApiSettings() {
               </div>
               <span className={styles.chip}>{k.scopes.join(' + ')}</span>
               {!k.revoked_at && (
-                <button type="button" className={`${styles.btn} ${styles.danger} ${local.small}`} onClick={async () => { await supabase.rpc('revoke_api_key', { p_key: k.id }); load() }}>
+                <button type="button" className={`${styles.btn} ${styles.danger} ${local.small}`} onClick={async () => {
+                  const { error: err } = await supabase.rpc('revoke_api_key', { p_key: k.id })
+                  if (!toastFailure(t, err)) toast.success(t('toast.keyRevoked', { name: k.name }))
+                  load()
+                }}>
                   {t('api.revoke')}
                 </button>
               )}
@@ -139,7 +144,7 @@ export default function ApiSettings() {
           <p className={styles.muted}>{t('api.copyOnce')}</p>
           <div className={local.inline}>
             <input className={styles.input} readOnly value={newKey} onFocus={(e) => e.target.select()} aria-label={t('api.keys')} />
-            <button type="button" className={`${styles.btn} ${styles.ghost}`} onClick={() => navigator.clipboard?.writeText(newKey)}>{t('org.copy')}</button>
+            <button type="button" className={`${styles.btn} ${styles.ghost}`} onClick={() => copyWithToast(t, newKey)}>{t('org.copy')}</button>
           </div>
         </div>
       )}
@@ -153,9 +158,17 @@ export default function ApiSettings() {
                 <strong>{h.url}</strong>
                 <span className={styles.muted}>{t('api.secret')}: <code>{h.secret.slice(0, 6)}…</code> · {h.events.join(', ')}</span>
               </div>
-              <button type="button" className={`${styles.btn} ${styles.ghost} ${local.small}`} onClick={() => navigator.clipboard?.writeText(h.secret)}>{t('api.copySecret')}</button>
-              <button type="button" className={`${styles.btn} ${styles.ghost} ${local.small}`} onClick={async () => { await supabase.rpc('ping_webhook', { p_webhook: h.id }); setTimeout(load, 1500) }}>{t('api.test')}</button>
-              <button type="button" className={`${styles.btn} ${styles.danger} ${local.small}`} onClick={async () => { await supabase.from('webhooks').delete().eq('id', h.id); load() }}>{t('org.remove')}</button>
+              <button type="button" className={`${styles.btn} ${styles.ghost} ${local.small}`} onClick={() => copyWithToast(t, h.secret)}>{t('api.copySecret')}</button>
+              <button type="button" className={`${styles.btn} ${styles.ghost} ${local.small}`} onClick={async () => {
+                const { error: err } = await supabase.rpc('ping_webhook', { p_webhook: h.id })
+                if (!toastFailure(t, err)) toast.success(t('toast.webhookPinged'))
+                setTimeout(load, 1500)
+              }}>{t('api.test')}</button>
+              <button type="button" className={`${styles.btn} ${styles.danger} ${local.small}`} onClick={async () => {
+                const { error: err } = await supabase.from('webhooks').delete().eq('id', h.id)
+                if (!toastFailure(t, err)) toast.success(t('toast.webhookRemoved'))
+                load()
+              }}>{t('org.remove')}</button>
             </li>
           ))}
         </ul>
@@ -197,7 +210,6 @@ export default function ApiSettings() {
           </ul>
         </details>
       )}
-      {error && <p className={local.error} role="alert">{error}</p>}
     </div>
   )
 }

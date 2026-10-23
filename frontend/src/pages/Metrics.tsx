@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import RewardChart, { type RewardPoint } from '../components/RewardChart'
 import { supabase } from '../lib/supabaseClient'
+import { toastLoadError } from '../lib/notify'
+import { usePageLoading } from '../lib/loading'
 import type { AbTestResult, Campaign, Iteration, Metric } from '../lib/types'
 import styles from '../styles/app.module.css'
 import local from './Metrics.module.css'
@@ -51,19 +53,21 @@ export default function Metrics() {
   const [iterations, setIterations] = useState<Iteration[]>([])
   const [metrics, setMetrics] = useState<Metric[]>([])
   const [loaded, setLoaded] = useState(false)
+  usePageLoading(!loaded)
 
   const load = useCallback(async () => {
     if (!id) return
-    const [{ data: campaignData }, { data: iterationData }, { data: metricData }] = await Promise.all([
+    const [{ data: campaignData, error }, { data: iterationData }, { data: metricData }] = await Promise.all([
       supabase.from('campaigns').select('*').eq('id', id).maybeSingle(),
       supabase.from('iterations').select('*').eq('campaign_id', id).order('round_number').order('preflight_attempt'),
       supabase.from('metrics').select('*').eq('campaign_id', id).order('round_number'),
     ])
+    if (toastLoadError(t, error, () => load())) return
     setCampaign((campaignData as Campaign) ?? null)
     setIterations((iterationData as Iteration[]) ?? [])
     setMetrics((metricData as Metric[]) ?? [])
     setLoaded(true)
-  }, [id])
+  }, [id, t])
 
   useEffect(() => {
     load()

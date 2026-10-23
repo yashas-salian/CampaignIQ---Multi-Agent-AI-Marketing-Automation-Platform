@@ -22,6 +22,25 @@ const ITER = {
   id: 'i1', campaign_id: 'c1', round_number: 1, preflight_attempt: 1, copy_text: 'Sam, a graphic designer, says the app changed everything. https://example.com/a-really-long-link-without-breaks-abcdefghijklmnopqrstuvwxyz',
   image_prompt: 'prompt', preflight_score: 62, preflight_passed: true, bluesky_post_uri: 'at://did:plc:abcdefghijklmnop/app.bsky.feed.post/3kxyzabcdefg', reddit_post_url: null,
   email_id: 'email-id-1234567890', image_style: 'minimal', copy_tone: 'friendly', arm_index: 2, guardrail_flags: null, copy_text_b: 'Variant B copy', image_style_b: 'bold', copy_tone_b: 'urgent',
+  focus_group: {
+    reactions: [
+      { name: 'Sam the freelance designer with a long name', archetype: 'designer', gender: 'female', reaction: 'click', likelihood: 78, quote: 'Finally something that gets irregular income; I would try it this week without a second thought.' },
+      { name: 'Priya', archetype: 'doctor', gender: 'male', reaction: 'object', likelihood: 8, quote: 'Too pushy.' },
+    ],
+    verdict: { click: 1, scroll: 0, object: 1 },
+    average_likelihood: 43,
+  },
+  arm_explain: {
+    algorithm: 'LinUCB', alpha: 0.5,
+    context: { age_bracket: '25-34', income_tier: 'mid', domain_category: 'finance_fintech', channels: ['bluesky', 'email'] },
+    chosen: { arm_index: 9, image_style: 'testimonial_social_proof', copy_tone: 'aspirational_emotional', expected: 0.42, bonus: 0.12, score: 0.54, pulls: 7, mean_reward: 0.41 },
+    mode: 'exploit', rank: 1,
+    alternatives: [
+      { arm_index: 3, image_style: 'minimalist', copy_tone: 'aspirational_emotional', expected: 0.1, bonus: 0.35, score: 0.45, pulls: 1, mean_reward: 0.1 },
+      { arm_index: 14, image_style: 'urgency_scarcity', copy_tone: 'urgency_scarcity', expected: 0, bonus: 0.4, score: 0.4, pulls: 0, mean_reward: null },
+    ],
+    arms_tried: 6, total_rounds: 31,
+  },
 }
 const PERSONA = (id: string, name: string) => ({ id, campaign_id: 'c1', name, demographics: '34, freelance designer in Pune', psychographics: 'Values flexibility', channel_fit: 'email, bluesky', messaging_angle: 'Save hours every month', is_primary: id === 'p1', archetype: 'designer' })
 const METRICS = [
@@ -38,6 +57,15 @@ function bodyFor(url: string): unknown {
   if (url.includes('/rpc/admin_dead_deliveries')) return [{ id: 'd9', campaign_id: '6aae4421-d40d-4038-97b6-dd1b543f0ccf', channel: 'email', round_number: 2, attempts: 5, last_error: 'HTTPSConnectionPool(host=api.resend.com, port=443): Max retries exceeded with url: /emails' }]
   if (url.includes('/rpc/admin_flags')) return [{ key: 'experimental_very_long_feature_flag_name', description: 'Something', enabled: true, rollout_percent: 50 }]
   if (url.includes('/rpc/llm_usage_stats')) return []
+  if (url.includes('/rpc/model_card')) return {
+    versions: [
+      { version: 'v2', revision: '0123456789abcdef', trained_at: now, base_model: 'Qwen2.5-1.5B-Instruct', method: 'LoRA fine-tune (rank 16, Unsloth), quantised to 4-bit GGUF; runs on CPU inside the workers', data: { synthetic_examples: 560, corrections_used: 41, labels: 12 }, metrics: { golden: 0.89, golden_n: 18, heldout: 0.79, heldout_n: 96, median_ms: 700, invalid_outputs: 0, top_confusions: [['food_beverage', 'ecommerce_retail', 7], ['consumer_electronics', 'entertainment_media', 2]] }, baseline_metrics: { label: 'Previous version', golden: 0.8333, heldout: 0.75 }, notes: 'Weekly retrain.' },
+      { version: 'v1', revision: null, trained_at: now, base_model: 'Qwen2.5-1.5B-Instruct', method: 'LoRA', data: {}, metrics: { golden: 0.8333, heldout: 0.75 }, baseline_metrics: null, notes: null },
+    ],
+    deployment: { active_revision: '0123456789abcdef', candidate_revision: 'fedcba9876543210', mode: 'canary', canary_percent: 10, updated_at: now },
+    shadow: { compared: 120, agreement: 0.93 },
+    corrections: { total: 57, since_last_training: 16, last_30_days: 23 },
+  }
   if (url.includes('/rpc/')) return null
   if (url.includes('/capability_runs')) return [
     { id: 'r1', capability: 'personas', status: 'succeeded', params: { idea: 'AI budgeting app for first-time freelancers with irregular income' }, error: null, created_at: now,
@@ -51,7 +79,11 @@ function bodyFor(url: string): unknown {
   if (url.includes('/webhooks')) return [{ id: 'w1', url: 'https://hooks.example.com/services/T000000/B000000/XXXXXXXXXXXXXXXXXXXXXXXX', secret: 'whsec_abcdef', events: ['campaign.', 'gate.vote', 'delivery.'], active: true }]
   if (url.includes('/provider_keys_masked')) return [{ capability: 'llm', provider: 'openai', masked_key: 'sk-proj-****************************************abcd', created_at: now }]
   if (url.includes('/audit_log')) return [{ id: 1, action: 'campaign.status_changed', actor: USER.id, target_type: 'campaign', target_id: '6aae4421-d40d-4038-97b6-dd1b543f0ccf', details: { from: 'awaiting_gate_1', to: 'awaiting_gate_2' }, created_at: now, hash: 'abc' }]
-  if (url.includes('/campaigns')) return CAMPAIGNS
+  if (url.includes('/campaigns')) {
+    // A single-campaign read filters by id; returning every row would be a "multiple rows" error.
+    const id = /id=eq\.([^&]+)/.exec(url)?.[1]
+    return id ? CAMPAIGNS.filter((c) => c.id === id) : CAMPAIGNS
+  }
   if (url.includes('/iterations')) return [ITER]
   if (url.includes('/personas')) return [PERSONA('p1', 'Sam the freelance designer'), PERSONA('p2', 'Priya'), PERSONA('p3', 'Leo')]
   if (url.includes('/metrics')) return METRICS
@@ -75,7 +107,7 @@ async function signIn(page: Page) {
   }, USER)
 }
 
-const ROUTES = ['/dashboard', '/campaigns/c1', '/campaigns/c1/metrics', '/calendar', '/tools', '/settings', '/admin', '/', '/about', '/contact', '/privacy', '/terms', '/docs', '/status', '/login', '/signup', '/nope']
+const ROUTES = ['/models', '/tools/history', '/dashboard', '/campaigns/c1', '/campaigns/c1/metrics', '/calendar', '/tools', '/settings', '/admin', '/', '/about', '/contact', '/privacy', '/terms', '/docs', '/status', '/login', '/signup', '/nope']
 const WIDTHS = [320, 360, 390, 430, 768]
 
 test('no page scrolls sideways on phones or tablets', async ({ browser }, info) => {

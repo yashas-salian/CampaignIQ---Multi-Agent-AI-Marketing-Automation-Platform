@@ -43,7 +43,10 @@
 }
 
 /* ---------- Feasibility ---------- */
-.ring { position: relative; width: 168px; height: 168px; margin: 4px auto 16px; }
+.feasPanel { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 28px; }
+.feasText h2 { font-family: var(--font-display); font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+@media (max-width: 640px) { .feasPanel { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; gap: 12px; } }
+.ring { position: relative; width: 168px; height: 168px; margin: 0; }
 .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .ringTrack { fill: none; stroke: var(--mos-bg-raised); stroke-width: 12; }
 .ringFill { fill: none; stroke: var(--mos-accent); stroke-width: 12; stroke-linecap: round; stroke-dashoffset: var(--offset); animation: ringIn 1.3s var(--mos-ease) both; }
@@ -54,8 +57,13 @@
 .rationale { font-size: 14px; }
 
 /* ---------- Personas ---------- */
-.personas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-@media (max-width: 700px) { .personas { grid-template-columns: 1fr; } }
+/* Three across on desktop; each column is a standing figure above its card. */
+.personas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
+@media (max-width: 1000px) { .personas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .personas { grid-template-columns: minmax(0, 1fr); } }
+.personaCol { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.personaCol .persona { flex: 1; }
+.role { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mos-accent); }
 .persona {
   display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 14px;
   background: var(--mos-bg-raised); border: 1px solid transparent;
@@ -96,10 +104,20 @@
 .preview figcaption {
   position: absolute; left: 8px; right: 8px; bottom: 8px; padding: 5px 9px; border-radius: 8px;
   font-size: 11px; line-height: 1.35; color: #fff; background: rgba(12, 14, 16, 0.72);
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 .creativeText { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.copy { margin: 0; padding: 14px 16px; border-radius: 12px; border-left: 3px solid var(--mos-accent); background: var(--mos-bg-raised); font-size: 15px; line-height: 1.6; white-space: pre-wrap; }
+/* Ad copy: an evenly bordered panel with a quote mark, rather than a side stripe. */
+.copy {
+  position: relative; margin: 0; padding: 16px 18px 16px 46px; border-radius: 14px;
+  border: 1px solid var(--mos-surface-border); background: var(--mos-bg-raised);
+  font-size: 15px; line-height: 1.6; white-space: pre-wrap;
+  overflow-wrap: anywhere; /* long links in ad copy wrap instead of widening the page */
+}
+.copy::before {
+  content: '\201C'; position: absolute; left: 14px; top: 8px;
+  font-family: Georgia, 'Times New Roman', serif; font-size: 34px; line-height: 1; color: var(--mos-accent);
+}
 .prompt { font-size: 13px; color: var(--mos-text-muted); line-height: 1.5; }
 .prompt span { display: block; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
 .preflight { display: grid; grid-template-columns: auto minmax(60px, 180px) auto auto; align-items: center; gap: 10px; font-size: 13px; }
@@ -134,3 +152,13 @@
 .votes li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .votes q { color: var(--mos-text-muted); font-size: 13px; }
 .voteWho { font-weight: 600; }
+/* Interview a persona (opens the chat). */
+.interview {
+  margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px;
+  border-radius: 999px; border: 1px solid color-mix(in srgb, var(--mos-accent) 45%, transparent); cursor: pointer;
+  background: color-mix(in srgb, var(--mos-accent) 10%, transparent); color: var(--mos-text); font: inherit; font-size: 13px; font-weight: 600;
+  transition: background 0.2s ease, transform 0.3s var(--mos-ease);
+}
+.interview:hover { background: color-mix(in srgb, var(--mos-accent) 20%, transparent); transform: translateY(-1px); }
+.interview:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: 2px; }
+.interview svg { width: 16px; height: 16px; color: var(--mos-accent); }

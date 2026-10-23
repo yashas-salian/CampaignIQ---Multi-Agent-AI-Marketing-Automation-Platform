@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import i18next from 'i18next'
 
 import PublicLayout from '../components/PublicLayout'
 import styles from '../components/public.module.css'
 import { supabase } from '../lib/supabaseClient'
+import { toastLoadError } from '../lib/notify'
 import local from './Status.module.css'
 
 interface Component {
@@ -29,13 +31,16 @@ export default function Status() {
   const [components, setComponents] = useState<Component[] | null>(null)
   const [checkedAt, setCheckedAt] = useState<string | null>(null)
 
+  const [attempt, setAttempt] = useState(0)
+
   useEffect(() => {
-    supabase.rpc('status_summary').then(({ data }) => {
+    supabase.rpc('status_summary').then(({ data, error }) => {
+      if (toastLoadError(i18next.t, error, () => setAttempt((n) => n + 1))) return
       const summary = data as { checked_at: string | null; components: Component[] } | null
       setComponents(summary?.components ?? [])
       setCheckedAt(summary?.checked_at ?? null)
     })
-  }, [])
+  }, [attempt])
 
   const down = components?.filter((c) => !c.ok) ?? []
   return (

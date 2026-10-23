@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabaseClient'
 import styles from '../styles/app.module.css'
 import local from './Collab.module.css'
+import { toast } from '../lib/toast'
+import { toastFailure, toastLoadError } from '../lib/notify'
 
 interface Revision {
   id: number
@@ -28,19 +30,19 @@ export default function CopyEditor({ campaignId, round, variant, text, people, o
   const { t, i18n } = useTranslation()
   const [draft, setDraft] = useState(text)
   const [revisions, setRevisions] = useState<Revision[]>([])
-  const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('copy_revisions')
       .select('id,copy_text,edited_by,created_at')
       .eq('campaign_id', campaignId)
       .eq('round_number', round)
       .eq('variant', variant)
       .order('id', { ascending: false })
+    if (toastLoadError(t, error, () => load())) return
     setRevisions((data as Revision[] | null) ?? [])
-  }, [campaignId, round, variant])
+  }, [campaignId, round, variant, t])
 
   useEffect(() => {
     load()
@@ -49,13 +51,10 @@ export default function CopyEditor({ campaignId, round, variant, text, people, o
 
   async function save(next: string) {
     setBusy(true)
-    setError(null)
     const { error: err } = await supabase.rpc('edit_round_copy', { p_campaign: campaignId, p_round: round, p_variant: variant, p_text: next })
     setBusy(false)
-    if (err) {
-      setError(err.message)
-      return
-    }
+    if (toastFailure(t, err)) return
+    toast.success(next === text ? t('toast.copyRestored') : t('toast.copySaved'))
     await load()
     onSaved()
   }
@@ -71,7 +70,6 @@ export default function CopyEditor({ campaignId, round, variant, text, people, o
         <button type="button" className={`${styles.btn} ${styles.ghost}`} disabled={busy || draft.trim() === text.trim() || !draft.trim()} onClick={() => save(draft)}>
           {t('collab.saveEdit')}
         </button>
-        {error && <span className={local.error}>{error}</span>}
       </div>
       {revisions.length > 0 && (
         <details className={local.history}>

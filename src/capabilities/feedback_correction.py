@@ -31,6 +31,17 @@ def run_feedback_correction(
             adjustments="",
         )
 
+    # Nothing measured (a DRY_RUN round, or every delivery failed) is no signal,
+    # not a zero: asking the model would read "reward 0" as failure and stop a
+    # campaign that never reached anyone. Run the next round instead (the round
+    # and time caps still bound it).
+    if not metrics.channel_rewards:
+        return RevisionDirective(
+            continue_campaign=True,
+            reasoning="Nothing could be measured this round (a dry run, or no delivery went out), so there is no result to act on; running the next round.",
+            adjustments="",
+        )
+
     prompt, system = PROMPTS["feedback.decide"].render(
         idea=fence(idea, "user_idea"),
         round=current_round,

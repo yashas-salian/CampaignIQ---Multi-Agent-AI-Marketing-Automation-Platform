@@ -17,6 +17,7 @@ from src.graph.nodes.metrics_wait import metrics_wait_node
 from src.graph.nodes.novelty_check import novelty_check_node, route_after_novelty_check
 from src.graph.nodes.preflight import preflight_node, route_after_preflight
 from src.graph.nodes.variant_b import generate_variant_b_node
+from src.graph.nodes.focus_group import focus_group_node
 from src.graph.state import CampaignState
 from src.observability import traced_node
 
@@ -47,6 +48,7 @@ def build_graph(checkpointer=None):
     graph.add_node("novelty_check", traced_node("novelty_check", novelty_check_node))
     graph.add_node("run_preflight", traced_node("run_preflight", preflight_node))
     graph.add_node("generate_variant_b", traced_node("generate_variant_b", generate_variant_b_node))
+    graph.add_node("focus_group", traced_node("focus_group", focus_group_node))
     graph.add_node("gate_2", traced_node("gate_2", gate_2_node))
     graph.add_node("distribution_bluesky", traced_node("distribution_bluesky", distribution_bluesky_node))
     graph.add_node("distribution_reddit", traced_node("distribution_reddit", distribution_reddit_node))
@@ -72,7 +74,9 @@ def build_graph(checkpointer=None):
         route_after_preflight,
         {"gate_2": "generate_variant_b", "generate_creative": "generate_creative"},
     )
-    graph.add_edge("generate_variant_b", "gate_2")
+    # The personas react to the final draft before a human sees it at Gate 2.
+    graph.add_edge("generate_variant_b", "focus_group")
+    graph.add_edge("focus_group", "gate_2")
     graph.add_conditional_edges(
         "gate_2",
         route_after_gate_2,

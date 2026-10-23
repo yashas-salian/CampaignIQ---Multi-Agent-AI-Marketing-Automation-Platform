@@ -163,6 +163,30 @@ def evaluate(candidate: str, current: str | None, holdout_path: Path, report_pat
     _gh_output(promote=str(promote).lower())
 
 
+def _record_version(revision: str, meta: dict, report: dict) -> None:
+    """Add the promoted model to model_versions (the in-app model card). Best effort."""
+    try:
+        from src.db.supabase_client import get_client
+
+        client = get_client()
+        count = len(client.table("model_versions").select("id").eq("model", "domain-classifier").execute().data or [])
+        data = meta.get("data", {})
+        client.table("model_versions").insert({
+            "model": "domain-classifier",
+            "version": f"v{count + 1}",
+            "revision": revision,
+            "trained_at": meta["trained_at"],
+            "base_model": "Qwen2.5-1.5B-Instruct",
+            "method": "LoRA fine-tune (rank 16, Unsloth), quantised to 4-bit GGUF; runs on CPU inside the workers",
+            "data": {k: v for k, v in data.items() if isinstance(v, (int, float, str))},
+            "metrics": report.get("candidate", {}),
+            "baseline_metrics": {"label": "Previous version", **(report.get("current") or {})},
+            "notes": "Weekly retrain: synthetic ideas plus Gate 1 corrections.",
+        }).execute()
+    except Exception as exc:  # the model is already live; the card can catch up
+        print(f"model card not updated ({exc})")
+
+
 def promote(candidate: str, report_path: Path, prepare_meta_path: Path) -> None:
     from huggingface_hub import HfApi
 
@@ -187,6 +211,7 @@ def promote(candidate: str, report_path: Path, prepare_meta_path: Path) -> None:
         record_promotion(commit.oid)
     except Exception as exc:
         print(f"model registry not updated ({exc}); the latest commit is served by default")
+    _record_version(commit.oid, meta, report)
     _summary(f"- **published** to `{repo}` as `{DEFAULT_FILE}`")
 
 

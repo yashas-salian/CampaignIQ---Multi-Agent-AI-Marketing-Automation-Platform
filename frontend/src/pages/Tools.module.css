@@ -53,8 +53,13 @@
 .signal strong { font-size: 14px; color: var(--mos-text); margin-bottom: 2px; }
 .signal b { color: var(--mos-text); font-weight: 600; }
 
-.personas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-.persona { display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 14px; background: var(--mos-bg-raised); animation: fade 0.5s var(--mos-ease) both; animation-delay: calc(var(--i) * 70ms); }
+/* Three across on desktop: each figure stands above its own card. */
+.personas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 1000px) { .personas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .personas { grid-template-columns: minmax(0, 1fr); } }
+.personaCol { display: flex; flex-direction: column; gap: 10px; min-width: 0; animation: fade 0.5s var(--mos-ease) both; animation-delay: calc(var(--i) * 70ms); }
+.persona { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 14px; background: var(--mos-bg-raised); }
+.role { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mos-accent); }
 .persona strong { font-family: var(--font-display); font-size: 15px; }
 .persona p { margin: 0; font-size: 13px; color: var(--mos-text-muted); line-height: 1.5; }
 .personaChips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -79,3 +84,12 @@
 .h_failed { background: var(--mos-danger); }
 .h_running, .h_pending { background: var(--mos-accent); animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.35; } }
+.allHistory { display: inline-block; margin: 16px 4px 0; font-size: 14px; font-weight: 600; --wipe-base: var(--mos-text); }
+.interview {
+  margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px;
+  border-radius: 999px; border: 1px solid color-mix(in srgb, var(--mos-accent) 45%, transparent); cursor: pointer;
+  background: color-mix(in srgb, var(--mos-accent) 10%, transparent); color: var(--mos-text); font: inherit; font-size: 13px; font-weight: 600;
+}
+.interview:hover { background: color-mix(in srgb, var(--mos-accent) 20%, transparent); }
+.interview:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: 2px; }
+.interview svg { width: 16px; height: 16px; color: var(--mos-accent); }

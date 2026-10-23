@@ -3,9 +3,11 @@ import { useTranslation } from 'react-i18next'
 
 import { supabase } from '../lib/supabaseClient'
 import { useOrg } from '../lib/useOrg'
+import { toastFailure, toastLoadError } from '../lib/notify'
 import styles from '../styles/app.module.css'
 import local from './AuditLog.module.css'
 import Select from './Select'
+import { toast } from '../lib/toast'
 
 interface AuditRow {
   id: number
@@ -65,25 +67,33 @@ export default function AuditLog() {
 
   const load = useCallback(async () => {
     if (!active) return
-    const [{ data }, { data: members }] = await Promise.all([query(PAGE), supabase.rpc('org_members', { p_org: active.id })])
+    const [{ data, error }, { data: members }] = await Promise.all([query(PAGE), supabase.rpc('org_members', { p_org: active.id })])
+    // Not "no events": the request failed.
+    if (toastLoadError(t, error, () => load())) return
     setRows((data as AuditRow[] | null) ?? [])
     setMore((data?.length ?? 0) === PAGE)
     setPeople(Object.fromEntries(((members as { user_id: string; email: string }[] | null) ?? []).map((m) => [m.user_id, m.email])))
-  }, [active, query])
+  }, [active, query, t])
 
   useEffect(() => {
     load()
   }, [load])
 
   async function loadMore() {
-    const { data } = await query(PAGE, rows[rows.length - 1]?.id)
+    const { data, error } = await query(PAGE, rows[rows.length - 1]?.id)
+    if (toastFailure(t, error)) return
     setRows((r) => [...r, ...((data as AuditRow[] | null) ?? [])])
     setMore((data?.length ?? 0) === PAGE)
   }
 
   async function exportAs(format: 'csv' | 'json') {
     setBusy(true)
-    const { data } = await query(EXPORT_LIMIT)
+    const { data, error } = await query(EXPORT_LIMIT)
+    // No empty file on failure.
+    if (toastFailure(t, error)) {
+      setBusy(false)
+      return
+    }
     const all = (data as AuditRow[] | null) ?? []
     const stamp = new Date().toISOString().slice(0, 10)
     if (format === 'json') {
@@ -97,6 +107,7 @@ export default function AuditLog() {
       )
       download(`audit-${stamp}.csv`, [head.join(','), ...lines].join('\n'), 'text/csv')
     }
+    toast.success(t('toast.exportStarted'))
     setBusy(false)
   }
 
