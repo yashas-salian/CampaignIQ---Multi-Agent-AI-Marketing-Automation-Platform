@@ -36,12 +36,29 @@ function ChannelIcon({ channel }: { channel: Metric['channel'] }) {
 function AbResult({ result }: { result: AbTestResult }) {
   const { t } = useTranslation()
   const pct = (r: number) => `${(r * 100).toFixed(1)}%`
-  const verdict = result.winner
-    ? t('ab.winner', { variant: result.winner.toUpperCase(), p: result.p_value })
-    : t('ab.noWinner', { p: result.p_value ?? '—' })
+  const bayes = result.bayes
+  // Rounds measured before the Bayesian read-out keep the original z-test chip.
+  if (!bayes || bayes.prob_b_beats_a === null) {
+    const verdict = result.winner
+      ? t('ab.winner', { variant: result.winner.toUpperCase(), p: result.p_value })
+      : t('ab.noWinner', { p: result.p_value ?? '—' })
+    return (
+      <span className={styles.chip} title={t('ab.explain')}>
+        A {pct(result.rate_a)} · B {pct(result.rate_b)} · {verdict}
+      </span>
+    )
+  }
+  const probB = bayes.prob_b_beats_a
+  const leader = probB >= 0.5 ? 'B' : 'A'
+  const chance = Math.round((probB >= 0.5 ? probB : 1 - probB) * 100)
   return (
-    <span className={styles.chip} title={t('ab.explain')}>
-      A {pct(result.rate_a)} · B {pct(result.rate_b)} · {verdict}
+    <span className={local.bayes} title={t('ab.bayesExplain', { threshold: Math.round(bayes.threshold * 100), n: bayes.min_recipients })}>
+      <span className={local.bayesRates}>A {pct(result.rate_a)} · B {pct(result.rate_b)}</span>
+      <span className={local.bayesBar} aria-hidden="true">
+        <span style={{ width: `${probB * 100}%` }} />
+      </span>
+      <b>{t('ab.chance', { variant: leader, other: leader === 'B' ? 'A' : 'B', pct: chance })}</b>
+      {bayes.decided && <em>{t('ab.decided', { variant: bayes.decided.toUpperCase() })}</em>}
     </span>
   )
 }

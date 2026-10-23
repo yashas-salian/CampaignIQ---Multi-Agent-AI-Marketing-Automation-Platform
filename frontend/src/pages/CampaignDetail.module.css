@@ -85,7 +85,7 @@
 
 /* ---------- Rounds ---------- */
 .rounds { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.round { display: grid; grid-template-columns: 52px 1fr; gap: 16px; animation: rise 0.5s var(--mos-ease) both; animation-delay: calc(var(--i) * 70ms); }
+.round { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 16px; animation: rise 0.5s var(--mos-ease) both; animation-delay: calc(var(--i) * 70ms); }
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
 .roundRail { position: relative; display: flex; justify-content: center; }
 .roundRail::after { content: ''; position: absolute; top: 44px; bottom: 0; width: 2px; background: var(--mos-surface-border); }
@@ -95,7 +95,7 @@
 .roundTop { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 10px 0 14px; }
 .roundTop strong { font-family: var(--font-display); font-size: 16px; margin-right: 4px; }
 .creative { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 18px; }
-@media (max-width: 760px) { .creative { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .creative { grid-template-columns: minmax(0, 1fr); } }
 .creativeImg { aspect-ratio: 1; }
 .preview { position: relative; margin: 0; border-radius: 14px; overflow: hidden; background: var(--mos-bg-raised); border: 1px solid var(--mos-surface-border); }
 .preview img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transform: scale(1.03); transition: opacity 0.6s ease, transform 0.8s var(--mos-ease); }
@@ -138,13 +138,6 @@
 .summaryGrid dt { font-size: 12px; color: var(--mos-text-muted); margin-bottom: 6px; }
 .summaryGrid dd { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; word-break: break-word; }
 
-/* Brand-safety findings (guardrails) */
-.safety { display: grid; gap: 10px; margin: 4px 0 2px; }
-.safetyGroup { padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; border: 1px solid; }
-.safetyGroup strong { display: block; margin-bottom: 4px; font-weight: 600; }
-.safetyGroup ul { margin: 0; padding-left: 18px; }
-.safetyBlock { color: var(--mos-text); background: color-mix(in srgb, #e5484d 10%, var(--mos-surface)); border-color: color-mix(in srgb, #e5484d 45%, transparent); }
-.safetyReview { color: var(--mos-text); background: color-mix(in srgb, #f5a524 12%, var(--mos-surface)); border-color: color-mix(in srgb, #f5a524 45%, transparent); }
 
 /* Multi-approver gate votes */
 .votes { display: grid; gap: 6px; font-size: 13.5px; }
@@ -162,3 +155,4 @@
 .interview:hover { background: color-mix(in srgb, var(--mos-accent) 20%, transparent); transform: translateY(-1px); }
 .interview:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: 2px; }
 .interview svg { width: 16px; height: 16px; color: var(--mos-accent); }
+.abDecided { color: var(--mos-success) !important; border-color: color-mix(in srgb, var(--mos-success) 40%, transparent) !important; }

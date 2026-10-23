@@ -29,6 +29,8 @@ export interface Campaign {
   distributed_at: string | null
   stop_requested: boolean
   target_language: string
+  ab_test?: boolean
+  ab_decision?: AbDecision | null
   created_at: string
   updated_at: string
 }
@@ -77,11 +79,30 @@ export interface AbTestResult {
   p_value: number | null
   significant: boolean
   winner: 'a' | 'b' | null
+  /** Bayesian read-out (rounds measured after it was added). */
+  bayes?: {
+    prob_b_beats_a: number | null
+    expected_lift: number | null
+    interval: [number, number] | null
+    decided: 'a' | 'b' | null
+    threshold: number
+    min_recipients: number
+  }
+}
+
+/** A decided A/B test: the split stopped and the winner's style runs for everyone. */
+export interface AbDecision {
+  winner: 'a' | 'b'
+  prob_b_beats_a: number
+  round: number
+  arm_index: number
+  image_style: string
+  copy_tone: string
 }
 
 /** Brand-safety result for a round's creative (src/capabilities/guardrails.py). */
 export interface GuardrailFlags {
-  issues: { code: string; severity: 'block' | 'review'; message: string }[]
+  issues: { code: string; severity: 'block' | 'review'; message: string; category?: 'safety' | 'claims' | 'readability' | 'accessibility'; fix?: string | null }[]
   disclaimer: string | null
 }
 

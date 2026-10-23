@@ -6,7 +6,6 @@ import ApiSettings from '../components/ApiSettings'
 import AuditLog from '../components/AuditLog'
 import BillingSettings from '../components/BillingSettings'
 import BrandKitSettings from '../components/BrandKitSettings'
-import SideDrawer from '../components/SideDrawer'
 import UsageStats from '../components/UsageStats'
 import PrivacySettings from '../components/PrivacySettings'
 import TeamSettings from '../components/TeamSettings'
@@ -17,6 +16,7 @@ import { useOrg } from '../lib/useOrg'
 import { isValidUsername, normalizeUsername, saveUsername, usernameOf } from '../lib/profile'
 import { supabase } from '../lib/supabaseClient'
 import { useSession } from '../lib/useAuth'
+import { setSettingsNav } from '../lib/shell'
 import styles from '../styles/app.module.css'
 import local from './Settings.module.css'
 
@@ -222,11 +222,23 @@ export default function Settings() {
     { id: 'privacy', label: t('privacy.title') },
   ]
 
-  // Sections drawer: closed by default; the section in view is marked current.
-  const [navOpen, setNavOpen] = useState(false)
+  // The sections are listed in the app sidebar under Settings, with the one in view marked.
   const [current, setCurrent] = useState(sections[0]?.id ?? '')
   const sectionIds = sections.map((s) => s.id).join(',')
-  // A section picked in the drawer stays current until the user scrolls by
+  const sectionsKey = JSON.stringify(sections)
+  useEffect(() => {
+    setSettingsNav({
+      sections: JSON.parse(sectionsKey) as { id: string; label: string }[],
+      current,
+      pick: (id) => {
+        picked.current = id
+        setCurrent(id)
+      },
+    })
+  }, [sectionsKey, current])
+  useEffect(() => () => setSettingsNav(null), [])
+
+  // A section picked in the sidebar stays current until the user scrolls by
   // hand: short sections near the bottom can't scroll up to the line below.
   const picked = useRef<string | null>(null)
   useEffect(() => {
@@ -274,25 +286,6 @@ export default function Settings() {
         </div>
       </header>
 
-      <SideDrawer side="left" label={t('st.sections')} open={navOpen} onOpenChange={setNavOpen}>
-        <nav className={local.side} aria-label={t('st.sections')}>
-          {sections.map((s) => (
-            <a
-              key={s.id}
-              href={`#${s.id}`}
-              className={`wipe-host ${s.id === current ? local.sideCurrent : ''}`}
-              aria-current={s.id === current ? 'location' : undefined}
-              onClick={() => {
-                picked.current = s.id
-                setCurrent(s.id)
-                setNavOpen(false)
-              }}
-            >
-              <span className="link-wipe">{s.label}</span>
-            </a>
-          ))}
-        </nav>
-      </SideDrawer>
 
       <div className={local.layout}>
 

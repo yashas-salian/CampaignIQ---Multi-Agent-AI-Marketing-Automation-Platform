@@ -1,0 +1,33 @@
+.radar { border-radius: 16px; padding: 16px; background: var(--mos-bg-raised); border: 1px solid var(--mos-surface-border); display: grid; gap: 12px; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.head h3 { font-family: var(--font-display); font-size: 15px; font-weight: 600; }
+.overall { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+
+/* Four areas as tiles; colour lives in the icon and label, not a side stripe. */
+.areas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 760px) { .areas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.areas li { min-width: 0; }
+.areas span, .areas b { min-width: 0; overflow-wrap: anywhere; }
+.areas li { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 8px; row-gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--mos-surface); }
+.areas svg { grid-row: span 2; width: 22px; height: 22px; padding: 4px; border-radius: 8px; box-sizing: content-box; }
+.areas span { font-size: 12.5px; color: var(--mos-text-muted); }
+.areas b { font-size: 13px; font-weight: 600; }
+/* Small phones: tighter tiles so two still fit side by side. */
+@media (max-width: 400px) {
+  .areas li { padding: 8px; column-gap: 6px; }
+  .areas svg { width: 18px; height: 18px; }
+  .areas span { font-size: 11.5px; }
+}
+.good svg, .good.overall { color: var(--mos-success); background: color-mix(in srgb, var(--mos-success) 13%, transparent); }
+.warn svg, .warn.overall { color: #c98a0b; background: color-mix(in srgb, #f5a524 16%, transparent); }
+.bad svg, .bad.overall { color: var(--mos-danger); background: color-mix(in srgb, var(--mos-danger) 13%, transparent); }
+
+.findings { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.findings li { padding: 10px 12px; border-radius: 12px; background: var(--mos-surface); border: 1px solid var(--mos-surface-border); font-size: 13.5px; line-height: 1.5; }
+.findings p { margin: 0; overflow-wrap: anywhere; }
+.findingBad { border-color: color-mix(in srgb, var(--mos-danger) 45%, transparent) !important; }
+.tag { display: inline-block; margin-bottom: 4px; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mos-text-muted); }
+.findingBad .tag { color: var(--mos-danger); }
+.fix { margin-top: 4px !important; color: var(--mos-text-muted); }
+.fix strong { color: var(--mos-text); font-weight: 600; }
+.disclaimer { font-size: 12.5px; color: var(--mos-text-muted); }

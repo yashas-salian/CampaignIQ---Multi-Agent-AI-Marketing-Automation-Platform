@@ -27,6 +27,8 @@ class CampaignState(TypedDict, total=False):
     creative: Creative
     ab_test: bool
     creative_b: Optional[Creative]
+    # A decided A/B test's winning arm (index, style, tone), used once for the next round.
+    promote_arm: Optional[list]
     novelty_attempt: int
     best_novel_creative: Creative
     best_novelty_score: float

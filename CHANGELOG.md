@@ -20,6 +20,25 @@ GitHub Release notes.
   - **Older personas:** the archetype falls back to keywords in the name and description. Gender falls back to the pronouns in the description and is never guessed from the name.
   - **No clear gender:** the card shows initials instead of a figure.
   - **Storage:** new `personas.archetype` and `personas.gender` columns (migrations `20261022000900`, `20261022001000`).
+- **App sidebar** (`components/AppSidebar`, `lib/shell.ts`): one place for every feature on all signed-in pages.
+  - **Desktop:** a slim icon rail on the left that slides out to full labels when the cursor (or keyboard focus) reaches it.
+  - **Phones:** a drawer opened from the top bar's new menu button.
+  - **Contents:** New campaign, Dashboard, Calendar, Tools, Run history, Playbooks, Our AI model, Settings (with its sections nested, the one in view underlined), Admin (operators), Docs, System status and Contact.
+  - **What moved:** the top bar keeps the logo, language, theme and account; its page links moved into the sidebar. The Settings sections drawer is replaced by the nested list.
+- **Automatic playbooks** (`capabilities/playbooks.py`, prompt `playbook.write` 1.0.0, `playbooks` table, `/playbooks`):
+  - **When they're written:** when a campaign finishes, its organisation's playbook for that industry is rewritten from every measured round.
+  - **What's in them:** the best and worst copy tones and visual styles (computed from rewards), plus round reviews and focus-group quotes, turned into a headline, do / avoid, audience notes and the next thing to test.
+  - **How they're used:** new creatives in that industry are written with it (prompt `creative.generate` 1.2.0).
+- **Bayesian A/B testing with early stopping** (`experiments.bayesian_ab`, `campaigns.ab_decision`):
+  - **The read-out:** email A/B rounds now report "92% chance B beats A", with the expected lift and a 95% interval.
+  - **Early stopping:** once either variant is at least 95% likely to be better, with 10 or more people per variant, the split stops and the winner's style runs for everyone from the next round. An `experiment.decided` webhook event is sent.
+- **Market-moment alerts** (`scheduler/market_watch.py`, `market_alerts`, `campaigns.market_watch`):
+  - **The baseline:** feasibility saves each campaign's search keyword and launch-time signals.
+  - **The check:** the hourly sweep re-checks live campaigns about daily. A Google Trends or news-coverage spike (1.5× / 2× the baseline) raises an alert on the Dashboard (live) and the campaign page, sends Slack/email and fires a `market.moment` webhook. Alerts can be dismissed.
+- **Brand & compliance radar** (replaces the brand-safety box):
+  - **Four areas:** safety, claims, readability and accessibility, each clear / to review / blocked.
+  - **Fixes:** every finding comes with a suggested fix.
+  - **New checks (advice, never blocking):** comparative claims, an English reading-ease score and long sentences, emoji overload, all-caps words, and lower-case multi-word hashtags.
 - **Interview your personas** (`persona-chat` Edge Function, `components/PersonaChat`):
   - **What it does:** "Interview <name>" on every persona, both campaign and Tools. The persona answers in character, grounded in its profile and the campaign idea, in the campaign's language, with suggested questions.
   - **Where answers come from:** a BYOK key when the user has saved one, otherwise Groq's free tier within the organisation's daily AI budget. Usage is logged to `llm_usage`.
@@ -158,6 +177,7 @@ GitHub Release notes.
 - **Database migrations** with the Supabase CLI (`supabase/migrations`). The baseline is a dump of production. Every change is checked on a fresh database, and migrations and Edge Functions deploy from main.
 
 ### Fixed
+- **Dashboard loads in one round trip** (its seven queries now run in parallel).
 - **Security: `bandit_arms` (the shared learning model) is now protected by row-level security.** Before, it had no RLS and full grants for anon/authenticated, so anyone with the public anon key could rewrite or wipe it. Now signed-in members can only read it, and only the workers write it.
 - **Campaigns no longer end after round 1 when nothing was measured** (DRY_RUN, or no delivery went out). The continue/stop step treated "no data" as a zero score; such rounds now continue (round and time caps still apply). Found in smoke test #10.
 - **The loader, photo captions and the campaign preview badge are actually blurred now.** The CSS minifier kept only the `-webkit-` prefixed `backdrop-filter`, so Chrome applied no blur at all.

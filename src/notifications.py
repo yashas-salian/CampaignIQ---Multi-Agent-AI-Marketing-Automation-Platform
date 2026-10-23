@@ -105,3 +105,21 @@ def escalate_overdue_gates() -> int:
         except Exception as exc:
             logger.warning("escalation for gate %s failed: %s", gate.get("id"), exc)
     return escalated
+
+
+def notify_market_moment(campaign_id: str, kind: str, detail: dict) -> None:
+    """A live campaign's topic just spiked (src/scheduler/market_watch.py)."""
+    try:
+        campaign, settings, members = _org_context(campaign_id)
+        recipients = [m["email"] for m in members if m["role"] in APPROVER_ROLES and m.get("email")]
+        keyword, idea = detail.get("keyword", ""), campaign["idea"][:120]
+        if kind == "trend":
+            what = f"Search interest in \"{keyword}\" jumped to {detail['value']}/100 (usually about {detail['baseline']})"
+        else:
+            what = f"News coverage of \"{keyword}\" jumped to {detail['value']} articles (was {detail['baseline']})"
+            if detail.get("headline"):
+                what += f". Latest: \"{detail['headline']}\""
+        text = f"Market moment for \"{idea}\": {what}. A good time to run the next round."
+        _send(settings, recipients, f"[MarketingOS] Market moment: {idea[:60]}", text, _app_url(f"/campaigns/{campaign_id}"))
+    except Exception as exc:
+        logger.warning("market moment notification for %s failed: %s", campaign_id, exc)

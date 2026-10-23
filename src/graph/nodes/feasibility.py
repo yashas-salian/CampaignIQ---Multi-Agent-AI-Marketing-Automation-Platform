@@ -1,6 +1,6 @@
 from src.capabilities.feasibility import score_feasibility
 from src.constants import max_duration_minutes_for, max_rounds_for_tier
-from src.db.supabase_client import create_campaign
+from src.db.supabase_client import create_campaign, update_campaign
 from src.graph.state import CampaignState
 from src.providers.registry import has_paid_tier_access
 
@@ -27,4 +27,22 @@ def feasibility_node(state: CampaignState) -> CampaignState:
         org_id=state.get("org_id"),
         ab_test=bool(state.get("ab_test")),
     )
+    _start_market_watch(state["campaign_id"], result.signals, target_language)
     return {"feasibility": result}
+
+
+def _start_market_watch(campaign_id: str, signals: dict, language: str) -> None:
+    # Launch-time signals become the baseline the market-moment sweep compares against.
+    trend, news = signals.get("trend") or {}, signals.get("news") or {}
+    keyword = trend.get("keyword") or news.get("keyword")
+    if not keyword:
+        return
+    try:
+        update_campaign(campaign_id, market_watch={
+            "keyword": keyword,
+            "language": language,
+            "baseline": {"trend_mean": trend.get("mean_interest"), "news_total": news.get("total_results")},
+            "checked_at": None,
+        })
+    except Exception:  # alerts are a bonus; never fail the campaign over them
+        pass

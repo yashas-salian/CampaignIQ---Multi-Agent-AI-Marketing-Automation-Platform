@@ -1,7 +1,9 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { BrowserRouter, Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Toaster from './components/Toaster'
+import AppSidebar from './components/AppSidebar'
+import { APP_PREFIXES, setDrawerOpen } from './lib/shell'
 import PageLoader, { LoadingMarker } from './components/PageLoader'
 import { signOutWithToast } from './lib/notify'
 import { UI_LOCALES } from './i18n'
@@ -30,6 +32,7 @@ const Settings = lazy(() => import('./pages/Settings'))
 const Tools = lazy(() => import('./pages/Tools'))
 const ToolsHistory = lazy(() => import('./pages/ToolsHistory'))
 const ModelCard = lazy(() => import('./pages/ModelCard'))
+const Playbooks = lazy(() => import('./pages/Playbooks'))
 // Secondary public pages, also on demand.
 const About = lazy(() => import('./pages/About'))
 const Contact = lazy(() => import('./pages/Contact'))
@@ -99,9 +102,6 @@ function ThemeToggle() {
   )
 }
 
-// The app bar belongs to the logged-in app only; public pages (and the 404)
-// render their own header even for a logged-in visitor.
-const APP_PREFIXES = ['/dashboard', '/calendar', '/campaigns', '/tools', '/settings', '/admin', '/models']
 
 /**
  * Username cell with a dropdown (account email, Settings, Sign out). Opens on
@@ -186,9 +186,6 @@ function AccountMenu({ name, email }: { name: string | null; email: string }) {
         <Link role="menuitem" to="/settings#account" className={styles.menuItem} onClick={() => setOpen(false)}>
           {t('common.settings')}
         </Link>
-        <Link role="menuitem" to="/models" className={styles.menuItem} onClick={() => setOpen(false)}>
-          {t('mc.nav')}
-        </Link>
         <Link role="menuitem" to="/settings#team" className={styles.menuItem} onClick={() => setOpen(false)}>
           {t('org.team')}
         </Link>
@@ -213,24 +210,16 @@ function TopBar() {
   // Same segmented tile bar as the Landing page nav.
   return (
     <header className={styles.topbar}>
+      {/* Phones: opens the sidebar drawer (desktop has the always-there rail). */}
+      <button type="button" className={`${styles.topbarCell} ${styles.menuButton}`} onClick={() => setDrawerOpen(true)} aria-label={t('nav.menu')}>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      </button>
       <Link to="/dashboard" className={`${styles.topbarCell} ${styles.topbarBrand}`}>
         <LogoMark className={styles.topbarLogo} />
         MarketingOS
       </Link>
-      <nav className={`${styles.topbarLinks} ${styles.topbarNav}`}>
-        {(
-          [
-            ['/dashboard', t('common.dashboard')],
-            ['/calendar', t('cal.nav')],
-            ['/tools', t('common.tools')],
-            ['/settings', t('common.settings')],
-          ] as const
-        ).map(([to, label]) => (
-          <NavLink key={to} to={to} className={({ isActive }) => `${styles.topbarCell} wipe-host ${isActive ? styles.topbarActive : ''}`}>
-            <span className="link-wipe">{label}</span>
-          </NavLink>
-        ))}
-      </nav>
       <div className={`${styles.topbarLinks} ${styles.topbarRight}`}>
         <label className={`${styles.topbarCell} ${styles.topbarLang}`}>
           <span className="sr-only">Language</span>
@@ -249,6 +238,14 @@ function TopBar() {
   )
 }
 
+/** The sidebar, on signed-in app pages only (same rule as the top bar). */
+function AppChrome() {
+  const { session } = useSession()
+  const { pathname } = useLocation()
+  if (!session || !APP_PREFIXES.some((p) => pathname.startsWith(p))) return null
+  return <AppSidebar />
+}
+
 function App() {
   return (
     <ThemeProvider>
@@ -256,6 +253,8 @@ function App() {
         <ScrollToTop />
         <OrgProvider>
         <TopBar />
+        <AppChrome />
+        <div id="app-main">
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
@@ -323,6 +322,14 @@ function App() {
             }
           />
           <Route
+            path="/playbooks"
+            element={
+              <ProtectedRoute>
+                <Playbooks />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/models"
             element={
               <ProtectedRoute>
@@ -348,6 +355,7 @@ function App() {
           />
           <Route path="*" element={<Lazy><NotFound /></Lazy>} />
         </Routes>
+        </div>
         <PageLoader />
         <Toaster />
         </OrgProvider>

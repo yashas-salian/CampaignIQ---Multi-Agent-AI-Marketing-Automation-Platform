@@ -44,6 +44,7 @@ def generate_creative(
     banned_terms: tuple[str, ...] | list[str] = (),
     brand: BrandKit | None = None,
     arm: tuple[int, str, str] | None = None,
+    playbook: str = "",
 ) -> Creative:
     arm_index, image_style, copy_tone = arm or select_arm_for_campaign(
         persona.age_bracket, persona.income_tier, domain_category, active_channels
@@ -60,6 +61,7 @@ def generate_creative(
             idea=fence(idea, "user_idea"),
             persona=fence(persona.model_dump(), "persona"),
             brand=brand.prompt_section() if brand else "",
+            playbook=playbook,
             image_style=image_style,
             copy_tone=copy_tone,
             directive=directive_text,
@@ -70,6 +72,7 @@ def generate_creative(
         checks = check_creative(
             str(parsed.get("copy", "")), domain_category=domain_category, channels=active_channels,
             cta_url=cta_url, banned_terms=[*banned_terms, *(brand.forbidden_words if brand else [])],
+            language=target_language,
         )
         if best is None or len(checks.blocked) < len(best[1].blocked):
             best = (parsed, checks)

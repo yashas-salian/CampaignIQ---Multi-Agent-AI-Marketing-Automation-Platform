@@ -450,7 +450,12 @@
     "variantB": "Variant B",
     "winner": "{{variant}} wins (p={{p}})",
     "noWinner": "no clear winner yet (p={{p}})",
-    "explain": "Click rates per half of the list, compared with a two-proportion z-test; a winner needs p < 0.05."
+    "explain": "Click rates per half of the list, compared with a two-proportion z-test; a winner needs p < 0.05.",
+    "chance": "{{pct}}% chance {{variant}} beats {{other}}",
+    "decided": "Winner {{variant}}: split stopped",
+    "bayesExplain": "Bayesian read-out of the click rates. A winner is called at {{threshold}}% with at least {{n}} people per variant; then everyone gets the winning style.",
+    "decidedChip": "A/B: {{variant}} won ({{pct}}%)",
+    "decidedExplain": "Decided after round {{round}}: the list is no longer split and everyone gets the winning style."
   },
   "collab": {
     "title": "Discussion",
@@ -778,5 +783,65 @@
     "q_trust": "What would make you trust this?",
     "q_where": "Where would you first notice something like this?",
     "q_switch": "What would make you switch from what you use now?"
+  },
+  "radar": {
+    "title": "Brand & compliance radar",
+    "clear": "All clear",
+    "blocked_one": "{{count}} must be fixed",
+    "blocked_other": "{{count}} must be fixed",
+    "review_one": "{{count}} to review",
+    "review_other": "{{count}} to review",
+    "area_safety": "Brand safety",
+    "area_claims": "Claims",
+    "area_readability": "Readability",
+    "area_accessibility": "Accessibility",
+    "areaClear": "Clear",
+    "areaBlocked": "Blocked",
+    "areaReview_one": "{{count}} to review",
+    "areaReview_other": "{{count}} to review",
+    "mustFix": "Must fix before sending",
+    "fix": "Suggested fix:"
+  },
+  "market": {
+    "title": "Market moments",
+    "trend": "Interest in “{{keyword}}” is up {{ratio}}×",
+    "news_one": "“{{keyword}}” is in the news: {{count}} new article",
+    "news_other": "“{{keyword}}” is in the news: {{count}} new articles",
+    "trendDetail": "Search interest {{value}}/100, usually about {{baseline}}",
+    "newsDetail": "Usually about {{baseline}}",
+    "hint": "a good time to run the next round",
+    "dismiss": "Dismiss this alert"
+  },
+  "pb": {
+    "nav": "Playbooks",
+    "open": "Open playbooks",
+    "eyebrow": "Playbooks",
+    "title": "What works, by industry",
+    "subtitle": "Written automatically from your measured campaigns each time one finishes. New campaigns in the same industry are written with their playbook.",
+    "updated": "Updated {{date}}",
+    "rounds": "Measured rounds",
+    "campaigns": "Campaigns",
+    "average": "Average reward",
+    "do": "Do",
+    "avoid": "Avoid",
+    "audience": "Who responds",
+    "evidence": "Evidence: copy tone vs reward",
+    "best": "Best so far: {{tone}} copy with {{style}} visuals.",
+    "next": "Test next:",
+    "emptyTitle": "No playbooks yet",
+    "emptyBody": "A playbook is written when a campaign in an industry finishes with at least two measured rounds. Run a campaign through to the end and its lessons will appear here.",
+    "emptyCta": "Go to the dashboard",
+    "note": "Playbooks summarise your own results; with only a few rounds, treat them as early signals."
+  },
+  "nav": {
+    "main": "Main",
+    "menu": "Menu",
+    "workspace": "Workspace",
+    "insights": "Insights",
+    "account": "Account",
+    "help": "Help",
+    "docs": "Docs",
+    "status": "System status",
+    "contact": "Contact support"
   }
 }

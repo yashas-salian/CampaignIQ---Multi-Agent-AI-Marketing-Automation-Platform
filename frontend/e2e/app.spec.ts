@@ -136,48 +136,74 @@ test('tools: recent runs live in a right-hand drawer that starts closed', async 
   await expect(tab).toBeFocused()
 })
 
-test('settings: sections drawer starts closed and marks the section in view', async ({ page }) => {
+// Desktop: the rail slides out when the cursor reaches it. Phones: the menu button opens a drawer.
+async function openNav(page: Page, project: string) {
+  const nav = page.getByRole('navigation', { name: /^main$/i })
+  if (project === 'phone') {
+    await page.getByRole('button', { name: /^menu$/i }).click()
+  } else {
+    await nav.hover({ position: { x: 20, y: 120 } })
+  }
+  await expect.poll(async () => (await nav.boundingBox())?.width ?? 0).toBeGreaterThan(200)
+  return nav
+}
+
+test('the sidebar opens from the left on every app page and lists every feature', async ({ page }, info) => {
+  await signIn(page)
+  await page.goto('/dashboard')
+  const nav = page.getByRole('navigation', { name: /^main$/i })
+  if (info.project.name !== 'phone') {
+    // A slim rail until the cursor arrives.
+    await expect.poll(async () => (await nav.boundingBox())?.width ?? 0).toBeLessThan(80)
+  }
+  await openNav(page, info.project.name)
+  for (const name of [/new campaign/i, /^dashboard$/i, /^calendar$/i, /^tools$/i, /run history/i, /^playbooks$/i, /our ai model/i, /^settings$/i])
+    await expect(nav.getByRole('link', { name })).toBeVisible()
+  await expect(nav.getByRole('link', { name: /^dashboard$/i })).toHaveAttribute('aria-current', 'page')
+
+  await nav.getByRole('link', { name: /^playbooks$/i }).click()
+  await expect(page).toHaveURL(/\/playbooks$/)
+  // Navigating closes it again.
+  if (info.project.name === 'phone') await expect(nav).toBeHidden()
+  else {
+    await page.mouse.move(900, 500)
+    await expect.poll(async () => (await nav.boundingBox())?.width ?? 0).toBeLessThan(80)
+  }
+})
+
+test('settings: its sections live in the sidebar, and the one in view is marked', async ({ page }, info) => {
   await signIn(page)
   await page.goto('/settings')
-  const tab = page.getByRole('button', { name: /sections/i })
-  await expect(tab).toHaveAttribute('aria-expanded', 'false')
-  await tab.click()
-  const nav = page.getByRole('navigation', { name: /sections/i })
-  await expect(nav).toBeVisible()
-  await expect(nav.locator('[aria-current="location"]')).toHaveCount(1)
+  const nav = await openNav(page, info.project.name)
+  const sections = nav.getByRole('list', { name: /sections/i })
+  await expect(sections.locator('[aria-current="location"]')).toHaveCount(1)
 
-  // Jumping to a section closes the drawer and marks that section.
-  const privacy = nav.getByRole('link', { name: /privacy/i })
-  await privacy.click()
-  await expect(nav).toBeHidden()
-  await tab.click()
+  // Jumping to a section marks it, with the site's orange fill + left-to-right underline.
+  await sections.getByRole('link', { name: /privacy/i }).click()
+  await openNav(page, info.project.name)
+  const privacy = sections.getByRole('link', { name: /privacy/i })
   await expect(privacy).toHaveAttribute('aria-current', 'location')
-  // The current section keeps the site's orange fill + left-to-right underline drawn (polled: it animates in).
   const wipe = privacy.locator('.link-wipe')
   await expect.poll(() => wipe.evaluate((el) => getComputedStyle(el).backgroundPositionX)).toMatch(/^0(px|%)$/)
-  await expect
-    .poll(() => wipe.evaluate((el) => getComputedStyle(el, '::after').transform))
-    .toBe('matrix(1, 0, 0, 1, 0, 0)')
-  // Other sections rest undrawn.
-  const other = nav.getByRole('link', { name: /account/i }).locator('.link-wipe')
+  await expect.poll(() => wipe.evaluate((el) => getComputedStyle(el, '::after').transform)).toBe('matrix(1, 0, 0, 1, 0, 0)')
+  const other = sections.getByRole('link', { name: /account/i }).locator('.link-wipe')
   expect(await other.evaluate((el) => getComputedStyle(el, '::after').transform)).toBe('matrix(0, 0, 0, 1, 0, 0)')
 })
 
-test('settings: scrolling to the bottom marks the last section, a picked section stays marked', async ({ page }) => {
+test('settings: scrolling to the bottom marks the last section, a picked section stays marked', async ({ page }, info) => {
   await signIn(page)
   await page.goto('/settings')
-  const tab = page.getByRole('button', { name: /sections/i })
-  const nav = page.getByRole('navigation', { name: /sections/i, includeHidden: true })
-  const currentLabel = () => nav.locator('[aria-current="location"]').textContent({ timeout: 2000 })
+  const sections = page.getByRole('navigation', { name: /^main$/i, includeHidden: true }).getByRole('list', { name: /sections/i, includeHidden: true })
+  const currentLabel = () => sections.locator('[aria-current="location"]').textContent({ timeout: 2000 })
 
   // Scroll by hand to the very bottom: the short last section (Privacy) must be current.
-  await page.mouse.move(200, 400)
+  await page.mouse.move(700, 400)
   for (let i = 0; i < 40; i++) await page.mouse.wheel(0, 1200)
   await expect.poll(currentLabel).toMatch(/privacy/i)
 
   // Pick a section that can't scroll all the way up: it stays the current one.
-  await tab.click()
-  await nav.getByRole('link', { name: /templates/i }).click()
+  await openNav(page, info.project.name)
+  await sections.getByRole('link', { name: /templates/i }).click()
   await page.waitForTimeout(800)
   await expect.poll(currentLabel).toMatch(/templates/i)
 })
@@ -321,4 +347,44 @@ test('model card shows our model against its base, the learning loop and deploym
   await expect(page.getByRole('heading', { name: /domain classifier/i })).toBeVisible()
   await expect(page.getByText('83%').first()).toBeVisible()
   await expect(page.getByText('+28 pts')).toBeVisible()
+})
+
+test('market moments show on the dashboard and can be dismissed', async ({ page }) => {
+  await signIn(page)
+  let dismissed = false
+  await page.route('**/rest/v1/market_alerts?*', (route) => {
+    if (route.request().method() === 'PATCH') {
+      dismissed = true
+      return route.fulfill({ status: 204, body: '' })
+    }
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([
+      { id: 7, campaign_id: 'c1', kind: 'trend', created_at: new Date().toISOString(), campaigns: { idea: 'Budget app' },
+        detail: { keyword: 'budget app', value: 72, baseline: 30, ratio: 2.4 } },
+    ]) })
+  })
+  await page.goto('/dashboard')
+  const moments = page.getByRole('region', { name: /market moments/i })
+  await expect(moments.getByText(/interest in .budget app. is up 2.4/i)).toBeVisible()
+  await moments.getByRole('button', { name: /dismiss this alert/i }).click()
+  await expect(moments).toHaveCount(0)
+  await expect.poll(() => dismissed).toBe(true)
+})
+
+test('playbooks page lists what works per industry', async ({ page }) => {
+  await signIn(page)
+  await page.route('**/rest/v1/playbooks?*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([
+    { domain_category: 'finance_fintech', generated_at: '2026-10-23T10:00:00Z',
+      content: { headline: 'Humour beats urgency here.', do: ['Lead with a joke'], avoid: ['Countdown pressure'], audience: ['Freelancers'], next_test: 'Try testimonials.' },
+      stats: { rounds: 4, campaigns: 2, overall_mean: 0.3, tones: [{ name: 'humorous', mean: 0.5, n: 2 }], styles: [{ name: 'minimalist', mean: 0.4, n: 3 }] } },
+  ]) }))
+  await page.goto('/playbooks')
+  await expect(page.getByRole('heading', { name: 'Humour beats urgency here.' })).toBeVisible()
+  await expect(page.getByText('Lead with a joke')).toBeVisible()
+  await expect(page.getByText(/best so far: humorous copy with minimalist visuals/i)).toBeVisible()
+})
+
+test('an empty playbooks page explains how they appear', async ({ page }) => {
+  await signIn(page)
+  await page.goto('/playbooks')
+  await expect(page.getByRole('heading', { name: /no playbooks yet/i })).toBeVisible()
 })

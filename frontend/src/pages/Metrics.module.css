@@ -35,3 +35,10 @@
   .channels li { grid-template-columns: 32px 1fr; }
   .raw, .bar { grid-column: 1 / -1; }
 }
+/* Bayesian A/B read-out: how likely B is to beat A, as a bar (left = A, right = B). */
+.bayes { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 6px 12px; border-radius: 12px; background: var(--mos-bg-raised); font-size: 12.5px; }
+.bayesRates { color: var(--mos-text-muted); font-family: var(--font-mono); }
+.bayesBar { width: 90px; height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--mos-text) 12%, transparent); overflow: hidden; }
+.bayesBar span { display: block; height: 100%; border-radius: inherit; background: var(--mos-accent); }
+.bayes b { font-weight: 600; }
+.bayes em { font-style: normal; font-weight: 600; color: var(--mos-success); }

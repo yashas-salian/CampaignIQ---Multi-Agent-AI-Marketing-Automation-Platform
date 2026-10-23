@@ -8,7 +8,9 @@ import { useOrg } from '../lib/useOrg'
 import CampaignComments from '../components/CampaignComments'
 import CopyEditor from '../components/CopyEditor'
 import ArmExplain from '../components/ArmExplain'
+import ComplianceRadar from '../components/ComplianceRadar'
 import FocusGroup from '../components/FocusGroup'
+import MarketMoments, { type MarketAlert } from '../components/MarketMoments'
 import PersonaChat from '../components/PersonaChat'
 import PersonaStage from '../components/PersonaStage'
 import { archetypeFor } from '../lib/archetypes'
@@ -57,31 +59,6 @@ function currentStep(status: CampaignStatus): number {
 const humanize = (s: string) => s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
 
 /** Brand-safety findings for one round's copy: blocking issues stop the send, claims need a human look. */
-function BrandSafety({ flags }: { flags: Iteration['guardrail_flags'] }) {
-  const { t } = useTranslation()
-  if (!flags) return null
-  const blocked = flags.issues.filter((i) => i.severity === 'block')
-  const review = flags.issues.filter((i) => i.severity === 'review')
-  if (!blocked.length && !review.length && !flags.disclaimer) return null
-  return (
-    <div className={local.safety} role="note">
-      {blocked.length > 0 && (
-        <div className={`${local.safetyGroup} ${local.safetyBlock}`}>
-          <strong>{t('cd.safetyBlocked')}</strong>
-          <ul>{blocked.map((i, n) => <li key={n}>{i.message}</li>)}</ul>
-        </div>
-      )}
-      {review.length > 0 && (
-        <div className={`${local.safetyGroup} ${local.safetyReview}`}>
-          <strong>{t('cd.safetyReview')}</strong>
-          <ul>{review.map((i, n) => <li key={n}>{i.message}</li>)}</ul>
-        </div>
-      )}
-      {flags.disclaimer && <p className={local.hint}>{t('cd.safetyDisclaimer', { text: flags.disclaimer })}</p>}
-    </div>
-  )
-}
-
 /** at://did/app.bsky.feed.post/rkey → public bsky.app URL. */
 function blueskyUrl(uri: string) {
   const m = uri.match(/^at:\/\/([^/]+)\/app\.bsky\.feed\.post\/([^/]+)$/)
@@ -194,6 +171,7 @@ export default function CampaignDetail() {
   const [submitting, setSubmitting] = useState(false)
   const [stopping, setStopping] = useState(false)
   const [chatWith, setChatWith] = useState<Persona | null>(null)
+  const [alerts, setAlerts] = useState<MarketAlert[]>([])
   const [confirm, setConfirm] = useState<'reject' | 'stop' | null>(null)
   const [category, setCategory] = useState('')
 
@@ -213,6 +191,14 @@ export default function CampaignDetail() {
       return
     }
     setCampaign(campaignData as Campaign)
+    const { data: moments } = await supabase
+      .from('market_alerts')
+      .select('id,campaign_id,kind,detail,created_at')
+      .eq('campaign_id', id)
+      .is('dismissed_at', null)
+      .order('created_at', { ascending: false })
+      .limit(3)
+    setAlerts((moments as MarketAlert[] | null) ?? [])
     setPersonas(((personaData as Persona[]) ?? []).sort((a, b) => Number(b.is_primary) - Number(a.is_primary)))
     setIterations((iterationData as Iteration[]) ?? [])
 
@@ -268,6 +254,13 @@ export default function CampaignDetail() {
     const timer = setTimeout(() => setConfirm(null), 3000)
     return () => clearTimeout(timer)
   }, [confirm])
+
+  // Dismissing hides an alert for everyone on the campaign (it's the same signal for all).
+  async function dismissAlert(alertId: number) {
+    setAlerts((list) => list.filter((a) => a.id !== alertId))
+    const { error } = await supabase.from('market_alerts').update({ dismissed_at: new Date().toISOString() }).eq('id', alertId)
+    toastFailure(t, error)
+  }
 
   async function resumeNow() {
     // Best-effort: the scheduled sweep is the reliability backstop if this fails.
@@ -426,6 +419,11 @@ export default function CampaignDetail() {
                 : t('campaignDetail.round', { current: campaign.current_round })}
             </span>
             {lang && <span className={styles.metaChip}>{lang.label}</span>}
+            {campaign.ab_decision && (
+              <span className={`${styles.metaChip} ${local.abDecided}`} title={t('ab.decidedExplain', { round: campaign.ab_decision.round })}>
+                {t('ab.decidedChip', { variant: campaign.ab_decision.winner.toUpperCase(), pct: Math.round(Math.max(campaign.ab_decision.prob_b_beats_a, 1 - campaign.ab_decision.prob_b_beats_a) * 100) })}
+              </span>
+            )}
             <span className={styles.metaChip}>{t('cd.created', { time: created })}</span>
           </div>
         </div>
@@ -458,7 +456,7 @@ export default function CampaignDetail() {
               <p className={styles.panelSub}>{pendingGate.gate_number === 1 ? t('cd.gate1Body') : t('cd.gate2Body')}</p>
             </div>
           </div>
-          {pendingGate.gate_number === 2 && <BrandSafety flags={rounds[0]?.guardrail_flags ?? null} />}
+          {pendingGate.gate_number === 2 && <ComplianceRadar flags={rounds[0]?.guardrail_flags ?? null} alwaysShow />}
           {pendingGate.gate_number === 2 && rounds[0]?.focus_group && <FocusGroup result={rounds[0].focus_group} />}
           {pendingGate.gate_number === 2 && canApprove && !alreadyVoted && rounds[0]?.copy_text && (
             <CopyEditor campaignId={campaign.id} round={rounds[0].round_number} variant="a" text={rounds[0].copy_text} people={voters} onSaved={load} />
@@ -559,6 +557,8 @@ export default function CampaignDetail() {
         </div>
       </section>
 
+      <MarketMoments alerts={alerts} onDismiss={dismissAlert} />
+
       {chatWith && <PersonaChat target={{ kind: 'persona', id: chatWith.id }} persona={chatWith} onClose={() => setChatWith(null)} />}
 
       {/* Personas side by side: each figure stands above its own info card. */}
@@ -645,7 +645,7 @@ export default function CampaignDetail() {
                             <blockquote className={local.copy}>{it.copy_text_b}</blockquote>
                           </>
                         )}
-                        {!gateOpen && <BrandSafety flags={it.guardrail_flags} />}
+                        {!gateOpen && <ComplianceRadar flags={it.guardrail_flags} />}
                         {it.image_prompt && (
                           <p className={local.prompt}>
                             <span>{t('cd.imagePrompt')}</span>

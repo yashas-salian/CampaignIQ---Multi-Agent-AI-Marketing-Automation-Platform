@@ -11,7 +11,8 @@ const campaign = (id: string, status: string, idea: string) => ({
   id, org_id: ORG.id, idea, domain_category: 'finance_fintech', feasibility_score: 72, feasibility_rationale: 'Strong demand. '.repeat(20),
   status, current_round: 1, reddit_subreddit: null, email_to: ['someone.with.a.long.address@example.com'], cta_url: 'https://example.com/a/very/long/path/that/keeps/going/and/going',
   use_image_template: false, use_email_template: false, max_rounds: 3, max_duration_minutes: null, campaign_summary: null,
-  distributed_at: now, stop_requested: false, target_language: 'en', created_at: now, updated_at: now, ab_test: true,
+  distributed_at: now, stop_requested: false, target_language: 'en', created_at: now, updated_at: now, ab_test: false,
+  ab_decision: { winner: 'b', prob_b_beats_a: 0.99, round: 1, arm_index: 9, image_style: 'humor_meme', copy_tone: 'humorous' },
 })
 const CAMPAIGNS = [
   campaign('c1', 'awaiting_gate_2', 'AI budgeting app for first-time freelancers who struggle with irregular income'),
@@ -21,7 +22,13 @@ const CAMPAIGNS = [
 const ITER = {
   id: 'i1', campaign_id: 'c1', round_number: 1, preflight_attempt: 1, copy_text: 'Sam, a graphic designer, says the app changed everything. https://example.com/a-really-long-link-without-breaks-abcdefghijklmnopqrstuvwxyz',
   image_prompt: 'prompt', preflight_score: 62, preflight_passed: true, bluesky_post_uri: 'at://did:plc:abcdefghijklmnop/app.bsky.feed.post/3kxyzabcdefg', reddit_post_url: null,
-  email_id: 'email-id-1234567890', image_style: 'minimal', copy_tone: 'friendly', arm_index: 2, guardrail_flags: null, copy_text_b: 'Variant B copy', image_style_b: 'bold', copy_tone_b: 'urgent',
+  email_id: 'email-id-1234567890', image_style: 'minimal', copy_tone: 'friendly', arm_index: 2, guardrail_flags: {
+    issues: [
+      { code: 'comparative', severity: 'review', category: 'claims', message: '"the best" is a comparative claim that ad platforms ask you to back up.', fix: 'Cite a source next to it, or rephrase as your own view.' },
+      { code: 'hashtag_case', severity: 'review', category: 'accessibility', message: '#supercalifragilisticexpialidociousbudgetingapp is hard for screen readers to split into words.', fix: 'Write hashtags in CamelCase.' },
+    ],
+    disclaimer: 'This is not financial advice. Investments can lose value; past performance does not guarantee future results.',
+  }, copy_text_b: 'Variant B copy', image_style_b: 'bold', copy_tone_b: 'urgent',
   focus_group: {
     reactions: [
       { name: 'Sam the freelance designer with a long name', archetype: 'designer', gender: 'female', reaction: 'click', likelihood: 78, quote: 'Finally something that gets irregular income; I would try it this week without a second thought.' },
@@ -45,6 +52,9 @@ const ITER = {
 const PERSONA = (id: string, name: string) => ({ id, campaign_id: 'c1', name, demographics: '34, freelance designer in Pune', psychographics: 'Values flexibility', channel_fit: 'email, bluesky', messaging_angle: 'Save hours every month', is_primary: id === 'p1', archetype: 'designer' })
 const METRICS = [
   { id: 'm1', campaign_id: 'c1', round_number: 1, channel: 'email', raw_metrics: { opens: 12, clicks: 3, sent: 40 }, reward: 0.4, collected_at: now },
+  { id: 'm3', campaign_id: 'c1', round_number: 1, channel: 'email_b', reward: 0.15, collected_at: now,
+    raw_metrics: { clicks: 15, recipients: 100, ab_test: { rate_a: 0.05, rate_b: 0.15, lift: 2, p_value: 0.02, significant: true, winner: 'b',
+      bayes: { prob_b_beats_a: 0.9909, expected_lift: 2.18, interval: [0.017, 0.184], decided: 'b', threshold: 0.95, min_recipients: 10 } } } },
   { id: 'm2', campaign_id: 'c1', round_number: 1, channel: 'bluesky', raw_metrics: { likes: 5, reposts: 1, replies: 0 }, reward: 0.2, collected_at: now },
 ]
 
@@ -57,6 +67,17 @@ function bodyFor(url: string): unknown {
   if (url.includes('/rpc/admin_dead_deliveries')) return [{ id: 'd9', campaign_id: '6aae4421-d40d-4038-97b6-dd1b543f0ccf', channel: 'email', round_number: 2, attempts: 5, last_error: 'HTTPSConnectionPool(host=api.resend.com, port=443): Max retries exceeded with url: /emails' }]
   if (url.includes('/rpc/admin_flags')) return [{ key: 'experimental_very_long_feature_flag_name', description: 'Something', enabled: true, rollout_percent: 50 }]
   if (url.includes('/rpc/llm_usage_stats')) return []
+  if (url.includes('/market_alerts')) return [
+    { id: 1, campaign_id: 'c1', kind: 'trend', created_at: now, campaigns: { idea: 'AI budgeting app for first-time freelancers who struggle with irregular income' },
+      detail: { keyword: 'budgeting app for freelancers with irregular income', value: 72, baseline: 30, ratio: 2.4 } },
+    { id: 2, campaign_id: 'c1', kind: 'news', created_at: now, campaigns: { idea: 'Meal kit' },
+      detail: { keyword: 'meal kit', value: 46, baseline: 18, ratio: 2.6, headline: 'Meal-kit startups see record demand as households look for cheaper alternatives to takeaway' } },
+  ]
+  if (url.includes('/playbooks')) return [
+    { domain_category: 'finance_fintech', generated_at: now,
+      content: { headline: 'Humorous copy with minimalist visuals beats urgency for freelancers, by a wide margin across three campaigns.', do: ['Lead with a relatable money moment', 'Keep it to two sentences'], avoid: ['Countdown pressure and scarcity claims'], audience: ['Freelancers aged 25-34 respond to humour'], next_test: 'Try humour with testimonial visuals to see if social proof adds lift.' },
+      stats: { rounds: 7, campaigns: 3, overall_mean: 0.34, tones: [{ name: 'humorous', mean: 0.52, n: 4 }, { name: 'urgency_scarcity', mean: 0.11, n: 3 }], styles: [{ name: 'minimalist', mean: 0.48, n: 5 }] } },
+  ]
   if (url.includes('/rpc/model_card')) return {
     versions: [
       { version: 'v2', revision: '0123456789abcdef', trained_at: now, base_model: 'Qwen2.5-1.5B-Instruct', method: 'LoRA fine-tune (rank 16, Unsloth), quantised to 4-bit GGUF; runs on CPU inside the workers', data: { synthetic_examples: 560, corrections_used: 41, labels: 12 }, metrics: { golden: 0.89, golden_n: 18, heldout: 0.79, heldout_n: 96, median_ms: 700, invalid_outputs: 0, top_confusions: [['food_beverage', 'ecommerce_retail', 7], ['consumer_electronics', 'entertainment_media', 2]] }, baseline_metrics: { label: 'Previous version', golden: 0.8333, heldout: 0.75 }, notes: 'Weekly retrain.' },
@@ -107,7 +128,7 @@ async function signIn(page: Page) {
   }, USER)
 }
 
-const ROUTES = ['/models', '/tools/history', '/dashboard', '/campaigns/c1', '/campaigns/c1/metrics', '/calendar', '/tools', '/settings', '/admin', '/', '/about', '/contact', '/privacy', '/terms', '/docs', '/status', '/login', '/signup', '/nope']
+const ROUTES = ['/playbooks', '/campaigns/c1/metrics', '/models', '/tools/history', '/dashboard', '/campaigns/c1', '/campaigns/c1/metrics', '/calendar', '/tools', '/settings', '/admin', '/', '/about', '/contact', '/privacy', '/terms', '/docs', '/status', '/login', '/signup', '/nope']
 const WIDTHS = [320, 360, 390, 430, 768]
 
 test('no page scrolls sideways on phones or tablets', async ({ browser }, info) => {

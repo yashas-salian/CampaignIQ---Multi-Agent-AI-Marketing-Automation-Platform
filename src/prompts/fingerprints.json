@@ -4,8 +4,8 @@
     "version": "1.2.0"
   },
   "creative.generate": {
-    "fingerprint": "c21e2f1b381b3d7c",
-    "version": "1.1.0"
+    "fingerprint": "2c0e70ddd0b69e9a",
+    "version": "1.2.0"
   },
   "eval.judge_personas": {
     "fingerprint": "e6a1c0f528eb4595",
@@ -29,6 +29,10 @@
   },
   "idea_intake.classify": {
     "fingerprint": "09b55e90abd11c3a",
+    "version": "1.0.0"
+  },
+  "playbook.write": {
+    "fingerprint": "657a895f5380ea31",
     "version": "1.0.0"
   },
   "preflight.panel": {

@@ -213,15 +213,16 @@
 /* The language picker inside the account menu is for phones only. */
 .menuLang { display: none; }
 
-/* Tablets/phones: two rows. Row 1 = logo + theme + account; row 2 = the three
-   page links sharing the full width. */
+/* Menu button: phones and tablets only (desktop has the sidebar rail). */
+.menuButton { display: none; }
+.menuButton svg { width: 20px; height: 20px; }
+
+/* Tablets/phones: one row (menu, logo, theme, account); the sidebar is a drawer. */
 @media (max-width: 900px) {
-  .topbar { height: auto; flex-wrap: wrap; }
   .topbarCell { height: 52px; padding: 0 14px; }
-  .topbarBrand { flex: 1; min-width: 0; }
-  .topbarRight { order: 1; }
-  .topbarNav { order: 2; flex-basis: 100%; }
-  .topbarNav > a { flex: 1; }
+  .topbar { height: 60px; }
+  .menuButton { display: flex; width: 52px; padding: 0; flex: none; }
+  .topbarBrand { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; }
 }
 /* Phones: language moves into the account dropdown; the name truncates. */
 @media (max-width: 600px) {
@@ -233,17 +234,10 @@
   }
   .menuLang > div { height: 36px; }
   .accountButton { max-width: 170px; padding: 0 12px; }
-  .topbarBrand { padding-left: 14px; font-size: 16px; }
+  .topbarBrand { padding-left: 12px; font-size: 16px; }
   .themeToggle { width: 52px; }
 }
 @media (max-width: 380px) { .accountButton :global(.link-wipe) { display: none; } }
-/* Phones: the four page links share the full width equally instead of
-   pushing the row past the screen edge. */
-@media (max-width: 600px) {
-  .topbarNav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .topbarNav > .topbarCell { height: 46px; padding: 0 4px; min-width: 0; font-size: 11px; letter-spacing: 0.02em; }
-  .topbarNav :global(.link-wipe) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-}
 
 /* Organisation switcher inside the account menu */
 .menuOrgs { display: grid; gap: 2px; padding: 4px 0; margin: 4px 0; border-top: 1px solid var(--nav-gap); border-bottom: 1px solid var(--nav-gap); }

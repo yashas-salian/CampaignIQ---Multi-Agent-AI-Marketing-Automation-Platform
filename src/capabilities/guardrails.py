@@ -54,6 +54,9 @@ class Issue(BaseModel):
     code: str
     severity: str  # "block" | "review"
     message: str
+    # The compliance radar's four areas: safety | claims | readability | accessibility.
+    category: str = "safety"
+    fix: str | None = None  # one concrete suggestion for the approver
 
 
 class GuardrailResult(BaseModel):
@@ -89,38 +92,116 @@ def check_creative(
     channels: list[str] | tuple[str, ...] = (),
     cta_url: str | None = None,
     banned_terms: tuple[str, ...] | list[str] = (),
+    language: str = "en",
 ) -> GuardrailResult:
     text = copy_text or ""
     lower = text.lower()
     issues: list[Issue] = []
 
     if not text.strip():
-        issues.append(Issue(code="empty", severity="block", message="The copy is empty."))
+        issues.append(Issue(code="empty", severity="block", message="The copy is empty.", fix="Regenerate the round's copy."))
 
     allowed_host = _host(cta_url) if cta_url else None
     for match in _URL_RE.findall(text):
         host = _host(match)
         if not allowed_host or not (host == allowed_host or host.endswith("." + allowed_host)):
             issues.append(Issue(code="foreign_link", severity="block",
-                                message=f"Links to {host}, which isn't the campaign's own link. Remove it; the CTA link is added automatically."))
+                                message=f"Links to {host}, which isn't the campaign's own link.",
+                                fix="Remove the link; the call-to-action link is added automatically."))
     if _EMAIL_RE.search(text):
-        issues.append(Issue(code="personal_data", severity="block", message="Contains an email address."))
+        issues.append(Issue(code="personal_data", severity="block", message="Contains an email address.",
+                            fix="Remove the address; replies go through the call-to-action link."))
     if _PHONE_RE.search(text):
-        issues.append(Issue(code="personal_data", severity="block", message="Contains a phone number."))
+        issues.append(Issue(code="personal_data", severity="block", message="Contains a phone number.",
+                            fix="Remove the number; contact details belong on the landing page."))
     for term in _banned_terms(banned_terms):
         if re.search(rf"(?<!\w){re.escape(term)}(?!\w)", lower):
-            issues.append(Issue(code="banned_term", severity="block", message=f'Uses the banned term "{term}".'))
+            issues.append(Issue(code="banned_term", severity="block", message=f'Uses the banned term "{term}".',
+                                fix=f'Replace "{term}" with neutral wording.'))
     if "bluesky" in channels and len(text) > BLUESKY_MAX_CHARS:
         issues.append(Issue(code="too_long", severity="block",
-                            message=f"{len(text)} characters; Bluesky posts are limited to {BLUESKY_MAX_CHARS}."))
+                            message=f"{len(text)} characters; Bluesky posts are limited to {BLUESKY_MAX_CHARS}.",
+                            fix=f"Cut at least {len(text) - BLUESKY_MAX_CHARS} characters: keep one benefit and the call to action."))
 
     for pattern in _ABSOLUTE_CLAIMS + _REGULATED_CLAIMS.get(domain_category, []):
         found = re.search(pattern, lower)
         if found:
-            issues.append(Issue(code="claim", severity="review",
-                                message=f'"{found.group(0)}" is an absolute or regulated claim: check it can be substantiated.'))
+            issues.append(Issue(code="claim", severity="review", category="claims",
+                                message=f'"{found.group(0)}" is an absolute or regulated claim: check it can be substantiated.',
+                                fix=_CLAIM_FIX))
+    found = _COMPARATIVE_RE.search(lower)
+    if found:
+        issues.append(Issue(code="comparative", severity="review", category="claims",
+                            message=f'"{found.group(0)}" is a comparative claim that ad platforms ask you to back up.',
+                            fix="Cite a source next to it, or rephrase as your own view (e.g. \"our favourite way to…\")."))
 
+    issues += _readability(text, language) + _accessibility(text)
     return GuardrailResult(issues=issues, disclaimer=DISCLAIMERS.get(domain_category))
+
+
+# ---------- Compliance radar: advice for the approver, never blocking ----------
+
+_CLAIM_FIX = 'Soften it to something provable (e.g. "designed to…", "helps you…") or add evidence next to it.'
+_COMPARATIVE_RE = re.compile(r"\b(the best|best[- ]in[- ]class|cheapest|lowest price|fastest|unbeatable|world'?s (best|first|leading)|better than (any|all))\b")
+_EMOJI_RE = re.compile("[\U0001F300-\U0001FAFF\U00002600-\U000027BF]")
+_SHOUT_RE = re.compile(r"\b[A-Z]{4,}\b")
+_HASHTAG_RE = re.compile(r"#([a-z]{2,}[a-z]+)\b")
+_SENTENCE_RE = re.compile(r"[^.!?]+[.!?]*")
+
+
+def _syllables(word: str) -> int:
+    word = word.lower().strip("'")
+    groups = re.findall(r"[aeiouy]+", word)
+    count = len(groups) - (1 if word.endswith("e") and len(groups) > 1 else 0)
+    return max(1, count)
+
+
+def flesch_reading_ease(text: str) -> float | None:
+    """Flesch reading ease (0-100, higher is easier) for English text; None if too short to judge."""
+    words = re.findall(r"[A-Za-z']+", text)
+    sentences = [s for s in _SENTENCE_RE.findall(text) if re.search(r"[A-Za-z]", s)]
+    if len(words) < 12 or not sentences:
+        return None
+    syllables = sum(_syllables(w) for w in words)
+    return round(206.835 - 1.015 * (len(words) / len(sentences)) - 84.6 * (syllables / len(words)), 1)
+
+
+def _readability(text: str, language: str) -> list[Issue]:
+    # The formulas are English-specific; other languages skip this part of the radar.
+    if language != "en":
+        return []
+    issues: list[Issue] = []
+    score = flesch_reading_ease(text)
+    if score is not None and score < 50:
+        issues.append(Issue(code="hard_to_read", severity="review", category="readability",
+                            message=f"Hard to read: reading-ease score {max(0, score):.0f}/100 (aim for 60+ in ads).",
+                            fix="Use shorter sentences and everyday words; one idea per sentence."))
+    longest = max((len(s.split()) for s in _SENTENCE_RE.findall(text)), default=0)
+    if longest > 28:
+        issues.append(Issue(code="long_sentence", severity="review", category="readability",
+                            message=f"One sentence runs {longest} words; people skim ads.",
+                            fix="Split it in two, keeping the benefit first."))
+    return issues
+
+
+def _accessibility(text: str) -> list[Issue]:
+    issues: list[Issue] = []
+    emoji = _EMOJI_RE.findall(text)
+    if len(emoji) > 3:
+        issues.append(Issue(code="emoji_overload", severity="review", category="accessibility",
+                            message=f"{len(emoji)} emoji: screen readers read each one aloud.",
+                            fix="Keep at most two or three, and never in the middle of a sentence."))
+    shouting = _SHOUT_RE.findall(text)
+    if shouting:
+        issues.append(Issue(code="all_caps", severity="review", category="accessibility",
+                            message=f"All-caps words ({', '.join(shouting[:3])}) read as shouting, and some screen readers spell them out.",
+                            fix="Use sentence case; add emphasis with word choice instead."))
+    hashtags = [h for h in _HASHTAG_RE.findall(text) if len(h) >= 8]
+    if hashtags:
+        issues.append(Issue(code="hashtag_case", severity="review", category="accessibility",
+                            message=f"#{hashtags[0]} is hard for screen readers to split into words.",
+                            fix="Write hashtags in CamelCase, capitalising each word (e.g. #BudgetingApp, not #budgetingapp)."))
+    return issues
 
 
 def rewrite_directive(result: GuardrailResult) -> str:

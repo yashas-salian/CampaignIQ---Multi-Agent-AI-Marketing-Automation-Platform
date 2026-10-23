@@ -1,13 +1,5 @@
 /* Settings-only layout; shared pieces come from styles/app.module.css. */
 .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
-/* Section list inside the drawer. Same orange fill + left-to-right underline
-   as links site-wide (.link-wipe); the section in view keeps it drawn. */
-.side { display: flex; flex-direction: column; gap: 4px; font-size: 14.5px; }
-.side a { display: block; padding: 10px 12px; border-radius: 10px; text-decoration: none; }
-.side a:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: -2px; }
-.side .sideCurrent { font-weight: 600; }
-.side .sideCurrent :global(.link-wipe) { background-position: 0 0; }
-.side .sideCurrent :global(.link-wipe)::after { transform: scaleX(1); }
 .section { scroll-margin-top: 88px; }
 
 /* ---------- Account ---------- */

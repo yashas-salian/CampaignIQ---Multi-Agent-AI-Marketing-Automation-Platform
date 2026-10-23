@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from src.capabilities.experiments import split_recipients, two_proportion_test
+from src.capabilities.experiments import bayesian_ab, split_recipients, two_proportion_test
 from src.constants import BLUESKY_ENGAGEMENT_CAP, REDDIT_ENGAGEMENT_CAP
 from src.tools.bluesky_client import get_bluesky_metrics
 from src.tools.reddit_client import get_reddit_metrics
@@ -56,7 +56,9 @@ def collect_metrics(campaign_id: str, user_id: str, round_number: int, email_to:
     if ab:
         clicks_b = get_click_count(campaign_id, round_number, "email_b")
         recipients_b = max(len(list_b), 1)
-        test = two_proportion_test(raw.get("email", {}).get("clicks", 0), max(len(list_a), 1), clicks_b, recipients_b)
+        clicks_a = raw.get("email", {}).get("clicks", 0)
+        test = two_proportion_test(clicks_a, max(len(list_a), 1), clicks_b, recipients_b)
+        test["bayes"] = bayesian_ab(clicks_a, len(list_a), clicks_b, len(list_b))
         m = {"clicks": clicks_b, "recipients": recipients_b, "ab_test": test}
         reward = min(clicks_b / recipients_b, 1.0)
         raw["email_b"] = m

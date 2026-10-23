@@ -450,7 +450,12 @@
     "variantB": "Variante B",
     "winner": "Gana {{variant}} (p={{p}})",
     "noWinner": "aún sin ganadora clara (p={{p}})",
-    "explain": "Tasas de clic de cada mitad de la lista, comparadas con una prueba z de dos proporciones; ganar requiere p < 0,05."
+    "explain": "Tasas de clic de cada mitad de la lista, comparadas con una prueba z de dos proporciones; ganar requiere p < 0,05.",
+    "chance": "{{pct}}% de probabilidad de que {{variant}} supere a {{other}}",
+    "decided": "Gana {{variant}}: división detenida",
+    "bayesExplain": "Lectura bayesiana de las tasas de clic. Se declara ganador al {{threshold}}% con al menos {{n}} personas por variante; luego todos reciben el estilo ganador.",
+    "decidedChip": "A/B: ganó {{variant}} ({{pct}}%)",
+    "decidedExplain": "Decidido tras la ronda {{round}}: la lista ya no se divide y todos reciben el estilo ganador."
   },
   "collab": {
     "title": "Conversación",
@@ -778,5 +783,65 @@
     "q_trust": "¿Qué te haría confiar en esto?",
     "q_where": "¿Dónde verías algo así por primera vez?",
     "q_switch": "¿Qué te haría cambiar de lo que usas ahora?"
+  },
+  "radar": {
+    "title": "Radar de marca y cumplimiento",
+    "clear": "Todo en orden",
+    "blocked_one": "{{count}} por corregir",
+    "blocked_other": "{{count}} por corregir",
+    "review_one": "{{count}} por revisar",
+    "review_other": "{{count}} por revisar",
+    "area_safety": "Seguridad de marca",
+    "area_claims": "Afirmaciones",
+    "area_readability": "Legibilidad",
+    "area_accessibility": "Accesibilidad",
+    "areaClear": "En orden",
+    "areaBlocked": "Bloqueado",
+    "areaReview_one": "{{count}} por revisar",
+    "areaReview_other": "{{count}} por revisar",
+    "mustFix": "Corregir antes de enviar",
+    "fix": "Sugerencia:"
+  },
+  "market": {
+    "title": "Momentos de mercado",
+    "trend": "El interés por “{{keyword}}” se ha multiplicado por {{ratio}}",
+    "news_one": "“{{keyword}}” está en las noticias: {{count}} artículo",
+    "news_other": "“{{keyword}}” está en las noticias: {{count}} artículos",
+    "trendDetail": "Interés de búsqueda {{value}}/100; lo habitual es {{baseline}}",
+    "newsDetail": "Lo habitual son unos {{baseline}}",
+    "hint": "buen momento para la próxima ronda",
+    "dismiss": "Descartar esta alerta"
+  },
+  "pb": {
+    "nav": "Playbooks",
+    "open": "Abrir playbooks",
+    "eyebrow": "Playbooks",
+    "title": "Lo que funciona, por sector",
+    "subtitle": "Se escriben solos a partir de tus campañas medidas cada vez que una termina. Las nuevas campañas del sector se redactan con su playbook.",
+    "updated": "Actualizado el {{date}}",
+    "rounds": "Rondas medidas",
+    "campaigns": "Campañas",
+    "average": "Recompensa media",
+    "do": "Haz",
+    "avoid": "Evita",
+    "audience": "Quién responde",
+    "evidence": "Evidencia: tono del texto vs recompensa",
+    "best": "Lo mejor hasta ahora: texto {{tone}} con visuales {{style}}.",
+    "next": "Probar después:",
+    "emptyTitle": "Aún no hay playbooks",
+    "emptyBody": "Se escribe un playbook cuando termina una campaña de un sector con al menos dos rondas medidas.",
+    "emptyCta": "Ir al panel",
+    "note": "Los playbooks resumen tus propios resultados; con pocas rondas, tómalos como señales tempranas."
+  },
+  "nav": {
+    "main": "Principal",
+    "menu": "Menú",
+    "workspace": "Trabajo",
+    "insights": "Aprendizajes",
+    "account": "Cuenta",
+    "help": "Ayuda",
+    "docs": "Documentación",
+    "status": "Estado del sistema",
+    "contact": "Soporte"
   }
 }

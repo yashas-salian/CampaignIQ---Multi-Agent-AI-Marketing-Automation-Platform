@@ -1,13 +1,14 @@
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import LogoMark from '../components/LogoMark'
 import RewardChart, { type RewardPoint } from '../components/RewardChart'
 import { CAMPAIGN_LANGUAGES } from '../lib/languages'
 import Onboarding from '../components/Onboarding'
+import MarketMoments, { type MarketAlert } from '../components/MarketMoments'
 import { toast } from '../lib/toast'
-import { toastLoadError } from '../lib/notify'
+import { toastFailure, toastLoadError } from '../lib/notify'
 import { usePageLoading } from '../lib/loading'
 import { useOrg } from '../lib/useOrg'
 import { supabase } from '../lib/supabaseClient'
@@ -254,6 +255,7 @@ function UsageMeters({ usage }: { usage: OrgUsage }) {
 export default function Dashboard() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { hash } = useLocation()
   const { session } = useSession()
   const relTime = useRelativeTime()
   const composerRef = useRef<HTMLTextAreaElement>(null)
@@ -262,6 +264,7 @@ export default function Dashboard() {
   const [metrics, setMetrics] = useState<Metric[]>([])
   const [arms, setArms] = useState<IterationArm[]>([])
   const [loop, setLoop] = useState<{ rounds: number; tried: number } | null>(null)
+  const [alerts, setAlerts] = useState<MarketAlert[]>([])
   const [tier, setTier] = useState<'free' | 'subscribed'>('free')
   const [usage, setUsage] = useState<OrgUsage | null>(null)
   const [firstLoad, setFirstLoad] = useState(true)
@@ -282,11 +285,24 @@ export default function Dashboard() {
   // Quiet reload: after the first load, data swaps in place without skeletons.
   const load = useCallback(async () => {
     if (!orgId) return
-    const [c, m, it, sub] = await Promise.all([
+    // One round trip: everything the dashboard shows, fetched in parallel.
+    const [c, m, it, sub, moments, armStats, u] = await Promise.all([
       supabase.from('campaigns').select('*').eq('org_id', orgId).order('created_at', { ascending: false }),
       supabase.from('metrics').select('*').order('collected_at', { ascending: true }),
       supabase.from('iterations').select('campaign_id,round_number,preflight_attempt,image_style,copy_tone'),
       supabase.from('subscriptions').select('status').maybeSingle(),
+      // Market moments from the last week that nobody has dismissed.
+      supabase
+        .from('market_alerts')
+        .select('id,campaign_id,kind,detail,created_at,campaigns(idea)')
+        .eq('org_id', orgId)
+        .is('dismissed_at', null)
+        .gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(5),
+      // The shared learning loop's size (every campaign on MarketingOS feeds it).
+      supabase.from('bandit_arms').select('pulls'),
+      supabase.rpc('org_usage', { p_org: orgId }),
     ])
     // Campaigns are the page; the rest degrade to empty. Say so rather than show a blank dashboard.
     toastLoadError(t, c.error, () => load())
@@ -296,12 +312,10 @@ export default function Dashboard() {
     setMetrics(((m.data as Metric[]) ?? []).filter((x) => inOrg.has(x.campaign_id)))
     setArms(((it.data as IterationArm[]) ?? []).filter((x) => inOrg.has(x.campaign_id)))
     setTier(sub.data?.status === 'subscribed' ? 'subscribed' : 'free')
-    // The shared learning loop's size (every campaign on MarketingOS feeds it).
-    const { data: armStats } = await supabase.from('bandit_arms').select('pulls')
-    const pulls = ((armStats as { pulls: number }[] | null) ?? []).map((a) => a.pulls ?? 0)
+    setAlerts((moments.data as unknown as MarketAlert[] | null) ?? [])
+    const pulls = ((armStats.data as { pulls: number }[] | null) ?? []).map((a) => a.pulls ?? 0)
     setLoop(pulls.length ? { rounds: pulls.reduce((a, b) => a + b, 0), tried: pulls.filter((p) => p > 0).length } : null)
-    const { data: u } = await supabase.rpc('org_usage', { p_org: orgId })
-    setUsage((u as OrgUsage | null) ?? null)
+    setUsage((u.data as OrgUsage | null) ?? null)
     setFirstLoad(false)
   }, [orgId, t])
 
@@ -316,11 +330,19 @@ export default function Dashboard() {
       .channel('dashboard-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'metrics' }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'market_alerts' }, () => load())
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
     }
   }, [load])
+
+  // Dismissing hides an alert for everyone on the campaign (it's the same signal for all).
+  async function dismissAlert(alertId: number) {
+    setAlerts((list) => list.filter((a) => a.id !== alertId))
+    const { error } = await supabase.from('market_alerts').update({ dismissed_at: new Date().toISOString() }).eq('id', alertId)
+    toastFailure(t, error)
+  }
 
   async function refresh() {
     setRefreshing(true)
@@ -354,6 +376,13 @@ export default function Dashboard() {
       createCampaign()
     }
   }
+
+  // The sidebar's "New campaign" lands here with #new: go straight to the composer.
+  useEffect(() => {
+    if (hash !== '#new' || firstLoad) return
+    composerRef.current?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' })
+    composerRef.current?.focus({ preventScroll: true })
+  }, [hash, firstLoad])
 
   function focusComposer() {
     composerRef.current?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' })
@@ -572,6 +601,8 @@ export default function Dashboard() {
       </header>
 
       {!firstLoad && <Onboarding campaignCount={campaigns.length} />}
+
+      <MarketMoments alerts={alerts} onDismiss={dismissAlert} showCampaign />
 
       {/* Needs-your-approval banner */}
       {needsYou.length > 0 && (
@@ -804,7 +835,10 @@ export default function Dashboard() {
               </>
             )}
             <p className={styles.panelNote}>
-              {loop ? t('learn.loop', { rounds: loop.rounds, tried: loop.tried }) : t('dash.armsNote')}
+              {loop ? t('learn.loop', { rounds: loop.rounds, tried: loop.tried }) : t('dash.armsNote')}{' '}
+              <Link to="/playbooks" className={`${styles.planLink} link-wipe`}>
+                {t('pb.open')} →
+              </Link>
             </p>
           </div>
         </div>

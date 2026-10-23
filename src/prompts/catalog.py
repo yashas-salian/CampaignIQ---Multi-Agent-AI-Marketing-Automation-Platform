@@ -62,12 +62,13 @@ _CATALOG = [
     ),
     Prompt(
         id="creative.generate",
-        version="1.1.0",  # 1.1.0: brand kit section
+        version="1.2.0",  # 1.1.0: brand kit section; 1.2.0: playbook section
         system=f"You are an ad creative director. {_JSON_ONLY}",
         template=(
             "Ad campaign idea:\n{idea}\n"
             "Target persona:\n{persona}\n"
             "{brand}"
+            "{playbook}"
             "Required image style archetype: {image_style}\n"
             "Required copy tone archetype: {copy_tone}\n"
             "{directive}{safety}\n"
@@ -114,6 +115,24 @@ _CATALOG = [
             '(exactly one of "click", "scroll", "object", always in English: would click, would scroll past, '
             'or would actively object), "likelihood" (integer 0-100, how likely they are to click) and "quote" '
             "(one first-person sentence under 25 words, in {language}, saying why)."
+        ),
+    ),
+    Prompt(
+        id="playbook.write",
+        version="1.0.0",
+        system=f"You are a senior performance marketer writing a short, practical playbook from real campaign results. {_JSON_ONLY}",
+        template=(
+            "Industry: {domain}\n"
+            "Measured results from this organisation's campaigns in this industry (reward 0-1, higher is better; "
+            "n = measured rounds):\n{stats}\n\n"
+            "Best-performing ad copy:\n{best}\n\n"
+            "Weakest ad copy:\n{worst}\n\n"
+            "Notes from the campaigns (round reviews and audience reactions):\n{notes}\n\n"
+            "Write a playbook a marketer can act on next time, grounded only in these results (say so when "
+            "evidence is thin, e.g. based on 2 rounds). Respond with ONLY a JSON object with exactly these keys: "
+            '"headline" (one sentence, the single most useful lesson), "do" (2-4 short concrete recommendations), '
+            '"avoid" (1-3 things that underperformed), "audience" (1-3 notes on who responded and why) and '
+            '"next_test" (one sentence: the most valuable thing to test next). Every string in {language}.'
         ),
     ),
     Prompt(
