@@ -10,6 +10,7 @@ import CopyEditor from '../components/CopyEditor'
 import ArmExplain from '../components/ArmExplain'
 import ComplianceRadar from '../components/ComplianceRadar'
 import FocusGroup from '../components/FocusGroup'
+import NewPicture from '../components/NewPicture'
 import MarketMoments, { type MarketAlert } from '../components/MarketMoments'
 import PersonaChat from '../components/PersonaChat'
 import PersonaStage from '../components/PersonaStage'
@@ -73,16 +74,37 @@ function seedOf(id: string) {
 }
 
 /**
- * The posted image isn't stored (only its prompt is), so this regenerates a
- * preview from the round's own prompt via Pollinations, the same free service
- * the backend uses (src/tools/image_gen.py). Falls back to a placeholder.
+ * The finished ad (headline and CTA set on the picture), from the
+ * private ad-images bucket. Older rounds have no stored image, so they get a
+ * preview re-drawn from the round's prompt via Pollinations, the same free
+ * service the backend falls back to. Falls back to a placeholder.
  */
-function RoundImage({ prompt, seedFrom }: { prompt: string | null; seedFrom: string }) {
+function RoundImage({ prompt, path, seedFrom, version = 0 }: { prompt: string | null; path?: string | null; seedFrom: string; version?: number }) {
   const { t } = useTranslation()
-  const [state, setState] = useState<'loading' | 'ready' | 'error'>(prompt ? 'loading' : 'error')
-  const src = prompt
+  const [stored, setStored] = useState<string | null>(null)
+  const [storedFailed, setStoredFailed] = useState(!path)
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>(path || prompt ? 'loading' : 'error')
+  useEffect(() => {
+    if (!path) return
+    let live = true
+    supabase.storage
+      .from('ad-images')
+      .createSignedUrl(path, 3600)
+      .then(({ data, error }) => {
+        if (!live) return
+        if (error || !data?.signedUrl) {
+          setStoredFailed(true)
+          if (!prompt) setState('error')
+        } else setStored(data.signedUrl)
+      })
+    return () => {
+      live = false
+    }
+  }, [path, prompt, version])
+  const preview = prompt
     ? `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&nologo=true&seed=${seedOf(seedFrom)}`
     : ''
+  const src = stored ?? (storedFailed ? preview : '')
   if (state === 'error') {
     return (
       <div className={`${styles.placeholder} ${local.creativeImg}`}>
@@ -97,8 +119,24 @@ function RoundImage({ prompt, seedFrom }: { prompt: string | null; seedFrom: str
   return (
     <figure className={`${local.creativeImg} ${local.preview} ${state === 'ready' ? local.previewReady : ''}`}>
       {state === 'loading' && <span className={`${styles.skeleton} ${local.previewSkeleton}`} aria-hidden="true" />}
-      <img src={src} alt={prompt ?? ''} loading="lazy" decoding="async" onLoad={() => setState('ready')} onError={() => setState('error')} />
-      <figcaption>{t('cd.previewNote')}</figcaption>
+      {src && (
+        <img
+          src={src}
+          alt={prompt ?? ''}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setState('ready')}
+          onError={() => {
+            // A stored ad that won't load still has the prompt preview to fall back on.
+            if (stored && prompt) {
+              setStored(null)
+              setStoredFailed(true)
+            } else setState('error')
+          }}
+        />
+      )}
+      {/* The finished ad carries its own words and button: no overlay on it (screen readers still get the note). */}
+      {stored ? <figcaption className={styles.srOnly}>{t('cd.postedNote')}</figcaption> : storedFailed && <figcaption>{t('cd.previewNote')}</figcaption>}
     </figure>
   )
 }
@@ -456,6 +494,22 @@ export default function CampaignDetail() {
               <p className={styles.panelSub}>{pendingGate.gate_number === 1 ? t('cd.gate1Body') : t('cd.gate2Body')}</p>
             </div>
           </div>
+          {pendingGate.gate_number === 2 && rounds[0] && (
+            <div className={local.gateAd}>
+              <RoundImage key={`${rounds[0].id}-${rounds[0].image_version ?? 0}`} seedFrom={rounds[0].id} prompt={rounds[0].image_prompt} path={rounds[0].image_path} version={rounds[0].image_version ?? 0} />
+              <div className={local.gateAdInfo}>
+                <h3>{t('cd.postedNote')}</h3>
+                <dl>
+                  {rounds[0].headline && (<><dt>{t('cd.adHeadline')}</dt><dd>{rounds[0].headline}</dd></>)}
+                  {rounds[0].cta && (<><dt>{t('cd.adButton')}</dt><dd>{rounds[0].cta}</dd></>)}
+                  {rounds[0].image_style && (<><dt>{t('cd.adLayout')}</dt><dd>{humanize(rounds[0].image_style)}</dd></>)}
+                </dl>
+                {canApprove && !alreadyVoted && rounds[0].image_path && (
+                  <NewPicture campaignId={campaign.id} round={rounds[0].round_number} version={rounds[0].image_version ?? 0} onDone={load} />
+                )}
+              </div>
+            </div>
+          )}
           {pendingGate.gate_number === 2 && <ComplianceRadar flags={rounds[0]?.guardrail_flags ?? null} alwaysShow />}
           {pendingGate.gate_number === 2 && rounds[0]?.focus_group && <FocusGroup result={rounds[0].focus_group} />}
           {pendingGate.gate_number === 2 && canApprove && !alreadyVoted && rounds[0]?.copy_text && (
@@ -600,7 +654,7 @@ export default function CampaignDetail() {
                   </dl>
                   <button type="button" className={local.interview} onClick={() => setChatWith(p)}>
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /><path d="M8 10h8M8 13h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-                    {t('chat.open', { name: p.name.split(' ')[0] })}
+                    {t('chat.open', { name: p.name.split(/[\s,;:]+/)[0] })}
                   </button>
                 </article>
               </div>
@@ -636,7 +690,7 @@ export default function CampaignDetail() {
                       )}
                     </div>
                     <div className={local.creative}>
-                      <RoundImage key={it.id} seedFrom={it.id} prompt={it.image_prompt} />
+                      <RoundImage key={`${it.id}-${it.image_version ?? 0}`} seedFrom={it.id} prompt={it.image_prompt} path={it.image_path} version={it.image_version ?? 0} />
                       <div className={local.creativeText}>
                         {it.copy_text && <blockquote className={local.copy}>{it.copy_text}</blockquote>}
                         {it.copy_text_b && (

@@ -185,6 +185,7 @@
     "imagePrompt": "Image prompt",
     "imagePlaceholder": "Generated image (placeholder)",
     "previewNote": "Preview regenerated from this round’s prompt",
+    "postedNote": "The finished ad",
     "publishedTo": "Published to",
     "notPublished": "Not published yet",
     "viewPost": "View post",
@@ -194,7 +195,10 @@
     "safetyBlocked": "Won't be sent: brand-safety checks failed",
     "safetyReview": "Check these claims before approving",
     "safetyDisclaimer": "Disclaimer added automatically: {{text}}",
-    "stopRequested": "Stopping. The campaign ends after its current step."
+    "stopRequested": "Stopping. The campaign ends after its current step.",
+    "adHeadline": "Headline",
+    "adButton": "Button",
+    "adLayout": "Layout"
   },
   "mx": {
     "back": "Back to campaign",
@@ -442,7 +446,18 @@
     "how": "The AI follows the voice and word lists when writing copy. Drafts with a forbidden word are rewritten and can never be sent. The sign-off is added to posts and emails that don't include it.",
     "save": "Save brand kit",
     "saved": "Saved.",
-    "savedToast": "Brand kit saved."
+    "savedToast": "Brand kit saved.",
+    "logo": "Logo",
+    "logoHint": "Placed in a corner of every finished ad, on a small white chip. PNG with a transparent background works best; up to 1 MB.",
+    "uploadLogo": "Upload logo",
+    "replaceLogo": "Replace logo",
+    "removeLogo": "Remove",
+    "noLogo": "No logo yet",
+    "logoAlt": "Your brand logo",
+    "logoSaved": "Logo saved. New ads will carry it.",
+    "logoRemoved": "Logo removed.",
+    "logoType": "Use a PNG, JPEG or WebP image.",
+    "logoSize": "That file is over 1 MB."
   },
   "ab": {
     "toggle": "A/B test emails",
@@ -843,5 +858,15 @@
     "docs": "Docs",
     "status": "System status",
     "contact": "Contact support"
+  },
+  "newPicture": {
+    "button": "New picture",
+    "painting": "Painting…",
+    "wait": "Painting a new picture with the same words and layout. This takes about a minute.",
+    "left": "{{count}} new pictures left for this round.",
+    "left_one": "1 new picture left for this round.",
+    "none": "No new pictures left for this round.",
+    "done": "New picture ready. Approving sends this one.",
+    "failed": "Couldn't paint a new picture. The current one is kept."
   }
 }

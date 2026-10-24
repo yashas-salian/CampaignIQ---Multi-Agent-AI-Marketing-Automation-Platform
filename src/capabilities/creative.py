@@ -1,9 +1,10 @@
 import base64
+import logging
 
 from pydantic import BaseModel
 
 from src.capabilities.audience import Persona
-from src.capabilities.brand import BrandKit
+from src.capabilities.brand import BrandKit, brand_logo
 from src.capabilities.guardrails import GuardrailResult, check_creative, rewrite_directive
 from src.languages import language_name
 from src.llm_json import generate_json
@@ -11,12 +12,16 @@ from src.providers.registry import get_image_generator, get_llm
 from src.prompts import PROMPTS
 from src.security.prompt_guard import fence
 from src.tools.bandit import select_arm_for_campaign
+from src.tools.ad_composer import compose_ad
 from src.tools.image_compositing import overlay_template
+
+logger = logging.getLogger("capabilities.creative")
 
 
 class Creative(BaseModel):
     copy_text: str
     image_prompt: str
+    # The finished ad: the generated picture with the headline and CTA set on it.
     image_bytes: bytes
     image_style: str
     copy_tone: str
@@ -24,10 +29,16 @@ class Creative(BaseModel):
     guardrails: GuardrailResult = GuardrailResult()
     # Why the bandit picked this arm (bandit.explain_choice); shown as "Why this ad?".
     arm_explain: dict | None = None
+    headline: str = ""
+    cta: str = ""
 
 
 # Extra copy attempts when brand-safety checks block a draft (see guardrails.py).
 MAX_GUARDRAIL_REWRITES = 2
+
+# Appended to every image prompt: weaker free models drift into illustration
+# and painted-on gibberish text without it.
+AD_VISUAL_SUFFIX = ", professional advertising photography, high detail, no text, no letters, no watermark"
 
 
 def generate_creative(
@@ -81,6 +92,10 @@ def generate_creative(
         safety_text = f"\n{rewrite_directive(checks)}\n"
     parsed, checks = best
 
+    forbidden = [*banned_terms, *(brand.forbidden_words if brand else [])]
+    headline = _clean_line(parsed.get("headline"), forbidden)
+    cta = _clean_line(parsed.get("cta"), forbidden)
+
     image_provider = get_image_generator(user_id)
     template_bytes = None
     if use_image_template and user_id:
@@ -93,12 +108,15 @@ def generate_creative(
     if template_bytes is not None and image_provider.supports_outpainting:
         # Pro feature (paid/BYOK only): the template is the fixed foundation --
         # generate new content around it, preserving its pixels exactly.
+        # The template is the user's own layout, so no text is set on top.
         image_bytes = image_provider.outpaint(template_bytes, parsed["image_prompt"])
     else:
         # Free tier (or no template): generate normally. If a template was
         # requested but this provider can't outpaint, composite it on top as
         # a corner overlay instead of silently ignoring the user's request.
-        image_bytes = image_provider.generate_image(parsed["image_prompt"])
+        image_bytes = _finish_ad(
+            image_provider.generate_image(parsed["image_prompt"] + AD_VISUAL_SUFFIX), headline, cta, brand, image_style
+        )
         if template_bytes is not None:
             image_bytes = overlay_template(image_bytes, template_bytes)
 
@@ -111,7 +129,31 @@ def generate_creative(
         arm_index=arm_index,
         guardrails=checks,
         arm_explain=_explain(persona, domain_category, active_channels, arm_index),
+        headline=headline,
+        cta=cta,
     )
+
+
+def _clean_line(value, forbidden: list[str]) -> str:
+    """One line of on-image text, or "" if missing or it uses a banned word
+    (the copy's guardrail rewrites don't cover the headline and button)."""
+    text = " ".join(str(value or "").split()).strip("\"'“”")
+    if not text or any(term and term.lower() in text.lower() for term in forbidden):
+        return ""
+    return text
+
+
+def _finish_ad(image_bytes: bytes, headline: str, cta: str, brand: BrandKit | None, image_style: str) -> bytes:
+    # Each bandit image style has its own layout (ad_composer.LAYOUTS). Layout
+    # is polish: if it fails, ship the bare picture rather than fail the round.
+    try:
+        return compose_ad(
+            image_bytes, headline, cta, brand_color=brand.brand_color if brand else None, style=image_style,
+            logo_bytes=brand_logo(brand),
+        )
+    except Exception as exc:
+        logger.warning("ad layout failed, using the bare image: %s", exc)
+        return image_bytes
 
 
 def _explain(persona: Persona, domain_category: str, active_channels: list[str], arm_index: int) -> dict | None:

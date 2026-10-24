@@ -185,6 +185,7 @@
     "imagePrompt": "Prompt de imagem",
     "imagePlaceholder": "Imagem gerada (espaço reservado)",
     "previewNote": "Prévia gerada novamente a partir do prompt desta rodada",
+    "postedNote": "O anúncio final",
     "publishedTo": "Publicado em",
     "notPublished": "Ainda não publicado",
     "viewPost": "Ver publicação",
@@ -194,7 +195,10 @@
     "safetyBlocked": "Não será enviado: as verificações de segurança da marca falharam",
     "safetyReview": "Verifique estas afirmações antes de aprovar",
     "safetyDisclaimer": "Aviso adicionado automaticamente: {{text}}",
-    "stopRequested": "Parando. A campanha termina após a etapa atual."
+    "stopRequested": "Parando. A campanha termina após a etapa atual.",
+    "adHeadline": "Título",
+    "adButton": "Botão",
+    "adLayout": "Layout"
   },
   "mx": {
     "back": "Voltar à campanha",
@@ -442,7 +446,18 @@
     "how": "A IA segue a voz e as listas de palavras ao escrever. Rascunhos com palavra proibida são reescritos e nunca podem ser enviados. A assinatura é adicionada a posts e e-mails que não a tenham.",
     "save": "Salvar kit de marca",
     "saved": "Salvo.",
-    "savedToast": "Kit de marca salvo."
+    "savedToast": "Kit de marca salvo.",
+    "logo": "Logo",
+    "logoHint": "Colocado num canto de cada anúncio final, sobre uma pequena etiqueta branca. Um PNG com fundo transparente funciona melhor; até 1 MB.",
+    "uploadLogo": "Enviar logo",
+    "replaceLogo": "Trocar logo",
+    "removeLogo": "Remover",
+    "noLogo": "Ainda sem logo",
+    "logoAlt": "O logo da sua marca",
+    "logoSaved": "Logo salvo. Os novos anúncios vão exibi-lo.",
+    "logoRemoved": "Logo removido.",
+    "logoType": "Use uma imagem PNG, JPEG ou WebP.",
+    "logoSize": "Esse arquivo passa de 1 MB."
   },
   "ab": {
     "toggle": "Teste A/B de e-mails",
@@ -843,5 +858,15 @@
     "docs": "Documentação",
     "status": "Status do sistema",
     "contact": "Suporte"
+  },
+  "newPicture": {
+    "button": "Nova imagem",
+    "painting": "Criando…",
+    "wait": "Criando uma nova imagem com o mesmo texto e layout. Leva cerca de um minuto.",
+    "left": "Restam {{count}} novas imagens para esta rodada.",
+    "left_one": "Resta 1 nova imagem para esta rodada.",
+    "none": "Não restam novas imagens para esta rodada.",
+    "done": "Nova imagem pronta. Ao aprovar, esta será enviada.",
+    "failed": "Não foi possível criar uma nova imagem. A atual foi mantida."
   }
 }

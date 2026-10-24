@@ -14,6 +14,8 @@ class BrandKit(BaseModel):
     forbidden_words: list[str] = []
     required_phrase: str | None = None
     brand_color: str | None = None
+    # In the private brand-logos bucket ({org_id}/logo-....png), set in Settings -> Brand kit.
+    logo_path: str | None = None
 
     @property
     def empty(self) -> bool:
@@ -42,6 +44,23 @@ def with_required_phrase(text: str, kit: BrandKit | None, *, max_len: int | None
         return text
     combined = f"{text.rstrip()} {kit.required_phrase}"
     return text if max_len is not None and len(combined) > max_len else combined
+
+
+BRAND_LOGOS_BUCKET = "brand-logos"
+
+
+def brand_logo(kit: BrandKit | None) -> bytes | None:
+    """The kit's logo image, or None. Never raises: a missing logo just leaves
+    the ad without one."""
+    if not kit or not kit.logo_path:
+        return None
+    try:
+        from src.db.supabase_client import download_object
+
+        return download_object(BRAND_LOGOS_BUCKET, kit.logo_path)
+    except Exception as exc:
+        logger.warning("brand logo download failed: %s", exc)
+        return None
 
 
 def brand_kit_for_campaign(campaign_id: str | None) -> BrandKit | None:

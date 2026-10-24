@@ -1,8 +1,24 @@
+import logging
+
 from src.capabilities.preflight import score_preflight
-from src.db.supabase_client import upsert_iteration
+from src.db.supabase_client import upload_ad_image, upsert_iteration
 from src.graph.state import CampaignState
 
 MAX_PREFLIGHT_ATTEMPTS = 3
+
+logger = logging.getLogger("graph.preflight")
+
+
+def _stored_image(state: CampaignState, image_bytes: bytes) -> dict:
+    """{"image_path": ...} once the finished ad is stored, else {} (the page
+    then falls back to a preview drawn from the prompt). Never fails the round."""
+    if not image_bytes:
+        return {}
+    try:
+        return {"image_path": upload_ad_image(state["campaign_id"], state["round_id"], image_bytes)}
+    except Exception as exc:
+        logger.warning("storing the ad image failed: %s", exc)
+        return {}
 
 
 def preflight_node(state: CampaignState) -> CampaignState:
@@ -33,6 +49,10 @@ def preflight_node(state: CampaignState) -> CampaignState:
         arm_explain=best_creative.arm_explain,
         # Shown at Gate 2: blocking issues left after the rewrites, and claims to review.
         guardrail_flags=best_creative.guardrails.model_dump(),
+        # Kept so Gate 2 can repaint the picture with the same words (capability "ad_image").
+        headline=best_creative.headline,
+        cta=best_creative.cta,
+        **_stored_image(state, best_creative.image_bytes),
     )
 
     return {

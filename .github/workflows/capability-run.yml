@@ -76,6 +76,11 @@ jobs:
           SETTINGS_ENCRYPTION_KEY: ${{ secrets.SETTINGS_ENCRYPTION_KEY }}
           PAID_LLM_API_KEY: ${{ secrets.PAID_LLM_API_KEY }}
           PAID_IMAGE_API_KEY: ${{ secrets.PAID_IMAGE_API_KEY }}
+          # Platform OpenAI images: off unless the repo variable OPENAI_IMAGE_GEN is "on".
+          OPENAI_IMAGE_GEN: ${{ vars.OPENAI_IMAGE_GEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           PAID_JUDGE_API_KEY: ${{ secrets.PAID_JUDGE_API_KEY }}
       # Save even when an earlier step failed (e.g. a Groq rate limit), so the
       # ~940 MB model isn't re-downloaded on every run until a job succeeds.

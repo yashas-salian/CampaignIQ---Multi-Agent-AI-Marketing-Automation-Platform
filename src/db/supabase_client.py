@@ -178,3 +178,21 @@ def insert_feedback(campaign_id, user_id, round_number, *, overall_reward, stake
            "overall_reward": overall_reward, "stakeholder_comment": stakeholder_comment,
            "revision_directive": revision_directive, "continued": continued}
     get_client().table("feedback").insert(row).execute()
+
+
+AD_IMAGES_BUCKET = "ad-images"
+
+
+def upload_ad_image(campaign_id: str, round_number: int, image_bytes: bytes, *, variant: str = "") -> str:
+    """Store a round's finished ad (private bucket, see the ad_images
+    migration) and return its path, for iterations.image_path."""
+    suffix = f"-{variant}" if variant else ""
+    path = f"{campaign_id}/round-{round_number}{suffix}.jpg"
+    get_client().storage.from_(AD_IMAGES_BUCKET).upload(
+        path, image_bytes, {"content-type": "image/jpeg", "upsert": "true"}
+    )
+    return path
+
+
+def download_object(bucket: str, path: str) -> bytes:
+    return get_client().storage.from_(bucket).download(path)

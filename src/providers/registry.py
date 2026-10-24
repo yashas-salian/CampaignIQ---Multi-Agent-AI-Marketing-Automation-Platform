@@ -5,6 +5,10 @@ from src.providers.base import ImageProvider, LLMProvider
 from src.providers.free.groq_llm import GroqLLMProvider
 from src.providers.free.openai_compatible import configured_fallbacks
 from src.providers.gateway import LLMGateway
+from src.providers.free import cloudflare_image
+from src.providers.free.cloudflare_image import CloudflareImageProvider
+from src.providers.free.gemini_image import FallbackImageProvider, GeminiImageProvider
+from src.providers.free.hf_image import HuggingFaceImageProvider
 from src.providers.free.pollinations_image import PollinationsImageProvider
 from src.providers.paid.openai_image import OpenAIImageProvider
 from src.providers.paid.openai_llm import OpenAILLMProvider
@@ -104,8 +108,31 @@ def get_image_generator(user_id: str | None = None) -> ImageProvider:
     elif not _force_free_tier() and (os.environ.get("PAID_IMAGE_API_KEY") or os.environ.get("PAID_LLM_API_KEY")):
         logger.info("provider tier resolved: image=paid (no user context)")
         return OpenAIImageProvider()
-    logger.info("provider tier resolved: image=free (Pollinations)")
-    return PollinationsImageProvider()
+    return _free_image()
+
+
+def openai_images_enabled() -> bool:
+    """The platform's own OpenAI key (OPENAI_API_KEY) makes images only when
+    OPENAI_IMAGE_GEN=on: its credit is kept for the project submission."""
+    return os.environ.get("OPENAI_IMAGE_GEN", "").strip().lower() == "on" and bool(os.environ.get("OPENAI_API_KEY"))
+
+
+def _free_image() -> ImageProvider:
+    """OpenAI (only when switched on), FLUX on Cloudflare Workers AI, FLUX on
+    Hugging Face, Gemini (needs billing on the key's project), then
+    Pollinations: each one that fails hands over to the next."""
+    chain: list[ImageProvider] = []
+    if openai_images_enabled():
+        chain.append(OpenAIImageProvider(api_key=os.environ["OPENAI_API_KEY"]))
+    if cloudflare_image.configured():
+        chain.append(CloudflareImageProvider())
+    if os.environ.get("HF_TOKEN"):
+        chain.append(HuggingFaceImageProvider())
+    if os.environ.get("GEMINI_API_KEY"):
+        chain.append(GeminiImageProvider())
+    chain.append(PollinationsImageProvider())
+    logger.info("provider tier resolved: image=free (%s)", " > ".join(type(p).__name__ for p in chain))
+    return chain[0] if len(chain) == 1 else FallbackImageProvider(chain)
 
 
 def get_judge_llm(user_id: str | None = None) -> LLMProvider:

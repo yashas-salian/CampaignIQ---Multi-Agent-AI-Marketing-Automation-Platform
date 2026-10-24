@@ -15,6 +15,22 @@ out of scope for now.
 Architecture diagram + what makes this more than an LLM wrapper:
 [`docs/architecture.md`](./docs/architecture.md).
 
+## Screenshots
+
+Demo data, captured from the real app (`SCREENSHOTS=1 npx playwright test e2e/screenshots.spec.ts --project=desktop` in `frontend/`). For a guided tour, see the [demo script](docs/DEMO.md).
+
+**Finished ads.** The picture is generated text-free (FLUX on Cloudflare Workers AI by default); the headline, button, brand colour and logo are set by `src/tools/ad_composer.py`, in one of five layouts matched to the bandit's image style:
+
+![The five ad layouts: lifestyle, minimalist, testimonial, meme and urgency](docs/screenshots/ad-layouts.jpg)
+
+**Gate 2.** The approver sees the finished ad (and can ask for a new picture), the brand and compliance radar, and how the AI personas react, before anything is posted:
+
+![Campaign page at Gate 2](docs/screenshots/gate-2.png)
+
+| Dashboard | Playbooks | Our AI model |
+|---|---|---|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Playbooks](docs/screenshots/playbooks.png) | ![Model card](docs/screenshots/model-card.png) |
+
 ## Setup
 
 ```

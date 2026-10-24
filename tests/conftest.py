@@ -31,6 +31,12 @@ os.environ.update(
         "PAID_LLM_API_KEY": "",
         "PAID_IMAGE_API_KEY": "",
         "PAID_JUDGE_API_KEY": "",
+        # Image providers: tests opt in per case, never with real keys.
+        "OPENAI_API_KEY": "",
+        "OPENAI_IMAGE_GEN": "off",
+        "CLOUDFLARE_ACCOUNT_ID": "",
+        "CLOUDFLARE_API_TOKEN": "",
+        "GEMINI_API_KEY": "",
     }
 )
 

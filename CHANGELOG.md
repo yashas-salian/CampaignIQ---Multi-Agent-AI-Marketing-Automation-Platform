@@ -14,6 +14,34 @@ GitHub Release notes.
 ## [Unreleased]
 
 ### Added
+- **Images that look like ads** (`tools/ad_composer.py`, prompt `creative.generate` 1.3.0):
+  - **Finished layout:** the picture is cropped to the feed format (1080×1080, or a 1200×628 banner), and a headline and a call-to-action button in the brand-kit colour are set over a soft dark fade at the bottom. The face is the site's Fraunces. Output is JPEG so it stays under Bluesky's image size cap.
+  - **Five layouts, one per bandit image style**, so the bandit also learns which layout works:
+    - *Lifestyle:* soft dark fade, elegant white headline, brand-colour button.
+    - *Minimalist:* a calm off-white band on top with lighter dark type and an outlined button; the picture below has no fade.
+    - *Testimonial:* the headline in italics under a large brand-colour quote mark. No star rating or attribution, since those would claim reviews the brand hasn't shown.
+    - *Humor / meme:* a big outlined caption across the top and a white button.
+    - *Urgency:* a slanted brand-colour band with heavy type and a dark button. No invented deadline or "limited" tag.
+    - Headlines are balanced across lines (no lone last word).
+  - **The copy step writes them:** the creative prompt now also returns a `headline` (at most 8 words) and a `cta` (2-4 words) in the campaign language. Either one is dropped if it uses a banned or brand-forbidden word.
+  - **Ad-style visuals:** the image brief asks for an advertising photograph with one focal subject, a clean background, a calm lower third for the headline, and no text in the picture.
+  - **Limits:** text in scripts the font can't set without shaping (Hindi, Arabic, emoji) is left off rather than drawn as boxes. Templates used for outpainting (paid tier) get no text on top. A layout failure ships the bare picture rather than failing the round.
+- **Better free image models** (`providers/free/cloudflare_image.py`, `hf_image.py`, `gemini_image.py`): FLUX.1-schnell on Cloudflare Workers AI first (free daily allowance), then on Hugging Face, then Gemini (needs billing), then Pollinations. Each failure hands over to the next, and a provider that's out of credit or unauthorised is skipped for the rest of the run.
+- **Brand logo on every ad** (Settings → Brand kit, `components/BrandLogo`, private `brand-logos` bucket, `brand_kits.logo_path`, migration `20261024000200`): owners and admins upload a PNG, JPEG or WebP (up to 1 MB); it goes on a small white chip in the corner each layout leaves free.
+- **The ad goes out in emails too** (`resend_client.py`, `distribution.with_ad_image`): embedded inline (`cid:`), not linked, so it never expires; clicking it follows the call-to-action link. Email templates can place it with `{{image}}`. A/B variant B's email carries variant B's own ad (it was generated before but unused). Retried emails keep their image.
+- **Gate 2 shows the finished ad, with "New picture"** (`components/NewPicture`, capability `ad_image`): the ad sits at the top of the gate with its headline, button and layout beside it. Approvers can repaint the picture (same prompt, words, layout and brand) up to 5 times per round; approving sends the latest one. The job checks the caller may approve the campaign, and only runs while that round waits at Gate 2. New columns `iterations.headline`, `cta` and `image_version`.
+- **Demo script** (`docs/DEMO.md`) and **README screenshots** (`docs/screenshots`, refreshed by `frontend/e2e/screenshots.spec.ts` against demo data; no image generation used).
+- **OpenAI images on a switch** (`OPENAI_IMAGE_GEN`, off by default): with `OPENAI_IMAGE_GEN=on` (repo variable in CI) the platform's `OPENAI_API_KEY` makes images with `gpt-image-2`, ahead of the free chain. Kept off to save its credit.
+- Pollinations' corner watermark is cropped off its pictures.
+
+### Fixed
+- The finished ad's caption no longer covers its button; the regenerated preview keeps its note.
+- "Interview Maya," lost its stray comma when a persona's name contains one.
+- Pollinations returned the same picture for the same prompt; each call now uses a fresh seed.
+- Security: Vite 8.2.1 → 8.3.5 (dev-server advisories; `npm audit` now clean).
+- OpenAI images (paid tier and BYOK) failed every time: `gpt-image-2` rejects the `response_format` parameter, which is no longer sent.
+- **The finished ad is stored** (private `ad-images` bucket, `iterations.image_path`, migration `20261024000100`): the campaign page shows the exact image instead of re-drawing a preview from the prompt. Only people who can view the campaign can read it. Older rounds keep the preview.
+
 - **3D persona figures** on campaign persona cards and Tools → Personas results:
   - **The set:** 20 archetypes (teacher with books, doctor in a white coat with a stethoscope, chef, developer, …), each with a female and a male stylised 3D character. They live in `frontend/public/personas/<archetype>-<gender>.webp` and are re-rendered with `frontend/scripts/render_personas.py`.
   - **Choosing a figure:** the personas prompt (`audience.personas` 1.2.0) gives each persona an archetype and a gender, so the figure always matches the persona the AI wrote.

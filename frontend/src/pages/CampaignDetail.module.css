@@ -156,3 +156,12 @@
 .interview:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: 2px; }
 .interview svg { width: 16px; height: 16px; color: var(--mos-accent); }
 .abDecided { color: var(--mos-success) !important; border-color: color-mix(in srgb, var(--mos-success) 40%, transparent) !important; }
+
+/* Gate 2: the finished ad up front, the "New picture" control beside it. */
+.gateAd { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 24px; align-items: center; }
+.gateAdInfo { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.gateAdInfo h3 { margin: 0; font-family: var(--font-display); font-size: 18px; }
+.gateAdInfo dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 0; }
+.gateAdInfo dt { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mos-text-muted); padding-top: 3px; }
+.gateAdInfo dd { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+@media (max-width: 720px) { .gateAd { grid-template-columns: minmax(0, 1fr); } }

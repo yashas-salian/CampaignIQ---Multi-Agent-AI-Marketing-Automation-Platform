@@ -62,7 +62,7 @@ _CATALOG = [
     ),
     Prompt(
         id="creative.generate",
-        version="1.2.0",  # 1.1.0: brand kit section; 1.2.0: playbook section
+        version="1.3.0",  # 1.1.0: brand kit section; 1.2.0: playbook section; 1.3.0: headline, CTA, ad-style visual
         system=f"You are an ad creative director. {_JSON_ONLY}",
         template=(
             "Ad campaign idea:\n{idea}\n"
@@ -75,11 +75,16 @@ _CATALOG = [
             "Write ad creative for this persona, executed within the required style/tone archetypes above "
             "(don't invent a different style). Never include links, email addresses or phone numbers in the "
             "copy (the call-to-action link is added separately). Respond with ONLY a JSON object, no prose, "
-            'with exactly two keys: "copy" (a short ad copy, 2-3 sentences, written in '
-            "{language} since that is this campaign's target-audience language) and "
-            '"image_prompt" (a vivid, concrete visual description suitable for an image generation model, '
-            "matching the copy -- always written in English regardless of the copy's language, since image "
-            "generation models are English-prompt-optimized)."
+            'with exactly four keys: "copy" (a short ad copy, 2-3 sentences, written in '
+            "{language} since that is this campaign's target-audience language), "
+            "\"headline\" (the ad's on-image headline in {language}: at most 8 words, one concrete benefit, "
+            'no hashtags, emoji or quotes), "cta" (a 2-4 word call-to-action button label in {language}, '
+            "e.g. \"Book a table\") and \"image_prompt\" (the ad's visual for an image generation model, always "
+            "written in English regardless of the copy's language, since image generation models are "
+            "English-prompt-optimized: a professional advertising photograph of the product or service in "
+            "use by someone like the persona, one clear focal subject, clean uncluttered background, "
+            "commercial lighting, and the bottom third of the frame kept simple and calm because the headline "
+            "is set there later; never ask for any text, letters, signs, logos or watermarks in the image)."
         ),
     ),
     Prompt(

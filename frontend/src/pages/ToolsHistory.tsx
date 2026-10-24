@@ -66,7 +66,7 @@ export default function ToolsHistory() {
   const [shown, setShown] = useState(PAGE)
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.from('capability_runs').select(RUN_COLUMNS).order('created_at', { ascending: false }).limit(LIMIT)
+    const { data, error } = await supabase.from('capability_runs').select(RUN_COLUMNS).in('capability', [...CAPABILITIES]).order('created_at', { ascending: false }).limit(LIMIT)
     setLoaded(true)
     if (toastLoadError(t, error, () => load())) return
     setRuns((data as Run[]) ?? [])

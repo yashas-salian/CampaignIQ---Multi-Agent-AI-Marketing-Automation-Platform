@@ -21,7 +21,8 @@ class OpenAIImageProvider(ImageProvider):
         self._client = OpenAI(api_key=api_key or os.environ.get("PAID_IMAGE_API_KEY") or os.environ["PAID_LLM_API_KEY"])
 
     def generate_image(self, prompt: str) -> bytes:
-        result = self._client.images.generate(model=MODEL, prompt=prompt, size="1024x1024", response_format="b64_json")
+        # gpt-image models always answer in base64 and reject response_format.
+        result = self._client.images.generate(model=MODEL, prompt=prompt, size="1024x1024")
         return base64.b64decode(result.data[0].b64_json)
 
     def outpaint(self, template_bytes: bytes, prompt: str) -> bytes:
@@ -51,6 +52,5 @@ class OpenAIImageProvider(ImageProvider):
             mask=mask_buf,
             prompt=prompt,
             size="1024x1024",
-            response_format="b64_json",
         )
         return base64.b64decode(result.data[0].b64_json)

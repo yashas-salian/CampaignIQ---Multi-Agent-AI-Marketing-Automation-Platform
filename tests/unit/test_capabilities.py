@@ -99,14 +99,14 @@ class TestDistribution:
 
     def test_live_send_when_dry_run_is_off(self, monkeypatch):
         monkeypatch.setenv("DRY_RUN", "false")
-        monkeypatch.setattr(distribution, "send_email", lambda to, subject, html: f"email-id-for-{len(to)}")
+        monkeypatch.setattr(distribution, "send_email", lambda to, subject, html, **_: f"email-id-for-{len(to)}")
         assert distribution.send_campaign_email("c2", 1, ["a@x.io", "b@x.io"], "Hi", "<p>x</p>") == "email-id-for-2"
 
     def test_cta_link_is_click_tracked_when_configured(self, monkeypatch):
         sent = {}
         monkeypatch.setenv("DRY_RUN", "false")
         monkeypatch.setenv("TRACK_CLICK_BASE_URL", "https://ref.supabase.co/functions/v1/track-click")
-        monkeypatch.setattr(distribution, "send_email", lambda to, subject, html: sent.setdefault("html", html))
+        monkeypatch.setattr(distribution, "send_email", lambda to, subject, html, **_: sent.setdefault("html", html))
         distribution.send_campaign_email("c3", 2, ["a@x.io"], "Hi", "<p>x</p>", cta_url="https://shop.io/a?b=1")
         assert "track-click?url=https%3A%2F%2Fshop.io%2Fa%3Fb%3D1&campaign_id=c3&round_id=2&channel=email" in sent["html"]
 

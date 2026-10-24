@@ -146,6 +146,8 @@ export default function Tools() {
     const { data, error } = await supabase
       .from('capability_runs')
       .select(RUN_COLUMNS)
+      // Only Tools runs: campaign jobs (Gate 2's "New picture") share the table.
+      .in('capability', [...CAPABILITIES])
       .order('created_at', { ascending: false })
       .limit(8)
     if (toastLoadError(t, error, () => loadRuns())) return

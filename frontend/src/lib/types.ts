@@ -54,6 +54,12 @@ export interface Iteration {
   round_number: number
   copy_text: string | null
   image_prompt: string | null
+  /** The finished ad in the private ad-images bucket (src/tools/ad_composer.py). */
+  image_path?: string | null
+  /** How many times the picture was repainted at Gate 2 ("New picture"). */
+  image_version?: number
+  headline?: string | null
+  cta?: string | null
   preflight_score: number | null
   preflight_passed: boolean | null
   preflight_attempt: number

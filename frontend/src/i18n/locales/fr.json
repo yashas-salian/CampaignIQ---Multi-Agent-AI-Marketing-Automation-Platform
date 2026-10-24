@@ -185,6 +185,7 @@
     "imagePrompt": "Prompt d’image",
     "imagePlaceholder": "Image générée (espace réservé)",
     "previewNote": "Aperçu régénéré à partir du prompt de ce tour",
+    "postedNote": "L’annonce finale",
     "publishedTo": "Publié sur",
     "notPublished": "Pas encore publié",
     "viewPost": "Voir la publication",
@@ -194,7 +195,10 @@
     "safetyBlocked": "Ne sera pas envoyé : contrôles de sécurité de marque échoués",
     "safetyReview": "Vérifiez ces affirmations avant d'approuver",
     "safetyDisclaimer": "Mention ajoutée automatiquement : {{text}}",
-    "stopRequested": "Arrêt en cours. La campagne s'arrête après l'étape en cours."
+    "stopRequested": "Arrêt en cours. La campagne s'arrête après l'étape en cours.",
+    "adHeadline": "Titre",
+    "adButton": "Bouton",
+    "adLayout": "Mise en page"
   },
   "mx": {
     "back": "Retour à la campagne",
@@ -442,7 +446,18 @@
     "how": "L'IA suit le ton et les listes de mots en rédigeant. Un brouillon contenant un mot interdit est réécrit et ne peut jamais partir. La signature est ajoutée aux posts et e-mails qui ne l'ont pas.",
     "save": "Enregistrer la charte",
     "saved": "Enregistré.",
-    "savedToast": "Kit de marque enregistré."
+    "savedToast": "Kit de marque enregistré.",
+    "logo": "Logo",
+    "logoHint": "Placé dans un coin de chaque annonce finale, sur une petite pastille blanche. Un PNG à fond transparent donne le meilleur résultat ; 1 Mo maximum.",
+    "uploadLogo": "Importer un logo",
+    "replaceLogo": "Remplacer le logo",
+    "removeLogo": "Retirer",
+    "noLogo": "Pas encore de logo",
+    "logoAlt": "Le logo de votre marque",
+    "logoSaved": "Logo enregistré. Les nouvelles annonces l’afficheront.",
+    "logoRemoved": "Logo retiré.",
+    "logoType": "Utilisez une image PNG, JPEG ou WebP.",
+    "logoSize": "Ce fichier dépasse 1 Mo."
   },
   "ab": {
     "toggle": "Test A/B des e-mails",
@@ -843,5 +858,15 @@
     "docs": "Documentation",
     "status": "État du système",
     "contact": "Support"
+  },
+  "newPicture": {
+    "button": "Nouvelle image",
+    "painting": "Création…",
+    "wait": "Création d’une nouvelle image avec le même texte et la même mise en page. Comptez environ une minute.",
+    "left": "Encore {{count}} nouvelles images pour ce tour.",
+    "left_one": "Encore 1 nouvelle image pour ce tour.",
+    "none": "Plus de nouvelles images pour ce tour.",
+    "done": "Nouvelle image prête. C’est elle qui sera envoyée à l’approbation.",
+    "failed": "Impossible de créer une nouvelle image. L’actuelle est conservée."
   }
 }

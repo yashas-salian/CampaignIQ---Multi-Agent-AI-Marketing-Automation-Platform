@@ -1,0 +1,12 @@
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+/* The logo as it appears on ads: on a white rounded chip. */
+.chip {
+  display: grid; place-items: center; min-width: 120px; height: 64px; padding: 10px 16px; border-radius: 14px;
+  background: #fff; border: 1px solid var(--mos-surface-border);
+}
+.chip img { display: block; max-width: 200px; max-height: 44px; object-fit: contain; }
+.chip span { font-size: 13px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.small { height: 38px; padding: 0 14px; font-size: 13.5px; }
+/* Visually hidden; the buttons open it. */
+.file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }

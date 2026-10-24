@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import BrandLogo from './BrandLogo'
 import { supabase } from '../lib/supabaseClient'
 import { useOrg } from '../lib/useOrg'
 import styles from '../styles/app.module.css'
@@ -14,9 +15,10 @@ interface Kit {
   forbidden_words: string[]
   required_phrase: string | null
   brand_color: string | null
+  logo_path: string | null
 }
 
-const EMPTY: Kit = { voice: '', preferred_words: [], forbidden_words: [], required_phrase: null, brand_color: null }
+const EMPTY: Kit = { voice: '', preferred_words: [], forbidden_words: [], required_phrase: null, brand_color: null, logo_path: null }
 const toList = (s: string) => s.split(',').map((w) => w.trim()).filter(Boolean)
 
 /** How campaigns in this organisation should sound. Owners/admins edit; everyone else reads. */
@@ -32,7 +34,7 @@ export default function BrandKitSettings() {
     if (!active) return
     supabase
       .from('brand_kits')
-      .select('voice,preferred_words,forbidden_words,required_phrase,brand_color')
+      .select('voice,preferred_words,forbidden_words,required_phrase,brand_color,logo_path')
       .eq('org_id', active.id)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -105,6 +107,9 @@ export default function BrandKitSettings() {
           />
         </label>
       </div>
+      {active && (
+        <BrandLogo orgId={active.id} path={kit.logo_path} editable={editable} onChange={(logo_path) => setKit((k) => ({ ...k, logo_path }))} />
+      )}
       <p className={styles.muted}>{t('brand.how')}</p>
       {editable && (
         <div className={local.inline}>

@@ -76,7 +76,7 @@ class TestSendTime:
         state = {
             "campaign_id": "c1", "user_id": "u1", "round_id": 1, "domain_category": "finance_fintech",
             "idea": "Round-up investing", "email_to": ["a@x.io"],
-            "creative": type("C", (), {"copy_text": "Invest your spare change.", "image_bytes": b""})(),
+            "creative": type("C", (), {"copy_text": "Invest your spare change.", "image_bytes": b"", "headline": ""})(),
         }
         distribution_email.distribution_email_node(state)
         assert "not financial advice" in sent["html"].lower()

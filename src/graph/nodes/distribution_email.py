@@ -44,6 +44,8 @@ def distribution_email_node(state: CampaignState) -> CampaignState:
             html=body,
             cta_url=state.get("cta_url"),
             user_id=state["user_id"],
+            image_bytes=creative.image_bytes or None,
+            image_alt=creative.headline or creative.copy_text[:120],
         )
         if variant and recipients_b:
             text_b, blocked_b = prepare_for_channel(
@@ -56,6 +58,7 @@ def distribution_email_node(state: CampaignState) -> CampaignState:
             email_id_b = f"dead: {blocked_b}" if blocked_b else send_campaign_email(
                 state["campaign_id"], state["round_id"], recipients_b, subject=state["idea"][:78], html=body_b,
                 cta_url=state.get("cta_url"), user_id=state["user_id"], channel="email_b",
+                image_bytes=variant.image_bytes or None, image_alt=variant.headline or variant.copy_text[:120],
             )
             upsert_iteration(state["campaign_id"], state["user_id"], state["round_id"], email_id_b=email_id_b)
     upsert_iteration(state["campaign_id"], state["user_id"], state["round_id"], email_id=email_id)

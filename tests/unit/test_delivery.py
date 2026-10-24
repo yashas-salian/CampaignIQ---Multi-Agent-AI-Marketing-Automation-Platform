@@ -79,7 +79,7 @@ def test_failed_and_dead_refs_are_not_collected_as_posts():
 
 def test_stored_payload_replays_the_same_send(live, monkeypatch):
     sent = []
-    monkeypatch.setattr(distribution, "send_email", lambda to, subject, html: sent.append((to, subject, html)) or "em_1")
+    monkeypatch.setattr(distribution, "send_email", lambda to, subject, html, **_: sent.append((to, subject, html)) or "em_1")
     payload = {"to": ["a@x.io"], "subject": "Hi", "html": "<p>x</p><p><a href='t'>Learn more</a></p>"}
     assert distribution.resend_from_payload("email", "c9", 3, payload, "u1") == "em_1"
     assert sent == [(["a@x.io"], "Hi", payload["html"])]  # CTA link not appended twice

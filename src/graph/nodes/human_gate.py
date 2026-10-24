@@ -1,9 +1,13 @@
+import logging
+
 from langgraph.types import interrupt
 
 from src.capabilities.audience import Persona
 from src.capabilities.idea_intake import DOMAIN_CATEGORIES
 from src.db.supabase_client import (
+    AD_IMAGES_BUCKET,
     create_pending_gate,
+    download_object,
     get_campaign,
     get_iteration,
     get_primary_persona,
@@ -11,6 +15,8 @@ from src.db.supabase_client import (
 )
 from src.graph.state import CampaignState
 from src.notifications import notify_gate_opened
+
+logger = logging.getLogger("graph.human_gate")
 
 
 def gate_1_node(state: CampaignState) -> CampaignState:
@@ -72,6 +78,16 @@ def gate_2_node(state: CampaignState) -> CampaignState:
     creative = state.get("creative")
     if creative is not None and iteration.get("copy_text") and iteration["copy_text"] != creative.copy_text:
         update["creative"] = creative.model_copy(update={"copy_text": iteration["copy_text"]})
+    # A new picture painted at the gate (capability "ad_image") replaced the
+    # stored ad: send that one. If it can't be read, the original still goes.
+    if creative is not None and iteration.get("image_version") and iteration.get("image_path"):
+        try:
+            base = update.get("creative", creative)
+            update["creative"] = base.model_copy(
+                update={"image_bytes": download_object(AD_IMAGES_BUCKET, iteration["image_path"])}
+            )
+        except Exception as exc:
+            logger.warning("repainted ad unreadable, sending the original: %s", exc)
     variant = state.get("creative_b")
     if variant is not None and iteration.get("copy_text_b") and iteration["copy_text_b"] != variant.copy_text:
         update["creative_b"] = variant.model_copy(update={"copy_text": iteration["copy_text_b"]})
