@@ -20,6 +20,7 @@ from urllib.parse import urlparse
 from pydantic import BaseModel
 
 BLUESKY_MAX_CHARS = 300  # Bluesky counts graphemes; code points are a safe upper bound
+MASTODON_MAX_CHARS = 500  # mastodon.social's limit (instances may allow more, never less by default)
 
 # Tiny built-in list (slurs/obscenities are better handled by the brand kit's
 # per-organisation list); extend globally with BANNED_TERMS="a,b,c".
@@ -122,6 +123,10 @@ def check_creative(
         issues.append(Issue(code="too_long", severity="block",
                             message=f"{len(text)} characters; Bluesky posts are limited to {BLUESKY_MAX_CHARS}.",
                             fix=f"Cut at least {len(text) - BLUESKY_MAX_CHARS} characters: keep one benefit and the call to action."))
+    if "mastodon" in channels and len(text) > MASTODON_MAX_CHARS:
+        issues.append(Issue(code="too_long", severity="block",
+                            message=f"{len(text)} characters; Mastodon posts are limited to {MASTODON_MAX_CHARS}.",
+                            fix=f"Cut at least {len(text) - MASTODON_MAX_CHARS} characters: keep one benefit and the call to action."))
 
     for pattern in _ABSOLUTE_CLAIMS + _REGULATED_CLAIMS.get(domain_category, []):
         found = re.search(pattern, lower)
@@ -224,13 +229,14 @@ def prepare_for_channel(
     """Last check right before sending: (text to send, None) or (None, reason).
 
     Re-checks the final copy (blocking issues only) and adds the category's
-    disclaimer: the short form on Bluesky when it still fits, the full form is
+    disclaimer: the short form on Bluesky and Mastodon when it still fits, the full form is
     added to emails by the email node."""
     result = check_creative(copy_text, domain_category=domain_category, channels=[channel], cta_url=cta_url,
                             banned_terms=banned_terms)
     if result.blocked:
         return None, "blocked by brand-safety checks: " + "; ".join(i.message for i in result.blocked)
     short = SHORT_DISCLAIMERS.get(domain_category)
-    if channel == "bluesky" and short and len(copy_text) + 1 + len(short) <= BLUESKY_MAX_CHARS:
+    limit = {"bluesky": BLUESKY_MAX_CHARS, "mastodon": MASTODON_MAX_CHARS}.get(channel)
+    if limit and short and len(copy_text) + 1 + len(short) <= limit:
         return f"{copy_text} {short}", None
     return copy_text, None

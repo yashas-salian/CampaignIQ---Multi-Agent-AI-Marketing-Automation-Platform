@@ -47,6 +47,7 @@ Required free-tier keys (the system runs fully free without any paid key):
 | `NEWSAPI_KEY` | newsapi.org |
 | `BLUESKY_HANDLE` / `BLUESKY_APP_PASSWORD` | bsky.app Settings → App Passwords |
 | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` / `RESEND_TEST_TO_EMAIL` | resend.com |
+| `MASTODON_POST_TOKEN` (optional) | Your Mastodon instance → Preferences → Development → New application, scopes `write:statuses` + `write:media`. Set → every approved round is also posted to Mastodon with its ad; empty → the channel is off. Separate from the read-only `MASTODON_ACCESS_TOKEN` used for search. |
 
 **Reddit is on hold** (API access blocked by policy changes) — `REDDIT_*`
 keys and `ENABLE_REDDIT` still exist in `.env.example` but aren't required;
@@ -97,10 +98,10 @@ Without Supabase credentials (local scripts), a local JSON file stands in for th
 
 | Severity | Triggers | What happens |
 |---|---|---|
-| **block** | A link to anything but the campaign's CTA domain, an email address or phone number, a banned term (built-in list + `BANNED_TERMS`), over 300 characters for Bluesky, empty copy | The copy is regenerated with the reasons, up to 2 times. If it's still blocked, Gate 2 shows why and distribution refuses to send. |
+| **block** | A link to anything but the campaign's CTA domain, an email address or phone number, a banned term (built-in list + `BANNED_TERMS`), over 300 characters for Bluesky (500 for Mastodon), empty copy | The copy is regenerated with the reasons, up to 2 times. If it's still blocked, Gate 2 shows why and distribution refuses to send. |
 | **review** | Absolute claims ("guaranteed", "risk-free", "#1", "clinically proven") and category-specific claims ("cures", "guaranteed returns", "lose 10 kg") | Shown at Gate 2 for the approver to substantiate. |
 
-Healthcare, finance and fitness campaigns automatically get a disclaimer: the full text on emails, and a short form on Bluesky when it fits. Results are stored per round in `iterations.guardrail_flags`.
+Healthcare, finance and fitness campaigns automatically get a disclaimer: the full text on emails, and a short form on Bluesky and Mastodon when it fits. Results are stored per round in `iterations.guardrail_flags`.
 
 ### Email A/B tests
 
@@ -115,7 +116,7 @@ Tick **A/B test emails** in the composer, which needs at least 2 recipients. Eac
 Each organisation's kit (Settings → Brand kit, edited by owners and admins; [`capabilities/brand.py`](./src/capabilities/brand.py)) is applied in three places:
 - **Creative generation** follows the **voice**, which is fenced as user text, and the **preferred words**.
 - **Forbidden words** join the brand-safety banned terms, so a draft using one is rewritten and can never be sent.
-- **The required sign-off or hashtag** is appended to Bluesky posts (when it fits) and emails that don't already contain it.
+- **The required sign-off or hashtag** is appended to Bluesky and Mastodon posts (when it fits) and emails that don't already contain it.
 
 With no kit set, prompts are exactly what they were before.
 

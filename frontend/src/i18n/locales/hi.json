@@ -94,6 +94,7 @@
     "st_rejected": "अस्वीकृत",
     "channelsTitle": "चैनल के अनुसार एंगेजमेंट",
     "blueskyDetail": "{{likes}} लाइक · {{reposts}} रीपोस्ट · {{replies}} जवाब",
+    "mastodonDetail": "{{likes}} पसंदीदा · {{reposts}} बूस्ट · {{replies}} जवाब",
     "emailDetail": "{{recipients}} प्राप्तकर्ताओं से {{clicks}} क्लिक",
     "channelEmpty": "अभी कोई पोस्ट मापी नहीं गई",
     "armsTitle": "सबसे सफल क्रिएटिव आर्म",

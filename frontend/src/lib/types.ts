@@ -64,6 +64,7 @@ export interface Iteration {
   preflight_passed: boolean | null
   preflight_attempt: number
   bluesky_post_uri: string | null
+  mastodon_post_url: string | null
   reddit_post_url: string | null
   email_id: string | null
   image_style: string | null
@@ -126,7 +127,7 @@ export interface Metric {
   id: string
   campaign_id: string
   round_number: number
-  channel: 'bluesky' | 'reddit' | 'email' | 'email_b'
+  channel: 'bluesky' | 'mastodon' | 'reddit' | 'email' | 'email_b'
   raw_metrics: Record<string, number | AbTestResult>
   reward: number
   collected_at: string

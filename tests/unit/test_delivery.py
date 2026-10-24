@@ -67,6 +67,21 @@ def test_no_ledger_means_no_send(monkeypatch, live):
     assert send(lambda: pytest.fail("sent without a ledger claim")).startswith("failed: delivery ledger unavailable")
 
 
+def test_a_dropped_ledger_connection_is_retried(monkeypatch, live):
+    # Seen in production: one "Server disconnected" lost a round's email.
+    real, calls = delivery.ledger, []
+
+    def flaky_ledger():
+        calls.append(1)
+        if len(calls) == 1:
+            raise ConnectionError("Server disconnected")
+        return real()
+
+    monkeypatch.setattr(delivery, "ledger", flaky_ledger)
+    assert send(Flaky(failures=0)) == "at://post/1"
+    assert len(calls) == 2
+
+
 def test_backoff_grows():
     assert delivery.RETRY_BACKOFF_MINUTES == tuple(sorted(delivery.RETRY_BACKOFF_MINUTES))
 

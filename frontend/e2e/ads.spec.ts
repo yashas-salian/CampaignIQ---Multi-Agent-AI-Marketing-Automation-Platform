@@ -151,3 +151,35 @@ test('a logo that is not an image type is refused before upload', async ({ page 
   await expect(page.getByText(/png, jpeg or webp/i)).toBeVisible()
   expect(uploaded).toBe(false)
 })
+
+test('a round posted to Mastodon links to the post; a dry run is just a label', async ({ page }) => {
+  await signIn(page)
+  const now = new Date().toISOString()
+  const campaign = {
+    id: 'c2', org_id: ORG.id, idea: 'Coffee pre-orders', domain_category: 'food_beverage', feasibility_score: 70, feasibility_rationale: 'ok',
+    status: 'awaiting_metrics', current_round: 2, reddit_subreddit: null, email_to: null, cta_url: null, use_image_template: false,
+    use_email_template: false, max_rounds: 3, max_duration_minutes: null, campaign_summary: null, distributed_at: now,
+    stop_requested: false, target_language: 'en', created_at: now, updated_at: now,
+  }
+  const round = (n: number, mastodon: string) => ({
+    id: `i${n}`, campaign_id: 'c2', round_number: n, preflight_attempt: 1, copy_text: `Round ${n} copy`, image_prompt: 'a barista',
+    image_path: null, image_version: 0, headline: null, cta: null, preflight_score: 70, preflight_passed: true,
+    bluesky_post_uri: null, mastodon_post_url: mastodon, reddit_post_url: null, email_id: null,
+    image_style: 'minimalist', copy_tone: 'direct_factual', arm_index: 0, guardrail_flags: null,
+  })
+  await page.route('**/rest/v1/campaigns?*', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(campaign) }))
+  await page.route('**/rest/v1/iterations?*', (route) =>
+    route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify([round(1, 'https://mastodon.social/@brewline/113456789'), round(2, "DRY_RUN: would post to Mastodon: 'Hi'")]),
+    }),
+  )
+  await page.route('**/image.pollinations.ai/**', (route) => route.fulfill({ status: 200, contentType: 'image/png', body: PIXEL }))
+  await page.route('**/personas/models/**', (route) => route.fulfill({ status: 404, body: '' }))
+
+  await page.goto('/campaigns/c2')
+  const link = page.getByRole('link', { name: 'Mastodon ↗' })
+  await expect(link).toHaveCount(1, { timeout: 15_000 })
+  await expect(link).toHaveAttribute('href', 'https://mastodon.social/@brewline/113456789')
+  await expect(page.getByText('Mastodon', { exact: true })).toBeVisible()
+})

@@ -171,13 +171,21 @@ def deliver(
     """Send at most once per (campaign, round, channel). Returns the result
     reference, a "DRY_RUN: ..." / "skipped: ..." note, or "failed: ..." /
     "dead: ..." -- never raises."""
-    try:
-        book = ledger()
-        verdict, row = book.claim(campaign_id, round_id, channel, user_id, payload)
-    except Exception as exc:
-        # Without a ledger claim we can't know it wasn't already sent: don't send.
-        logger.error("%s delivery for %s/%s not attempted, ledger unavailable: %s", channel, campaign_id, round_id, exc)
-        return f"failed: delivery ledger unavailable ({exc})"
+    # A dropped connection ("Server disconnected") is usually transient, so the
+    # claim is retried too. claim_delivery() locks the row: a retry can't double-send.
+    for attempt in range(IN_PROCESS_TRIES):
+        try:
+            book = ledger()
+            verdict, row = book.claim(campaign_id, round_id, channel, user_id, payload)
+            break
+        except Exception as exc:
+            if attempt < IN_PROCESS_TRIES - 1:
+                logger.warning("%s ledger claim attempt %d failed: %s", channel, attempt + 1, exc)
+                time.sleep(IN_PROCESS_BACKOFF[attempt])
+                continue
+            # Without a ledger claim we can't know it wasn't already sent: don't send.
+            logger.error("%s delivery for %s/%s not attempted, ledger unavailable: %s", channel, campaign_id, round_id, exc)
+            return f"failed: delivery ledger unavailable ({exc})"
     if verdict == "done":
         return row
 

@@ -94,6 +94,7 @@
     "st_rejected": "Rejected",
     "channelsTitle": "Engagement by channel",
     "blueskyDetail": "{{likes}} likes · {{reposts}} reposts · {{replies}} replies",
+    "mastodonDetail": "{{likes}} favourites · {{reposts}} boosts · {{replies}} replies",
     "emailDetail": "{{clicks}} clicks from {{recipients}} recipients",
     "channelEmpty": "No posts measured yet",
     "armsTitle": "Winning creative arms",

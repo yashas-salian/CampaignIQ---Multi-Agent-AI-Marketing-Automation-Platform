@@ -27,6 +27,7 @@ os.environ.update(
         "DOMAIN_MODEL_HF_REPO": "",
         "HF_TOKEN": "",
         "MASTODON_ACCESS_TOKEN": "",
+        "MASTODON_POST_TOKEN": "",
         "TRACK_CLICK_BASE_URL": "",
         "PAID_LLM_API_KEY": "",
         "PAID_IMAGE_API_KEY": "",

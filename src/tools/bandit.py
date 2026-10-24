@@ -10,6 +10,10 @@ ARMS = [(style, tone) for style in IMAGE_STYLES for tone in COPY_TONES]  # 20 ar
 AGE_BRACKETS = ["18-24", "25-34", "35-44", "45-54", "55+"]
 INCOME_TIERS = ["low", "mid", "high"]
 CHANNELS = ["bluesky", "reddit", "email"]
+# Channels that share another's context slot: Mastodon is a short-form social
+# feed like Bluesky, and a slot of its own would change CONTEXT_DIM (every
+# stored arm matrix). Its rewards are still recorded per channel.
+CONTEXT_ALIASES = {"mastodon": "bluesky"}
 
 # age_bracket(5) + income_tier(3) + channel(3) + domain_category(12) + bias(1)
 CONTEXT_DIM = len(AGE_BRACKETS) + len(INCOME_TIERS) + len(CHANNELS) + len(DOMAIN_CATEGORIES) + 1
@@ -25,7 +29,7 @@ def build_context_vector(age_bracket: str, income_tier: str, channel: str, domai
     vector = (
         _one_hot(age_bracket, AGE_BRACKETS)
         + _one_hot(income_tier, INCOME_TIERS)
-        + _one_hot(channel, CHANNELS)
+        + _one_hot(CONTEXT_ALIASES.get(channel, channel), CHANNELS)
         + _one_hot(domain_category, DOMAIN_CATEGORIES)
         + [1.0]  # bias term
     )

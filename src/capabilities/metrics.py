@@ -1,8 +1,9 @@
 from pydantic import BaseModel
 
 from src.capabilities.experiments import bayesian_ab, split_recipients, two_proportion_test
-from src.constants import BLUESKY_ENGAGEMENT_CAP, REDDIT_ENGAGEMENT_CAP
+from src.constants import BLUESKY_ENGAGEMENT_CAP, MASTODON_ENGAGEMENT_CAP, REDDIT_ENGAGEMENT_CAP
 from src.tools.bluesky_client import get_bluesky_metrics
+from src.tools.mastodon_client import get_mastodon_metrics
 from src.tools.reddit_client import get_reddit_metrics
 
 
@@ -31,6 +32,14 @@ def collect_metrics(campaign_id: str, user_id: str, round_number: int, email_to:
         reward = min((m["likes"] + m["reposts"] + m["replies"]) / BLUESKY_ENGAGEMENT_CAP, 1.0)
         channel_rewards["bluesky"] = reward
         upsert_metric(campaign_id, user_id, round_number, "bluesky", m, reward)
+
+    mastodon_ref = iteration.get("mastodon_post_url")
+    if _is_real_post_ref(mastodon_ref):
+        m = get_mastodon_metrics(mastodon_ref)
+        raw["mastodon"] = m
+        reward = min((m["likes"] + m["reposts"] + m["replies"]) / MASTODON_ENGAGEMENT_CAP, 1.0)
+        channel_rewards["mastodon"] = reward
+        upsert_metric(campaign_id, user_id, round_number, "mastodon", m, reward)
 
     reddit_ref = iteration.get("reddit_post_url")
     if _is_real_post_ref(reddit_ref):

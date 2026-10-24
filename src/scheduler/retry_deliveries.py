@@ -12,7 +12,10 @@ from src.capabilities.delivery import is_failure
 from src.capabilities.distribution import resend_from_payload
 from src.db.supabase_client import get_client, upsert_iteration
 
-ITERATION_COLUMN = {"bluesky": "bluesky_post_uri", "reddit": "reddit_post_url", "email": "email_id", "email_b": "email_id_b"}
+ITERATION_COLUMN = {
+    "bluesky": "bluesky_post_uri", "mastodon": "mastodon_post_url", "reddit": "reddit_post_url",
+    "email": "email_id", "email_b": "email_id_b",
+}
 BATCH = 50
 
 

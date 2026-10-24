@@ -39,6 +39,7 @@ class CampaignState(TypedDict, total=False):
     rejected: bool
     bluesky_post_uri: Optional[str]
     reddit_post_url: Optional[str]
+    mastodon_post_url: Optional[str]
     email_id: Optional[str]
     metrics_result: MetricsResult
     continue_campaign: bool

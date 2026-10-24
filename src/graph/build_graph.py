@@ -1,11 +1,10 @@
-import os
-
 from langgraph.graph import END, START, StateGraph
 
 from src.graph.nodes.audience import audience_node
 from src.graph.nodes.creative import creative_node
 from src.graph.nodes.distribution_bluesky import distribution_bluesky_node
 from src.graph.nodes.distribution_email import distribution_email_node
+from src.graph.nodes.distribution_mastodon import distribution_mastodon_node
 from src.graph.nodes.distribution_reddit import distribution_reddit_node
 from src.graph.nodes.feasibility import feasibility_node
 from src.graph.nodes.feedback_correction import feedback_correction_node, route_after_feedback
@@ -18,6 +17,7 @@ from src.graph.nodes.novelty_check import novelty_check_node, route_after_novelt
 from src.graph.nodes.preflight import preflight_node, route_after_preflight
 from src.graph.nodes.variant_b import generate_variant_b_node
 from src.graph.nodes.focus_group import focus_group_node
+from src.constants import active_channels
 from src.graph.state import CampaignState
 from src.observability import traced_node
 
@@ -31,11 +31,9 @@ def route_after_gate_2(state: CampaignState) -> list[str]:
         return [END]
     # Reddit temporarily on hold (API access blocked by policy changes) — the
     # node/capability/CLI command all still exist, just excluded from the
-    # default fan-out. Re-enable via ENABLE_REDDIT=true.
-    channels = ["distribution_bluesky", "distribution_email"]
-    if os.environ.get("ENABLE_REDDIT", "false").lower() == "true":
-        channels.append("distribution_reddit")
-    return channels
+    # default fan-out. Re-enable via ENABLE_REDDIT=true. Mastodon joins once
+    # MASTODON_POST_TOKEN is set (see constants.active_channels).
+    return [f"distribution_{channel}" for channel in active_channels()]
 
 
 def build_graph(checkpointer=None):
@@ -53,6 +51,7 @@ def build_graph(checkpointer=None):
     graph.add_node("distribution_bluesky", traced_node("distribution_bluesky", distribution_bluesky_node))
     graph.add_node("distribution_reddit", traced_node("distribution_reddit", distribution_reddit_node))
     graph.add_node("distribution_email", traced_node("distribution_email", distribution_email_node))
+    graph.add_node("distribution_mastodon", traced_node("distribution_mastodon", distribution_mastodon_node))
     graph.add_node("wait_for_metrics", traced_node("wait_for_metrics", metrics_wait_node))
     graph.add_node("collect_metrics", traced_node("collect_metrics", metrics_collector_node))
     graph.add_node("feedback_correction", traced_node("feedback_correction", feedback_correction_node))
@@ -85,11 +84,13 @@ def build_graph(checkpointer=None):
             "distribution_bluesky": "distribution_bluesky",
             "distribution_reddit": "distribution_reddit",
             "distribution_email": "distribution_email",
+            "distribution_mastodon": "distribution_mastodon",
         },
     )
     graph.add_edge("distribution_bluesky", "wait_for_metrics")
     graph.add_edge("distribution_reddit", "wait_for_metrics")
     graph.add_edge("distribution_email", "wait_for_metrics")
+    graph.add_edge("distribution_mastodon", "wait_for_metrics")
     graph.add_edge("wait_for_metrics", "collect_metrics")
     graph.add_edge("collect_metrics", "feedback_correction")
     graph.add_conditional_edges(

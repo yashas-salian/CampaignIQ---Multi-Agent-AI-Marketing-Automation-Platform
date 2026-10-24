@@ -7,6 +7,7 @@ DURATION_BUFFER_FACTOR = 1.5
 MAX_REGENERATION_ATTEMPTS = 3
 BLUESKY_ENGAGEMENT_CAP = 50
 REDDIT_ENGAGEMENT_CAP = 50
+MASTODON_ENGAGEMENT_CAP = 50
 
 
 def max_rounds_for_tier(is_subscribed_or_byok: bool) -> int:
@@ -21,4 +22,6 @@ def active_channels() -> list[str]:
     channels = ["bluesky", "email"]
     if os.environ.get("ENABLE_REDDIT", "false").lower() == "true":
         channels.append("reddit")
+    if os.environ.get("MASTODON_POST_TOKEN"):  # on once a posting token is configured
+        channels.append("mastodon")
     return channels

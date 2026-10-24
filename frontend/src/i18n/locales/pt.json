@@ -94,6 +94,7 @@
     "st_rejected": "Rejeitada",
     "channelsTitle": "Engajamento por canal",
     "blueskyDetail": "{{likes}} curtidas · {{reposts}} reposts · {{replies}} respostas",
+    "mastodonDetail": "{{likes}} favoritos · {{reposts}} impulsos · {{replies}} respostas",
     "emailDetail": "{{clicks}} cliques de {{recipients}} destinatários",
     "channelEmpty": "Nenhuma publicação medida ainda",
     "armsTitle": "Variantes criativas vencedoras",

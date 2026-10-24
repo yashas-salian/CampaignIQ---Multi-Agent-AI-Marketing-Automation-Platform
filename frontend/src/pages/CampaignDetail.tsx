@@ -673,7 +673,7 @@ export default function CampaignDetail() {
           <ol className={local.rounds}>
             {rounds.map((it, i) => {
               const bsky = it.bluesky_post_uri ? blueskyUrl(it.bluesky_post_uri) : null
-              const published = it.bluesky_post_uri || it.reddit_post_url || it.email_id
+              const published = it.bluesky_post_uri || it.mastodon_post_url || it.reddit_post_url || it.email_id
               return (
                 <li key={it.id} className={local.round} style={{ '--i': i } as CSSProperties}>
                   <div className={local.roundRail}>
@@ -724,6 +724,14 @@ export default function CampaignDetail() {
                               </a>
                             ) : (
                               <span className={`${styles.chip} ${styles.chipOk}`}>Bluesky</span>
+                            ))}
+                          {it.mastodon_post_url &&
+                            (/^https:\/\//.test(it.mastodon_post_url) ? (
+                              <a className={`${styles.chip} ${styles.chipOk}`} href={it.mastodon_post_url} target="_blank" rel="noopener noreferrer">
+                                Mastodon ↗
+                              </a>
+                            ) : (
+                              <span className={`${styles.chip} ${styles.chipOk}`}>Mastodon</span>
                             ))}
                           {it.reddit_post_url && (
                             <a className={`${styles.chip} ${styles.chipOk}`} href={it.reddit_post_url} target="_blank" rel="noopener noreferrer">

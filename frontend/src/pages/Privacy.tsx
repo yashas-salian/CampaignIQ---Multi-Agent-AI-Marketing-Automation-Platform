@@ -68,7 +68,8 @@ const SECTIONS: LegalSection[] = [
           market interest.
         </li>
         <li>
-          <strong>Bluesky</strong> publishes approved posts from a shared platform account, and <strong>Resend</strong>{' '}
+          <strong>Bluesky</strong> and, where the operator has switched it on, <strong>Mastodon</strong> publish approved
+          posts from a shared platform account, and <strong>Resend</strong>{' '}
           delivers approved emails.
         </li>
         <li>
@@ -83,7 +84,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <p>
         Every table that holds your data is protected by Postgres row-level security, so the database itself refuses
-        requests for rows that aren’t yours. Posts you approve at Gate 2 are public on Bluesky once published.
+        requests for rows that aren’t yours. Posts you approve at Gate 2 are public on Bluesky (and Mastodon, when switched on) once published.
       </p>
     ),
   },
@@ -97,7 +98,7 @@ const SECTIONS: LegalSection[] = [
           with your account, the campaigns you created with their results, your votes and corrections, templates,
           masked API keys, Tools runs, AI usage and private memory. Deleting your account removes all of it, including
           your stored API keys and the category corrections future classifier training would use. Campaigns you created
-          inside a team organisation belong to that team and stay with it. Posts already published on Bluesky must be
+          inside a team organisation belong to that team and stay with it. Posts already published on Bluesky or Mastodon must be
           removed there separately. Questions: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
         </p>
         <p>

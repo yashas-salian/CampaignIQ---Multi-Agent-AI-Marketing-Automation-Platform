@@ -4,6 +4,7 @@ import os
 
 from src.capabilities.delivery import deliver
 from src.tools.bluesky_client import post_to_bluesky
+from src.tools.mastodon_client import post_to_mastodon
 from src.tools.reddit_client import post_to_reddit
 from src.tools.resend_client import AD_IMAGE_CID, send_email
 from src.tools.track_click import wrap_tracked_url
@@ -25,6 +26,28 @@ def post_bluesky(
         payload,
         lambda: post_to_bluesky(copy_text, image_bytes=image_bytes),
         describe=f"would post to Bluesky: {copy_text[:60]!r}",
+        user_id=user_id,
+    )
+
+
+def post_mastodon(
+    campaign_id: str, round_id: int, copy_text: str, image_bytes: bytes | None = None, *, image_alt: str = "",
+    user_id: str | None = None,
+) -> str:
+    payload = {
+        "copy_text": copy_text,
+        "image_alt": image_alt,
+        "image_base64": base64.b64encode(image_bytes).decode() if image_bytes else None,
+    }
+    return deliver(
+        "mastodon",
+        campaign_id,
+        round_id,
+        payload,
+        lambda: post_to_mastodon(
+            copy_text, image_bytes=image_bytes, image_alt=image_alt, idempotency_key=f"{campaign_id}:{round_id}"
+        ),
+        describe=f"would post to Mastodon: {copy_text[:60]!r}",
         user_id=user_id,
     )
 
@@ -100,6 +123,11 @@ def resend_from_payload(channel: str, campaign_id: str, round_id: int, payload: 
     if channel == "bluesky":
         image = base64.b64decode(payload["image_base64"]) if payload.get("image_base64") else None
         return post_bluesky(campaign_id, round_id, payload["copy_text"], image, user_id=user_id)
+    if channel == "mastodon":
+        image = base64.b64decode(payload["image_base64"]) if payload.get("image_base64") else None
+        return post_mastodon(
+            campaign_id, round_id, payload["copy_text"], image, image_alt=payload.get("image_alt", ""), user_id=user_id
+        )
     if channel == "reddit":
         return post_reddit(campaign_id, round_id, payload["subreddit"], payload["title"], payload["body"], user_id=user_id)
     if channel in ("email", "email_b"):

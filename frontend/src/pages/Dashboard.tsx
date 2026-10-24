@@ -436,8 +436,10 @@ export default function Dashboard() {
       metrics.filter((m) => m.channel === channel).reduce((s, m) => s + (Number(m.raw_metrics[key]) || 0), 0)
     return {
       bluesky: { likes: sum('bluesky', 'likes'), reposts: sum('bluesky', 'reposts'), replies: sum('bluesky', 'replies') },
+      mastodon: { likes: sum('mastodon', 'likes'), reposts: sum('mastodon', 'reposts'), replies: sum('mastodon', 'replies') },
       email: { clicks: sum('email', 'clicks'), recipients: sum('email', 'recipients') },
       hasBluesky: metrics.some((m) => m.channel === 'bluesky'),
+      hasMastodon: metrics.some((m) => m.channel === 'mastodon'),
       hasEmail: metrics.some((m) => m.channel === 'email'),
     }
   }, [metrics])
@@ -793,6 +795,24 @@ export default function Dashboard() {
                   {channelTotals.bluesky.likes + channelTotals.bluesky.reposts + channelTotals.bluesky.replies}
                 </b>
               </div>
+              {/* Only where it's switched on (a posting token is configured): no empty tile otherwise. */}
+              {channelTotals.hasMastodon && (
+                <div className={styles.channel}>
+                  <span className={styles.channelIcon} aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M4 7.5A4.5 4.5 0 0 1 8.5 3h7A4.5 4.5 0 0 1 20 7.5V12a4.5 4.5 0 0 1-4.5 4.5H11a2.5 2.5 0 0 0 2.5 2.5H17v1.5c-1.2.3-2.4.5-3.5.5A6.5 6.5 0 0 1 7 14.5h-.5A2.5 2.5 0 0 1 4 12z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                      <path d="M8.5 12V8.6a1.6 1.6 0 0 1 3.2 0V10m0 0V8.6a1.6 1.6 0 0 1 3.2 0V12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                  <div>
+                    <strong>Mastodon</strong>
+                    <span>{t('dash.mastodonDetail', channelTotals.mastodon)}</span>
+                  </div>
+                  <b className={styles.channelTotal}>
+                    {channelTotals.mastodon.likes + channelTotals.mastodon.reposts + channelTotals.mastodon.replies}
+                  </b>
+                </div>
+              )}
               <div className={styles.channel}>
                 <span className={styles.channelIcon} aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none">

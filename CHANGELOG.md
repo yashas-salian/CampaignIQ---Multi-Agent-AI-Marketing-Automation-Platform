@@ -14,6 +14,12 @@ GitHub Release notes.
 ## [Unreleased]
 
 ### Added
+- **Mastodon as a posting channel** (`graph/nodes/distribution_mastodon.py`, migration `20261024000300_mastodon_channel`):
+  - Every approved round is also posted to Mastodon with the finished ad (alt text = its headline), through the same exactly-once delivery ledger, retries and DRY_RUN as Bluesky. An `Idempotency-Key` per campaign/round stops a retried request posting twice.
+  - Switched on only by `MASTODON_POST_TOKEN` (scopes `write:statuses` + `write:media`); the existing read-only search token never posts.
+  - Guardrails: 500-character limit; the short disclaimer and the brand-kit sign-off are added when they fit.
+  - Metrics: favourites, boosts and replies (shown as likes, reposts, replies) → reward capped at 50, like Bluesky. The bandit reads Mastodon as a short-form social feed, sharing Bluesky's context slot, so the stored arm matrices keep their size.
+  - Campaign rounds link to the post ("Mastodon ↗"); the dashboard shows a Mastodon tile once there are Mastodon metrics. Privacy page updated.
 - **Images that look like ads** (`tools/ad_composer.py`, prompt `creative.generate` 1.3.0):
   - **Finished layout:** the picture is cropped to the feed format (1080×1080, or a 1200×628 banner), and a headline and a call-to-action button in the brand-kit colour are set over a soft dark fade at the bottom. The face is the site's Fraunces. Output is JPEG so it stays under Bluesky's image size cap.
   - **Five layouts, one per bandit image style**, so the bandit also learns which layout works:
@@ -35,6 +41,7 @@ GitHub Release notes.
 - Pollinations' corner watermark is cropped off its pictures.
 
 ### Fixed
+- A dropped database connection while claiming a delivery lost that round's post or email ("delivery ledger unavailable"); the claim is now retried like the send.
 - The finished ad's caption no longer covers its button; the regenerated preview keeps its note.
 - "Interview Maya," lost its stray comma when a persona's name contains one.
 - Pollinations returned the same picture for the same prompt; each call now uses a fresh seed.
