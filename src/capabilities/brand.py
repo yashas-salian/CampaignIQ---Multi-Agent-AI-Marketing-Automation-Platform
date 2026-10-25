@@ -74,8 +74,21 @@ def brand_kit_for_campaign(campaign_id: str | None) -> BrandKit | None:
         campaign = client.table("campaigns").select("org_id").eq("id", campaign_id).maybe_single().execute()
         if not campaign or not campaign.data:
             return None
-        row = client.table("brand_kits").select("*").eq("org_id", campaign.data["org_id"]).maybe_single().execute()
-        return BrandKit(**{k: v for k, v in (row.data or {}).items() if k in BrandKit.model_fields}) if row and row.data else None
+        return brand_kit_for_org(campaign.data["org_id"])
     except Exception as exc:
         logger.warning("brand kit lookup failed for %s: %s", campaign_id, exc)
+        return None
+
+
+def brand_kit_for_org(org_id: str | None) -> BrandKit | None:
+    """An organisation's kit, or None. Never raises."""
+    if not org_id:
+        return None
+    try:
+        from src.db.supabase_client import get_client
+
+        row = get_client().table("brand_kits").select("*").eq("org_id", org_id).maybe_single().execute()
+        return BrandKit(**{k: v for k, v in (row.data or {}).items() if k in BrandKit.model_fields}) if row and row.data else None
+    except Exception as exc:
+        logger.warning("brand kit lookup failed for org %s: %s", org_id, exc)
         return None

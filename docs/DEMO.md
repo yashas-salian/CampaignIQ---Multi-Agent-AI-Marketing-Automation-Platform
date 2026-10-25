@@ -17,7 +17,7 @@ Work through this list once, a day ahead, so nothing is first-time on stage.
 
 **A showcase campaign, run in advance.** A live campaign takes a few minutes per stage plus the metrics wait, so run one the day before and present it; start a second one live only for Gates 1 and 2.
 - [ ] Brand kit filled in (Settings → Brand kit): voice, a forbidden word, a sign-off, brand colour, **logo**.
-- [ ] Campaign idea (example): *"Order-ahead coffee for commuters: skip the morning queue"* (it posts to Bluesky and Mastodon and emails the list), email A/B test on, your own address plus one or two friends as recipients, CTA link to any page you own.
+- [ ] Campaign idea (example): *"Order-ahead coffee for commuters: skip the morning queue"* (it posts to Bluesky and Mastodon and emails the list), email A/B test on, your own address plus one or two friends as recipients, CTA link to any page you own. Have a **product photo** ready (required; a plain background cuts out best) and, optionally, a tagline.
 - [ ] Approve Gate 1, look at the Gate 2 ad, try **New picture** once, approve.
 - [ ] Next morning: check the Bluesky and Mastodon posts and the email (the ad is inside it), then the metrics page.
 
@@ -31,7 +31,7 @@ Work through this list once, a day ahead, so nothing is first-time on stage.
 | Time | Where | What to show | What to say |
 |---|---|---|---|
 | 0:00 | Dashboard | The composer, market moments, "waiting for approval" | "You type one idea. Everything else is agents, with a human at two gates." |
-| 0:45 | New campaign | Type the idea, create | "Feasibility uses real signals: search trends and community chatter, not just an LLM's opinion." |
+| 0:45 | New campaign | Type the idea, add the product photo, tagline and link, create | "Every ad is built around the real product: it is cut out and set into one of 34 templates from real brand ads. Feasibility uses real signals: search trends and community chatter, not just an LLM's opinion." |
 | 1:30 | Campaign → Gate 1 | Feasibility score, the three 3D personas, category | "The category came from our own fine-tuned model. If I correct it here, that correction trains the next version." |
 | 2:30 | Persona card → Interview | Ask *"What price feels fair?"* | "Each persona answers in character, from its own profile. A quick gut check before spending money." |
 | 3:30 | Showcase campaign → Gate 2 | The finished ad, headline and button beside it | "The picture is FLUX; the words are set by us, so they're always legible and on-brand, with the logo." |

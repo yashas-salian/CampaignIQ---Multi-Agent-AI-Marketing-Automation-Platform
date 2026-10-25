@@ -1,5 +1,6 @@
 from src.capabilities.brand import brand_kit_for_campaign
 from src.capabilities.creative import generate_creative
+from src.capabilities.product import product_for_campaign
 from src.constants import active_channels
 from src.db.supabase_client import upsert_iteration
 from src.graph.state import CampaignState
@@ -18,6 +19,7 @@ def generate_variant_b_node(state: CampaignState) -> CampaignState:
         return {"creative_b": None}
     persona = state["primary_persona"]
     arms = select_arms_for_campaign(persona.age_bracket, persona.income_tier, state["domain_category"], channels, k=2)
+    product = product_for_campaign(state.get("campaign_id"))
     variant = generate_creative(
         state["idea"],
         persona,
@@ -29,6 +31,8 @@ def generate_variant_b_node(state: CampaignState) -> CampaignState:
         cta_url=state.get("cta_url"),
         brand=brand_kit_for_campaign(state.get("campaign_id")),
         arm=arms[-1],
+        product_cutout=product.cutout,
+        tagline=product.tagline,
     )
     upsert_iteration(
         state["campaign_id"], state["user_id"], state["round_id"],

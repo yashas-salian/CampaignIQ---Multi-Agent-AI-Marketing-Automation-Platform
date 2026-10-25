@@ -222,9 +222,9 @@
     "capPersonas": "Personas",
     "capPersonasDesc": "Générez des personas clients fondés sur cette recherche.",
     "capImage": "Image publicitaire",
-    "capImageDesc": "Créez une image à partir d’un prompt avec votre fournisseur actuel.",
+    "capImageDesc": "Transformez la photo de votre produit en annonce finie, dans l'une des 34 mises en page.",
     "inputIdea": "Idée de campagne",
-    "inputPrompt": "Prompt d’image",
+    "inputPrompt": "Décrivez votre produit et l'annonce",
     "stQueued": "En file",
     "stRunning": "En cours",
     "stDone": "Terminé",
@@ -240,7 +240,8 @@
     "historyEmpty": "Vos exécutions apparaissent ici.",
     "again": "Relancer",
     "emptyResult": "Choisissez un outil, remplissez le champ et lancez-le. Le résultat s’affiche ici en direct.",
-    "failedDispatch": "Impossible de lancer l’exécution : {{message}}"
+    "failedDispatch": "Impossible de lancer l’exécution : {{message}}",
+    "templateAuto": "Le plus adapté (auto)"
   },
   "st": {
     "title": "Paramètres",
@@ -339,7 +340,7 @@
   "tools": {
     "title": "Outils — exécutions ponctuelles de capacités",
     "subtitle": "Exécute une seule capacité via GitHub Actions, indépendamment de toute campagne en cours.",
-    "imagePromptPlaceholder": "Prompt d'image",
+    "imagePromptPlaceholder": "ex. Baskets en toile, confort toute la journée, en vente ce mois-ci",
     "ideaPlaceholder": "Idée de campagne",
     "run": "Exécuter",
     "dispatching": "Envoi…",
@@ -869,5 +870,20 @@
     "none": "Plus de nouvelles images pour ce tour.",
     "done": "Nouvelle image prête. C’est elle qui sera envoyée à l’approbation.",
     "failed": "Impossible de créer une nouvelle image. L’actuelle est conservée."
+  },
+  "product": {
+    "photoPick": "Ajoutez une photo du produit",
+    "photoChange": "Changer la photo",
+    "photoHint": "Obligatoire · PNG, JPG ou WebP, 5 Mo max",
+    "photoType": "Utilisez une photo PNG, JPG ou WebP",
+    "photoSize": "Cette photo dépasse 5 Mo",
+    "photoNeeded": "Ajoutez d'abord une photo de votre produit",
+    "tagline": "Slogan",
+    "taglinePlaceholder": "ex. Le café qui vous attend",
+    "optional": "(facultatif)",
+    "link": "Lien",
+    "linkInvalid": "Utilisez une adresse web commençant par https://",
+    "uploadFailed": "Impossible d'envoyer la photo : {{message}}",
+    "template": "Modèle"
   }
 }

@@ -28,9 +28,32 @@ async function handle(req: Request): Promise<Response> {
     return new Response("Invalid session", { status: 401 });
   }
 
-  const { idea, target_language, email_to, org_id, ab_test } = await req.json();
+  const { idea, target_language, email_to, org_id, ab_test, product_image_path, tagline, cta_url } = await req.json();
   if (!idea) {
     return new Response("Missing idea", { status: 400 });
+  }
+  // Every ad is built around the real product (src/tools/ad_templates.py), so
+  // the photo is required. It must be one this user uploaded: the
+  // product-photos bucket keeps each user's photos under their own id.
+  if (typeof product_image_path !== "string" || !product_image_path) {
+    return new Response("Missing product photo", { status: 400 });
+  }
+  if (!product_image_path.startsWith(`${userData.user.id}/`) || product_image_path.includes("..")) {
+    return new Response("That product photo isn't yours", { status: 403 });
+  }
+  const cleanTagline = typeof tagline === "string" ? tagline.trim() : "";
+  if (cleanTagline.length > 80) {
+    return new Response("Tagline is longer than 80 characters", { status: 400 });
+  }
+  let cleanLink = "";
+  if (typeof cta_url === "string" && cta_url.trim()) {
+    try {
+      const parsed = new URL(cta_url.trim());
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error("scheme");
+      cleanLink = parsed.toString();
+    } catch {
+      return new Response("The link must be a web address (https://…)", { status: 400 });
+    }
   }
   // Creating a campaign in an organisation needs the "create" permission there
   // (owner, admin or marketer), checked with the caller's own JWT.
@@ -79,6 +102,9 @@ async function handle(req: Request): Promise<Response> {
           ab_test: ab_test === true,
           target_language: target_language || "en",
           email_to: email_to || "",
+          product_image: product_image_path,
+          tagline: cleanTagline,
+          cta_url: cleanLink,
         },
       }),
     },

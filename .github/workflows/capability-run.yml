@@ -43,14 +43,25 @@ jobs:
         with:
           path: ~/.cache/huggingface/hub
           key: domain-model-${{ steps.domain-rev.outputs.rev }}
-      - run: pip install -e ".[local-model,observability]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+      - run: pip install -e ".[local-model,observability,ads]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+      - name: Cache product cut-out model
+        uses: actions/cache@v4
+        with:
+          path: ~/.u2net
+          key: rembg-isnet-general-use-v1
+      # Inputs arrive as environment variables, never pasted into the script:
+      # params carries user-typed text, which must stay plain text.
       - run: >
           python -m src.scheduler.run_capability
-          --run-id "${{ inputs.run_id }}"
-          --user-id "${{ inputs.user_id }}"
-          --capability "${{ inputs.capability }}"
-          --params '${{ inputs.params }}'
+          --run-id "$IN_RUN_ID"
+          --user-id "$IN_USER_ID"
+          --capability "$IN_CAPABILITY"
+          --params "$IN_PARAMS"
         env:
+          IN_RUN_ID: ${{ inputs.run_id }}
+          IN_USER_ID: ${{ inputs.user_id }}
+          IN_CAPABILITY: ${{ inputs.capability }}
+          IN_PARAMS: ${{ inputs.params }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           # Optional observability (src/observability.py): Sentry errors, Langfuse traces.
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}

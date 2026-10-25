@@ -14,6 +14,21 @@ GitHub Release notes.
 ## [Unreleased]
 
 ### Added
+- **Product-first ads with 34 industry templates** (`tools/ad_templates.py`, `tools/product_cutout.py`, `capabilities/product.py`, migration `20261025000100_product_photo`, prompt `creative.generate` 2.0.0, [docs/AD_TEMPLATES.md](docs/AD_TEMPLATES.md)):
+  - **Campaign form:** a product photo is now required when creating a campaign; a tagline and a link are optional.
+    - The photo uploads to a private `product-photos` bucket, into the user's own folder.
+    - `create-campaign` checks that the path belongs to the caller, plus the tagline length and the link scheme.
+  - **Real product in every ad:**
+    - The photo is cut out once per campaign with rembg (optional extra `ads`; the model is cached in Actions).
+    - It is set into the ad as the hero. If the cut-out fails, the photo goes on a card instead.
+  - **34 templates** in the bandit's five image-style families (7 + 8 + 7 + 6 + 6), from a study of 128 real ads and template systems.
+    - 26 draw their background in code and make no image-model call. 8 have FLUX paint a background with an empty spot.
+    - Common layout rules: safe margins, one call to action, at most one badge, the logo on every ad, at most two type families.
+    - New OFL fonts: Anton, Montserrat, Pacifico, Caveat.
+  - **Template choice:** the creative LLM picks the template within the bandit's style and fills its words (eyebrow, benefits, steps, stat, badge) only from the idea.
+  - **No invented claims:** the prompt forbids invented customer names and quotes, reviews, statistics, prices, discounts and deadlines.
+  - **Gate 2 "New picture"** keeps the template and words: it repaints the background, or moves to the next drawn colour/arrangement variant.
+  - The campaign page shows which template a round used.
 - **Mastodon as a posting channel** (`graph/nodes/distribution_mastodon.py`, migration `20261024000300_mastodon_channel`):
   - Every approved round is also posted to Mastodon with the finished ad (alt text = its headline), through the same exactly-once delivery ledger, retries and DRY_RUN as Bluesky. An `Idempotency-Key` per campaign/round stops a retried request posting twice.
   - Switched on only by `MASTODON_POST_TOKEN` (scopes `write:statuses` + `write:media`); the existing read-only search token never posts.
@@ -41,6 +56,8 @@ GitHub Release notes.
 - Pollinations' corner watermark is cropped off its pictures.
 
 ### Fixed
+- **Campaigns never got their link:** the Dashboard form and `create-campaign` never passed the call-to-action link through, so posts and emails carried none and email clicks couldn't be counted. The link is now a composer field.
+- **Security:** the campaign and Tools workflows pasted user-typed inputs (the idea, Tools parameters) straight into their shell scripts. A crafted idea could therefore run commands on the runner, where the secrets are. Inputs now arrive as environment variables.
 - A dropped database connection while claiming a delivery lost that round's post or email ("delivery ledger unavailable"); the claim is now retried like the send.
 - The finished ad's caption no longer covers its button; the regenerated preview keeps its note.
 - "Interview Maya," lost its stray comma when a persona's name contains one.

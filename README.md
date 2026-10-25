@@ -19,9 +19,10 @@ Architecture diagram + what makes this more than an LLM wrapper:
 
 Demo data, captured from the real app (`SCREENSHOTS=1 npx playwright test e2e/screenshots.spec.ts --project=desktop` in `frontend/`). For a guided tour, see the [demo script](docs/DEMO.md).
 
-**Finished ads.** The picture is generated text-free (FLUX on Cloudflare Workers AI by default); the headline, button, brand colour and logo are set by `src/tools/ad_composer.py`, in one of five layouts matched to the bandit's image style:
-
-![The five ad layouts: lifestyle, minimalist, testimonial, meme and urgency](docs/screenshots/ad-layouts.jpg)
+**Product-first ads.** Every campaign starts from a photo of the real product (plus an optional tagline and link).
+- **Cut-out:** the photo is cut out with rembg and set into one of **34 layout templates**. The templates come from a study of 128 real ads, from Coca-Cola, Chanel and Nike to Canva template packs; see [docs/AD_TEMPLATES.md](docs/AD_TEMPLATES.md).
+- **Template choice:** the bandit's image style picks the template family. The AI picks the template that suits the product and fills in its words, taken only from the idea.
+- **Backgrounds:** 26 templates draw their background in code. The other 8 have FLUX paint a scene around an empty spot. The product itself is never repainted.
 
 **Gate 2.** The approver sees the finished ad (and can ask for a new picture), the brand and compliance radar, and how the AI personas react, before anything is posted:
 

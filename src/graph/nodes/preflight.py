@@ -52,6 +52,8 @@ def preflight_node(state: CampaignState) -> CampaignState:
         # Kept so Gate 2 can repaint the picture with the same words (capability "ad_image").
         headline=best_creative.headline,
         cta=best_creative.cta,
+        template=best_creative.template or None,
+        ad_slots=best_creative.ad_slots,
         **_stored_image(state, best_creative.image_bytes),
     )
 

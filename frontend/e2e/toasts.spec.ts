@@ -24,6 +24,10 @@ async function signIn(page: Page, fail: string[] = []) {
   }
   await page.route('**/rest/v1/**', handle)
   await page.route('**/functions/v1/**', handle)
+  // The composer uploads the product photo before creating the campaign.
+  await page.route('**/storage/v1/object/product-photos/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ Key: 'product-photos/x.jpg' }) }),
+  )
   await page.route('**/auth/v1/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...USER, aud: 'authenticated' }) }))
   await page.addInitScript((user) => {
     const now = Math.floor(Date.now() / 1000)
@@ -38,6 +42,8 @@ async function signIn(page: Page, fail: string[] = []) {
   return counts
 }
 
+const addPhoto = (page: Page) => page.getByTestId('product-photo-input').setInputFiles('e2e/fixtures/sample-ad.jpg')
+
 // Each toast's role is alert/status (so screen readers announce it), not listitem.
 const toasts = (page: Page) => page.getByRole('list', { name: /notifications/i }).locator('li')
 
@@ -45,6 +51,7 @@ test('a failed action shows an error toast that can be dismissed', async ({ page
   await signIn(page, ['/functions/v1/create-campaign'])
   await page.goto('/dashboard')
   await page.getByPlaceholder(/campaign idea/i).fill('Meal kits for night-shift nurses')
+  await addPhoto(page)
   await page.getByRole('button', { name: /create campaign/i }).click()
   const toast = toasts(page).filter({ hasText: /couldn.t start the campaign/i })
   await expect(toast).toBeVisible()
@@ -83,6 +90,7 @@ test('toasts fit a small phone without sideways scroll', async ({ page }) => {
   await signIn(page, ['/functions/v1/create-campaign'])
   await page.goto('/dashboard')
   await page.getByPlaceholder(/campaign idea/i).fill('x')
+  await addPhoto(page)
   await page.getByRole('button', { name: /create campaign/i }).click()
   await expect(toasts(page).first()).toBeVisible()
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)

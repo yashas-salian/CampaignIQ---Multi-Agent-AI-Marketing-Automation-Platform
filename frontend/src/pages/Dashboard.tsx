@@ -17,6 +17,8 @@ import { useSession } from '../lib/useAuth'
 import type { Campaign, CampaignStatus, Metric } from '../lib/types'
 import styles from './Dashboard.module.css'
 import Select from '../components/Select'
+import { ProductFields } from '../components/ProductFields'
+import { isWebLink } from '../lib/product'
 
 // Only the iteration fields the dashboard needs (arm per round).
 interface IterationArm {
@@ -274,6 +276,9 @@ export default function Dashboard() {
   const [idea, setIdea] = useState('')
   const [targetLanguage, setTargetLanguage] = useState('en')
   const [abTest, setAbTest] = useState(false)
+  const [productPhoto, setProductPhoto] = useState<File | null>(null)
+  const [tagline, setTagline] = useState('')
+  const [ctaLink, setCtaLink] = useState('')
   const [creating, setCreating] = useState(false)
 
   const [filter, setFilter] = useState<Filter>('all')
@@ -351,10 +356,23 @@ export default function Dashboard() {
   }
 
   async function createCampaign() {
-    if (!idea.trim() || creating || !canCreate) return
+    if (!idea.trim() || !productPhoto || !isWebLink(ctaLink) || creating || !canCreate) return
     setCreating(true)
+    // The photo goes up first, into the user's own folder; the campaign gets its path.
+    const userId = session?.user.id
+    const ext = productPhoto.type === 'image/png' ? 'png' : productPhoto.type === 'image/webp' ? 'webp' : 'jpg'
+    const path = `${userId}/${crypto.randomUUID()}.${ext}`
+    const upload = await supabase.storage.from('product-photos').upload(path, productPhoto, { contentType: productPhoto.type })
+    if (upload.error || !userId) {
+      setCreating(false)
+      toast.error(t('product.uploadFailed', { message: upload.error?.message ?? 'no session' }))
+      return
+    }
     const { error, response } = await supabase.functions.invoke('create-campaign', {
-      body: { idea: idea.trim(), target_language: targetLanguage, org_id: orgId, ab_test: abTest },
+      body: {
+        idea: idea.trim(), target_language: targetLanguage, org_id: orgId, ab_test: abTest,
+        product_image_path: path, tagline: tagline.trim(), cta_url: ctaLink.trim(),
+      },
     })
     setCreating(false)
     if (error) {
@@ -368,6 +386,9 @@ export default function Dashboard() {
     }
     toast.success(t('dash.dispatched'))
     setIdea('')
+    setProductPhoto(null)
+    setTagline('')
+    setCtaLink('')
   }
 
   function onComposerKey(e: ReactKeyboardEvent<HTMLTextAreaElement>) {
@@ -658,6 +679,14 @@ export default function Dashboard() {
               </button>
             ))}
           </div>
+          <ProductFields
+            photo={productPhoto}
+            onPhoto={setProductPhoto}
+            tagline={tagline}
+            onTagline={setTagline}
+            link={ctaLink}
+            onLink={setCtaLink}
+          />
           <div className={styles.composerFoot}>
             <label className={styles.langPick}>
               <span>{t('dashboard.languageLabel')}</span>
@@ -672,7 +701,7 @@ export default function Dashboard() {
               <input type="checkbox" checked={abTest} onChange={(e) => setAbTest(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--mos-accent)' }} />
               <span>{t('ab.toggle')}</span>
             </label>
-            <button type="button" className={styles.primaryBtn} onClick={createCampaign} disabled={creating || !idea.trim() || !canCreate} title={canCreate ? undefined : t('org.cantCreate')}>
+            <button type="button" className={styles.primaryBtn} onClick={createCampaign} disabled={creating || !idea.trim() || !productPhoto || !isWebLink(ctaLink) || !canCreate} title={!canCreate ? t('org.cantCreate') : !productPhoto ? t('product.photoNeeded') : undefined}>
               {creating && <span className={styles.spinner} aria-hidden="true" />}
               {creating ? t('dashboard.creating') : t('dashboard.createSubmit')}
               {!creating && (

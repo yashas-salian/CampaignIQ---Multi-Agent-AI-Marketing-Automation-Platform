@@ -29,6 +29,8 @@ def create_campaign(
     target_language: str = "en",
     org_id: str | None = None,
     ab_test: bool = False,
+    product_image_path: str | None = None,
+    product_tagline: str | None = None,
 ) -> None:
     row = {
         "id": campaign_id,
@@ -46,6 +48,8 @@ def create_campaign(
         "max_duration_minutes": max_duration_minutes,
         "target_language": target_language,
         "ab_test": ab_test,
+        "product_image_path": product_image_path,
+        "product_tagline": product_tagline,
         "status": "created",
     }
     if org_id:

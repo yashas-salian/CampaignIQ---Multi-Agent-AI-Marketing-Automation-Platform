@@ -503,6 +503,7 @@ export default function CampaignDetail() {
                   {rounds[0].headline && (<><dt>{t('cd.adHeadline')}</dt><dd>{rounds[0].headline}</dd></>)}
                   {rounds[0].cta && (<><dt>{t('cd.adButton')}</dt><dd>{rounds[0].cta}</dd></>)}
                   {rounds[0].image_style && (<><dt>{t('cd.adLayout')}</dt><dd>{humanize(rounds[0].image_style)}</dd></>)}
+                  {rounds[0].template && (<><dt>{t('product.template')}</dt><dd>{humanize(rounds[0].template)}</dd></>)}
                 </dl>
                 {canApprove && !alreadyVoted && rounds[0].image_path && (
                   <NewPicture campaignId={campaign.id} round={rounds[0].round_number} version={rounds[0].image_version ?? 0} onDone={load} />

@@ -32,6 +32,8 @@ def main() -> None:
     parser.add_argument("--ab-test", action="store_true", help="Email A/B test: two variants per round, list split in half")
     parser.add_argument("--reddit-subreddit", default=None)
     parser.add_argument("--cta-url", default=None)
+    parser.add_argument("--product-image", default=None, help="Path of the product photo in the product-photos bucket")
+    parser.add_argument("--tagline", default=None, help="Optional product tagline set on every ad")
     parser.add_argument("--use-image-template", action="store_true", help="Use this user's stored image template instead of generating one")
     parser.add_argument("--use-email-template", action="store_true", help="Use this user's stored email template instead of the default layout")
     parser.add_argument(
@@ -77,7 +79,8 @@ def main() -> None:
                 "org_id": org_id,
                 "ab_test": args.ab_test,
                 "email_to": args.email_to.split(",") if args.email_to else [os.environ["RESEND_TEST_TO_EMAIL"]],
-                "reddit_subreddit": args.reddit_subreddit, "cta_url": args.cta_url,
+                "reddit_subreddit": args.reddit_subreddit, "cta_url": args.cta_url or None,
+                "product_image_path": args.product_image or None, "product_tagline": (args.tagline or "").strip()[:80] or None,
                 "use_image_template": args.use_image_template, "use_email_template": args.use_email_template,
                 "target_language": args.target_language,
             }

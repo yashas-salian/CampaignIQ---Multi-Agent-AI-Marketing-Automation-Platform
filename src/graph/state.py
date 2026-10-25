@@ -18,6 +18,9 @@ class CampaignState(TypedDict, total=False):
     reddit_subreddit: str
     email_to: list[str]
     cta_url: Optional[str]
+    # The product photo (bucket product-photos) and optional tagline every new ad is built around.
+    product_image_path: Optional[str]
+    product_tagline: Optional[str]
     use_image_template: bool
     use_email_template: bool
     target_language: str

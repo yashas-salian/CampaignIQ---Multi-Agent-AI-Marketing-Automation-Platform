@@ -222,9 +222,9 @@
     "capPersonas": "Personas",
     "capPersonasDesc": "Generate ideal-customer personas grounded in that research.",
     "capImage": "Ad image",
-    "capImageDesc": "Render an image from a prompt with your current image provider.",
+    "capImageDesc": "Turn your product photo into a finished ad in one of 34 layouts.",
     "inputIdea": "Campaign idea",
-    "inputPrompt": "Image prompt",
+    "inputPrompt": "Describe your product and the ad",
     "stQueued": "Queued",
     "stRunning": "Running",
     "stDone": "Completed",
@@ -240,7 +240,8 @@
     "historyEmpty": "Your runs appear here.",
     "again": "Run again",
     "emptyResult": "Pick a capability, fill in the input and run it. The result appears here live.",
-    "failedDispatch": "Couldn’t start the run: {{message}}"
+    "failedDispatch": "Couldn’t start the run: {{message}}",
+    "templateAuto": "Best fit (auto)"
   },
   "st": {
     "title": "Settings",
@@ -339,7 +340,7 @@
   "tools": {
     "title": "Tools — one-off capability runs",
     "subtitle": "Runs a single capability via GitHub Actions, independent of any campaign in progress.",
-    "imagePromptPlaceholder": "Image prompt",
+    "imagePromptPlaceholder": "e.g. Canvas sneakers for all-day comfort, launching this month",
     "ideaPlaceholder": "Campaign idea",
     "run": "Run",
     "dispatching": "Dispatching…",
@@ -869,5 +870,20 @@
     "none": "No new pictures left for this round.",
     "done": "New picture ready. Approving sends this one.",
     "failed": "Couldn't paint a new picture. The current one is kept."
+  },
+  "product": {
+    "photoPick": "Add a product photo",
+    "photoChange": "Change photo",
+    "photoHint": "Required · PNG, JPG or WebP, up to 5 MB",
+    "photoType": "Use a PNG, JPG or WebP photo",
+    "photoSize": "That photo is over 5 MB",
+    "photoNeeded": "Add a photo of your product first",
+    "tagline": "Tagline",
+    "taglinePlaceholder": "e.g. Coffee that waits for you",
+    "optional": "(optional)",
+    "link": "Link",
+    "linkInvalid": "Use a web address starting with https://",
+    "uploadFailed": "Couldn't upload the photo: {{message}}",
+    "template": "Template"
   }
 }

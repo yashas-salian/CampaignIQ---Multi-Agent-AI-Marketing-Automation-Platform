@@ -39,6 +39,18 @@ on:
         description: "Comma-separated recipient list for a new campaign (blank uses RESEND_TEST_TO_EMAIL)"
         required: false
         type: string
+      product_image:
+        description: "Product photo path in the product-photos bucket for a new campaign"
+        required: false
+        type: string
+      tagline:
+        description: "Optional product tagline for a new campaign"
+        required: false
+        type: string
+      cta_url:
+        description: "Optional call-to-action link for a new campaign"
+        required: false
+        type: string
 
 jobs:
   run:
@@ -66,18 +78,30 @@ jobs:
         with:
           path: ~/.cache/huggingface/hub
           key: domain-model-${{ steps.domain-rev.outputs.rev }}
-      - run: pip install -e ".[local-model,observability]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+      - run: pip install -e ".[local-model,observability,ads]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+      # The product cut-out model (src/tools/product_cutout.py, ~180 MB),
+      # downloaded by rembg on first use and kept between runs.
+      - name: Cache product cut-out model
+        uses: actions/cache@v4
+        with:
+          path: ~/.u2net
+          key: rembg-isnet-general-use-v1
       - name: Run iteration
         run: |
-          if [ -n "${{ inputs.idea }}" ]; then
-            python -m src.graph.run_campaign "${{ inputs.idea }}" \
-              --user-id "${{ inputs.user_id }}" \
-              --org-id "${{ inputs.org_id }}" \
+          # User-typed inputs arrive as environment variables, never pasted into
+          # the script: an idea containing quotes or $( ) must stay plain text.
+          if [ -n "$IN_IDEA" ]; then
+            python -m src.graph.run_campaign "$IN_IDEA" \
+              --user-id "$IN_USER_ID" \
+              --org-id "$IN_ORG_ID" \
               ${{ inputs.ab_test && '--ab-test' || '' }} \
-              --target-language "${{ inputs.target_language || 'en' }}" \
-              --email-to "${{ inputs.email_to }}"
-          elif [ -n "${{ inputs.campaign_id }}" ]; then
-            python -m src.scheduler.run_iteration --campaign-id "${{ inputs.campaign_id }}"
+              --target-language "$IN_TARGET_LANGUAGE" \
+              --email-to "$IN_EMAIL_TO" \
+              --product-image "$IN_PRODUCT_IMAGE" \
+              --tagline "$IN_TAGLINE" \
+              --cta-url "$IN_CTA_URL"
+          elif [ -n "$IN_CAMPAIGN_ID" ]; then
+            python -m src.scheduler.run_iteration --campaign-id "$IN_CAMPAIGN_ID"
           else
             python -m src.scheduler.run_iteration
             # Retry failed channel sends whose backoff has elapsed (delivery ledger).
@@ -92,6 +116,15 @@ jobs:
             python -c "from dotenv import load_dotenv; load_dotenv(); from src.db.supabase_client import get_client; print('Retention:', get_client().rpc('apply_retention').execute().data)"
           fi
         env:
+          IN_IDEA: ${{ inputs.idea }}
+          IN_USER_ID: ${{ inputs.user_id }}
+          IN_ORG_ID: ${{ inputs.org_id }}
+          IN_TARGET_LANGUAGE: ${{ inputs.target_language || 'en' }}
+          IN_EMAIL_TO: ${{ inputs.email_to }}
+          IN_PRODUCT_IMAGE: ${{ inputs.product_image }}
+          IN_TAGLINE: ${{ inputs.tagline }}
+          IN_CTA_URL: ${{ inputs.cta_url }}
+          IN_CAMPAIGN_ID: ${{ inputs.campaign_id }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           # Optional observability (src/observability.py): Sentry errors, Langfuse traces.
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}

@@ -21,6 +21,9 @@ export interface Campaign {
   reddit_subreddit: string | null
   email_to: string[] | null
   cta_url: string | null
+  /** The product photo every ad is built around (bucket product-photos) and its optional tagline. */
+  product_image_path?: string | null
+  product_tagline?: string | null
   use_image_template: boolean
   use_email_template: boolean
   max_rounds: number | null
@@ -60,6 +63,8 @@ export interface Iteration {
   image_version?: number
   headline?: string | null
   cta?: string | null
+  /** The product-first layout used (src/tools/ad_templates.py); empty for older ads. */
+  template?: string | null
   preflight_score: number | null
   preflight_passed: boolean | null
   preflight_attempt: number

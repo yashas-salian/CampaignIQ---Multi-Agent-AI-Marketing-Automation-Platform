@@ -29,6 +29,17 @@ async function handle(req: Request): Promise<Response> {
   if (!capability) {
     return new Response("Missing capability", { status: 400 });
   }
+  // An ad image is built around the user's own product photo (bucket
+  // product-photos, {user_id}/...); the worker checks again before reading it.
+  if (capability === "image") {
+    const path = params?.product_image_path;
+    if (typeof path !== "string" || !path) {
+      return new Response("Missing product photo", { status: 400 });
+    }
+    if (!path.startsWith(`${userData.user.id}/`) || path.includes("..")) {
+      return new Response("That product photo isn't yours", { status: 403 });
+    }
+  }
 
   const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const { data: runRow, error: insertError } = await serviceClient

@@ -26,6 +26,8 @@ def feasibility_node(state: CampaignState) -> CampaignState:
         target_language=target_language,
         org_id=state.get("org_id"),
         ab_test=bool(state.get("ab_test")),
+        product_image_path=state.get("product_image_path"),
+        product_tagline=state.get("product_tagline"),
     )
     _start_market_watch(state["campaign_id"], result.signals, target_language)
     return {"feasibility": result}

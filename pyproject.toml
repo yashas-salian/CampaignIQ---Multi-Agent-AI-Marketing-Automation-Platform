@@ -29,6 +29,9 @@ dependencies = [
 #   pip install -e ".[local-model]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
 # (prebuilt CPU wheels; without the index pip tries to compile llama.cpp).
 local-model = ["llama-cpp-python>=0.3,<0.4"]
+# Product cut-outs for the ad templates (src/tools/product_cutout.py, IS-Net on onnxruntime). Without it
+# the product photo is placed on a white card instead of cut out.
+ads = ["onnxruntime>=1.18,<2"]
 # M8: expose capabilities/ as an MCP server (python -m src.mcp_server.server).
 mcp = ["mcp>=1.9,<2"]
 # Tests: pytest -m "not integration" (no network, no DB); integration tests need

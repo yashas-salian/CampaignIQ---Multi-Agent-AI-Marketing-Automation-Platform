@@ -15,6 +15,9 @@ import { supabase } from '../lib/supabaseClient'
 import styles from '../styles/app.module.css'
 import local from './Tools.module.css'
 import Select from '../components/Select'
+import { ProductFields } from '../components/ProductFields'
+import { AD_TEMPLATES } from '../lib/adTemplates'
+import { useSession } from '../lib/useAuth'
 
 const PROGRESS: { key: string; label: string }[] = [
   { key: 'dispatched', label: 'tl.stepDispatch' },
@@ -41,11 +44,14 @@ function ResultView({ capability, result, runId }: { capability: string; result:
   const r = result as Record<string, unknown> | Record<string, unknown>[] | null
 
   if (capability === 'image' && r && !Array.isArray(r) && typeof r.image_base64 === 'string') {
-    const src = `data:image/png;base64,${r.image_base64}`
+    const mime = typeof r.mime === 'string' ? r.mime : 'image/png'
+    const src = `data:${mime};base64,${r.image_base64}`
     return (
       <div className={local.imageResult}>
-        <img src={src} alt="" />
-        <a className={`${styles.btn} ${styles.ghost}`} href={src} download="marketingos-ad.png">
+        <img src={src} alt={typeof r.headline === 'string' ? r.headline : ''} />
+        {typeof r.template === 'string' && r.template && <span className={styles.chip}>{t('product.template')}: {humanize(r.template)}</span>}
+        {typeof r.copy_text === 'string' && r.copy_text && <p className={local.rationale}>{r.copy_text}</p>}
+        <a className={`${styles.btn} ${styles.ghost}`} href={src} download={mime === 'image/jpeg' ? 'marketingos-ad.jpg' : 'marketingos-ad.png'}>
           {t('tl.download')}
         </a>
       </div>
@@ -134,6 +140,11 @@ export default function Tools() {
   const [capability, setCapability] = useState<Capability>('feasibility')
   const [idea, setIdea] = useState('')
   const [prompt, setPrompt] = useState('')
+  // The ad image is built around the user's product photo (src/tools/ad_templates.py).
+  const [productPhoto, setProductPhoto] = useState<File | null>(null)
+  const [tagline, setTagline] = useState('')
+  const [template, setTemplate] = useState('')
+  const { session } = useSession()
   const [language, setLanguage] = useState('en')
   const [submitting, setSubmitting] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -171,9 +182,21 @@ export default function Tools() {
 
   async function submit() {
     const value = capability === 'image' ? prompt.trim() : idea.trim()
-    if (!value || submitting) return
+    if (!value || submitting || (capability === 'image' && !productPhoto)) return
     setSubmitting(true)
-    const params = capability === 'image' ? { prompt: value } : { idea: value, target_language: language }
+    let params: Record<string, unknown> = { idea: value, target_language: language }
+    if (capability === 'image' && productPhoto) {
+      // The photo goes up first, into the user's own folder; the run gets its path.
+      const ext = productPhoto.type === 'image/png' ? 'png' : productPhoto.type === 'image/webp' ? 'webp' : 'jpg'
+      const path = `${session?.user.id}/${crypto.randomUUID()}.${ext}`
+      const upload = await supabase.storage.from('product-photos').upload(path, productPhoto, { contentType: productPhoto.type })
+      if (upload.error || !session?.user.id) {
+        setSubmitting(false)
+        toast.error(t('product.uploadFailed', { message: upload.error?.message ?? 'no session' }))
+        return
+      }
+      params = { prompt: value, product_image_path: path, tagline: tagline.trim(), template, target_language: language }
+    }
     const { data, error: invokeError } = await supabase.functions.invoke('trigger-capability-run', {
       body: { capability, params },
     })
@@ -214,6 +237,8 @@ export default function Tools() {
     if (typeof run.params.idea === 'string') setIdea(run.params.idea)
     if (typeof run.params.prompt === 'string') setPrompt(run.params.prompt)
     if (typeof run.params.target_language === 'string') setLanguage(run.params.target_language)
+    if (typeof run.params.tagline === 'string') setTagline(run.params.tagline)
+    if (typeof run.params.template === 'string') setTemplate(run.params.template)
     setActiveId(run.id)
   }
 
@@ -278,21 +303,42 @@ export default function Tools() {
                 placeholder={capability === 'image' ? t('tools.imagePromptPlaceholder') : t('tools.ideaPlaceholder')}
               />
             </label>
+            {capability === 'image' && (
+              <ProductFields
+                photo={productPhoto}
+                onPhoto={setProductPhoto}
+                tagline={tagline}
+                onTagline={setTagline}
+                extra={
+                  <label className={local.templatePick}>
+                    <span>{t('product.template')}</span>
+                    <Select
+                      aria-label={t('product.template')}
+                      value={template}
+                      onChange={setTemplate}
+                      options={[{ value: '', label: t('tl.templateAuto') }, ...AD_TEMPLATES.map((id) => ({ value: id, label: humanize(id) }))]}
+                    />
+                  </label>
+                }
+              />
+            )}
             <div className={local.formFoot}>
-              {capability !== 'image' ? (
-                <label className={local.lang}>
-                  <span>{t('cd.language')}</span>
-                  <Select
-                    aria-label={t('cd.language')}
-                    value={language}
-                    onChange={setLanguage}
-                    options={CAMPAIGN_LANGUAGES.map((l) => ({ value: l.code, label: l.label }))}
-                  />
-                </label>
-              ) : (
-                <span />
-              )}
-              <button type="button" className={`${styles.btn} ${styles.primary}`} onClick={submit} disabled={submitting || !inputValue.trim()}>
+              <label className={local.lang}>
+                <span>{t('cd.language')}</span>
+                <Select
+                  aria-label={t('cd.language')}
+                  value={language}
+                  onChange={setLanguage}
+                  options={CAMPAIGN_LANGUAGES.map((l) => ({ value: l.code, label: l.label }))}
+                />
+              </label>
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.primary}`}
+                onClick={submit}
+                disabled={submitting || !inputValue.trim() || (capability === 'image' && !productPhoto)}
+                title={capability === 'image' && !productPhoto ? t('product.photoNeeded') : undefined}
+              >
                 {submitting && <span className={styles.spinner} aria-hidden="true" />}
                 {submitting ? t('tools.dispatching') : t('tools.run')}
                 {!submitting && (

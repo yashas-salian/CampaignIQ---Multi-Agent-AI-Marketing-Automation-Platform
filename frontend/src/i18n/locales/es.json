@@ -222,9 +222,9 @@
     "capPersonas": "Personas",
     "capPersonasDesc": "Genera personas de cliente ideal basadas en esa investigación.",
     "capImage": "Imagen de anuncio",
-    "capImageDesc": "Genera una imagen a partir de un prompt con tu proveedor actual.",
+    "capImageDesc": "Convierte la foto de tu producto en un anuncio terminado con uno de 34 diseños.",
     "inputIdea": "Idea de campaña",
-    "inputPrompt": "Prompt de imagen",
+    "inputPrompt": "Describe tu producto y el anuncio",
     "stQueued": "En cola",
     "stRunning": "En ejecución",
     "stDone": "Completado",
@@ -240,7 +240,8 @@
     "historyEmpty": "Tus ejecuciones aparecen aquí.",
     "again": "Ejecutar de nuevo",
     "emptyResult": "Elige una herramienta, completa el dato y ejecútala. El resultado aparece aquí en vivo.",
-    "failedDispatch": "No se pudo iniciar la ejecución: {{message}}"
+    "failedDispatch": "No se pudo iniciar la ejecución: {{message}}",
+    "templateAuto": "El mejor (automático)"
   },
   "st": {
     "title": "Ajustes",
@@ -339,7 +340,7 @@
   "tools": {
     "title": "Herramientas — ejecuciones puntuales de capacidades",
     "subtitle": "Ejecuta una sola capacidad vía GitHub Actions, independiente de cualquier campaña en curso.",
-    "imagePromptPlaceholder": "Instrucción de imagen",
+    "imagePromptPlaceholder": "p. ej. Zapatillas de lona para estar cómodo todo el día, a la venta este mes",
     "ideaPlaceholder": "Idea de campaña",
     "run": "Ejecutar",
     "dispatching": "Enviando…",
@@ -869,5 +870,20 @@
     "none": "No quedan imágenes nuevas para esta ronda.",
     "done": "Nueva imagen lista. Al aprobar se envía esta.",
     "failed": "No se pudo crear una nueva imagen. Se mantiene la actual."
+  },
+  "product": {
+    "photoPick": "Añade una foto del producto",
+    "photoChange": "Cambiar foto",
+    "photoHint": "Obligatoria · PNG, JPG o WebP, hasta 5 MB",
+    "photoType": "Usa una foto PNG, JPG o WebP",
+    "photoSize": "La foto pesa más de 5 MB",
+    "photoNeeded": "Primero añade una foto de tu producto",
+    "tagline": "Eslogan",
+    "taglinePlaceholder": "p. ej. El café que te espera",
+    "optional": "(opcional)",
+    "link": "Enlace",
+    "linkInvalid": "Usa una dirección web que empiece por https://",
+    "uploadFailed": "No se pudo subir la foto: {{message}}",
+    "template": "Plantilla"
   }
 }
