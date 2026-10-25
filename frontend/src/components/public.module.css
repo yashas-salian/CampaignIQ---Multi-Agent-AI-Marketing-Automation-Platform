@@ -148,6 +148,9 @@
 .legal { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px; align-items: start; margin-top: 64px; }
 .toc { position: sticky; top: 110px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
 .toc a { --wipe-base: var(--mos-text-muted); }
+/* The section in view: full ink, bold, underline drawn (the same look as Settings in the sidebar). */
+.toc a.tocCurrent { --wipe-base: var(--mos-text); font-weight: 600; background-position: 0 0; }
+.toc a.tocCurrent::after { transform: scaleX(1); }
 .prose { max-width: 72ch; font-size: 16px; line-height: 1.75; color: var(--mos-text); }
 .prose h2 { font-family: var(--font-display); font-size: 24px; font-weight: 600; letter-spacing: -0.02em; margin: 48px 0 12px !important; scroll-margin-top: 110px; }
 .prose h2:first-child { margin-top: 0 !important; }

@@ -657,7 +657,8 @@
     "flagAdded": "Indicateur {{key}} ajouté (désactivé).",
     "flagSaved": "Indicateur {{key}} mis à jour.",
     "planSet": "{{name}} est maintenant en {{plan}}.",
-    "retryQueued": "Livraison remise en file pour un nouvel essai."
+    "retryQueued": "Livraison remise en file pour un nouvel essai.",
+    "notSetUp": "Cette partie de l'application n'est pas encore installée sur le serveur : sa mise à jour de la base de données n'a pas été appliquée."
   },
   "loader": {
     "score": "Évaluation de l'idée…",

@@ -154,6 +154,17 @@ test('viewers read but cannot change the watch list', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Mark acted on' })).toHaveCount(0)
 })
 
+test('a server without the feature says so instead of blaming the connection', async ({ page }) => {
+  await signIn(page)
+  // Registered last, so it wins: the cloud database before this feature's migration.
+  await page.route('**/rest/v1/competitors?**', (route) => route.fulfill({ status: 404, contentType: 'application/json',
+    body: JSON.stringify({ code: 'PGRST205', message: "Could not find the table 'public.competitors' in the schema cache" }) }))
+  await open(page)
+  await expect(page.getByText(/isn't set up on the server yet/)).toBeVisible()
+  await expect(page.getByText(/Check your connection/)).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Retry' })).toHaveCount(0)
+})
+
 // Review screenshots: CI_SHOTS=<dir> npx playwright test e2e/competitors.spec.ts -g screenshots
 test('screenshots of the competitors page', async ({ page }, info) => {
   const dir = process.env.CI_SHOTS

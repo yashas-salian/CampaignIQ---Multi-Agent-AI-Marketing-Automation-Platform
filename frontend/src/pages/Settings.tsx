@@ -1,5 +1,5 @@
 import type { CSSProperties, DragEvent, ReactNode } from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import ApiSettings from '../components/ApiSettings'
@@ -12,6 +12,7 @@ import TeamSettings from '../components/TeamSettings'
 import { toast } from '../lib/toast'
 import { signOutWithToast, toastFailure, toastLoadError } from '../lib/notify'
 import { usePageLoading } from '../lib/loading'
+import { useSectionSpy } from '../lib/sectionSpy'
 import { useOrg } from '../lib/useOrg'
 import { isValidUsername, normalizeUsername, saveUsername, usernameOf } from '../lib/profile'
 import { supabase } from '../lib/supabaseClient'
@@ -223,58 +224,13 @@ export default function Settings() {
   ]
 
   // The sections are listed in the app sidebar under Settings, with the one in view marked.
-  const [current, setCurrent] = useState(sections[0]?.id ?? '')
-  const sectionIds = sections.map((s) => s.id).join(',')
+  const [current, pick] = useSectionSpy(sections.map((s) => s.id))
   const sectionsKey = JSON.stringify(sections)
   useEffect(() => {
-    setSettingsNav({
-      sections: JSON.parse(sectionsKey) as { id: string; label: string }[],
-      current,
-      pick: (id) => {
-        picked.current = id
-        setCurrent(id)
-      },
-    })
-  }, [sectionsKey, current])
+    setSettingsNav({ sections: JSON.parse(sectionsKey) as { id: string; label: string }[], current, pick })
+  }, [sectionsKey, current, pick])
   useEffect(() => () => setSettingsNav(null), [])
 
-  // A section picked in the sidebar stays current until the user scrolls by
-  // hand: short sections near the bottom can't scroll up to the line below.
-  const picked = useRef<string | null>(null)
-  useEffect(() => {
-    const ids = sectionIds.split(',')
-    let frame = 0
-    const update = () => {
-      frame = 0
-      if (picked.current) return
-      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4
-      if (atBottom) return setCurrent(ids[ids.length - 1])
-      // Otherwise: the last section whose top has passed a line ~30% down the screen.
-      const line = window.innerHeight * 0.3
-      let id = ids[0]
-      for (const candidate of ids) {
-        const el = document.getElementById(candidate)
-        if (el && el.getBoundingClientRect().top <= line) id = candidate
-      }
-      setCurrent(id)
-    }
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(update)
-    }
-    const release = () => {
-      picked.current = null
-    }
-    update()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('resize', onScroll)
-    for (const ev of ['wheel', 'touchstart', 'keydown'] as const) window.addEventListener(ev, release, { passive: true })
-    return () => {
-      cancelAnimationFrame(frame)
-      window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('resize', onScroll)
-      for (const ev of ['wheel', 'touchstart', 'keydown'] as const) window.removeEventListener(ev, release)
-    }
-  }, [sectionIds])
 
   return (
     <div className={styles.page}>

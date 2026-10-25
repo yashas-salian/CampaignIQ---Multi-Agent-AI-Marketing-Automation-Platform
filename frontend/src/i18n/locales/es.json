@@ -657,7 +657,8 @@
     "flagAdded": "Indicador {{key}} añadido (desactivado).",
     "flagSaved": "Indicador {{key}} actualizado.",
     "planSet": "{{name}} ahora tiene el plan {{plan}}.",
-    "retryQueued": "Entrega en cola para otro intento."
+    "retryQueued": "Entrega en cola para otro intento.",
+    "notSetUp": "Esta parte de la app aún no está configurada en el servidor: falta aplicar su actualización de la base de datos."
   },
   "loader": {
     "score": "Evaluando la idea…",

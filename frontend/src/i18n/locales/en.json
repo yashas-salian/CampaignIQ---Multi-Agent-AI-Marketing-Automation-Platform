@@ -657,7 +657,8 @@
     "flagAdded": "Flag {{key}} added (off).",
     "flagSaved": "Flag {{key}} updated.",
     "planSet": "{{name}} is now on {{plan}}.",
-    "retryQueued": "Delivery queued for another try."
+    "retryQueued": "Delivery queued for another try.",
+    "notSetUp": "This part of the app isn't set up on the server yet: its database update hasn't been applied."
   },
   "loader": {
     "score": "Scoring the idea…",

@@ -18,7 +18,12 @@ interface Shell {
 
 // The app bar and sidebar belong to the logged-in app only; public pages (and
 // the 404) render their own header even for a logged-in visitor.
-export const APP_PREFIXES = ['/dashboard', '/calendar', '/campaigns', '/tools', '/settings', '/admin', '/models', '/playbooks']
+// Logged-in pages: they get the top bar and the sidebar (public pages have their own navbar
+// and never the sidebar). Every <ProtectedRoute> in App.tsx must start with one of these:
+// e2e/app.spec.ts checks it.
+export const APP_PREFIXES = [
+  '/dashboard', '/calendar', '/campaigns', '/tools', '/settings', '/admin', '/models', '/playbooks', '/competitors', '/invite',
+]
 
 let state: Shell = { drawerOpen: false, settings: null }
 const listeners = new Set<() => void>()

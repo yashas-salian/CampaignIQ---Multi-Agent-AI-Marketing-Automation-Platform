@@ -4,6 +4,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 
 import { setDrawerOpen, useShell } from '../lib/shell'
 import { supabase } from '../lib/supabaseClient'
+import { useOrg } from '../lib/useOrg'
 import css from './AppSidebar.module.css'
 
 const OPEN_DELAY = 80 // brushing past the edge doesn't flash it open
@@ -44,6 +45,9 @@ export default function AppSidebar() {
   const { t } = useTranslation()
   const { pathname, hash } = useLocation()
   const { drawerOpen, settings } = useShell()
+  const { active, can } = useOrg()
+  // Only links this person can use: viewers and approvers can't start campaigns.
+  const canCreate = !!active && can('create', active.id)
   const [expanded, setExpanded] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const timer = useRef(0)
@@ -97,10 +101,12 @@ export default function AppSidebar() {
           if (!nav.current?.contains(e.relatedTarget as Node)) later(false, 0)
         }}
       >
-        <Link to="/dashboard#new" className={`${css.item} ${css.create}`} title={t('dash.newCampaign')}>
-          <Icon name="new" />
-          <span className={css.label}>{t('dash.newCampaign')}</span>
-        </Link>
+        {canCreate && (
+          <Link to="/dashboard#new" className={`${css.item} ${css.create}`} title={t('dash.newCampaign')}>
+            <Icon name="new" />
+            <span className={css.label}>{t('dash.newCampaign')}</span>
+          </Link>
+        )}
 
         <p className={css.group}>{t('nav.workspace')}</p>
         {item('/dashboard', 'dashboard', t('common.dashboard'))}

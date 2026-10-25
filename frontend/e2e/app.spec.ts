@@ -158,7 +158,7 @@ test('the sidebar opens from the left on every app page and lists every feature'
     await expect.poll(async () => (await nav.boundingBox())?.width ?? 0).toBeLessThan(80)
   }
   await openNav(page, info.project.name)
-  for (const name of [/new campaign/i, /^dashboard$/i, /^calendar$/i, /^tools$/i, /run history/i, /^playbooks$/i, /our ai model/i, /^settings$/i])
+  for (const name of [/new campaign/i, /^dashboard$/i, /^calendar$/i, /^tools$/i, /run history/i, /^competitors$/i, /^playbooks$/i, /our ai model/i, /^settings$/i])
     await expect(nav.getByRole('link', { name })).toBeVisible()
   await expect(nav.getByRole('link', { name: /^dashboard$/i })).toHaveAttribute('aria-current', 'page')
 
@@ -169,6 +169,31 @@ test('the sidebar opens from the left on every app page and lists every feature'
   else {
     await page.mouse.move(900, 500)
     await expect.poll(async () => (await nav.boundingBox())?.width ?? 0).toBeLessThan(80)
+  }
+})
+
+test('every logged-in page is listed for the top bar and sidebar', async () => {
+  // A logged-in route missing from APP_PREFIXES renders with no way to navigate (it happened to /competitors).
+  const { readFileSync } = await import('node:fs')
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf-8')
+  const { APP_PREFIXES } = await import('../src/lib/shell')
+  const protectedPaths = [...app.matchAll(/path="([^"]+)"\s*element=\{\s*<ProtectedRoute>/g)].map((m) => m[1])
+  expect(protectedPaths.length).toBeGreaterThan(10)
+  expect(protectedPaths.filter((p) => !APP_PREFIXES.some((prefix) => p.startsWith(prefix)))).toEqual([])
+})
+
+test('logged-in pages have the top bar and sidebar; public pages have a navbar and no sidebar', async ({ page }, info) => {
+  await signIn(page)
+  for (const path of ['/competitors', '/invite/expired-token']) {
+    await page.goto(path)
+    await expect(page.getByRole('link', { name: 'MarketingOS' }).first()).toBeVisible({ timeout: 15_000 })
+    if (info.project.name === 'phone') await expect(page.getByRole('button', { name: /menu/i })).toBeVisible()  // the sidebar is a drawer
+    else await expect(page.getByRole('navigation', { name: /^main$/i })).toBeAttached()
+  }
+  for (const path of ['/docs', '/status']) {
+    await page.goto(path)
+    await expect(page.getByRole('link', { name: /MarketingOS/ }).first()).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('navigation', { name: /^main$/i })).toHaveCount(0)
   }
 })
 

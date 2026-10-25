@@ -68,7 +68,9 @@ export default function PublicNav() {
   return (
     <header className={`${styles.nav} ${hidden && !menuOpen ? styles.navHidden : ''}`}>
       <div className={styles.navBar} ref={barRef}>
-        <Link to="/" className={`${styles.navCell} ${styles.navBrand}`}>
+        {/* Named even on phones, where the wordmark is hidden. */}
+        <Link to="/" className={`${styles.navCell} ${styles.navBrand}`} aria-label="MarketingOS">
+
           <span className={styles.logo}>
             <LogoMark />
             <span className={styles.brandText}>MarketingOS</span>
@@ -100,13 +102,23 @@ export default function PublicNav() {
               </svg>
             )}
           </button>
-          <Link className={`${styles.navCell} ${styles.navLogin} wipe-host`} to={loginTo}>
-            <span className="link-wipe">{authed ? 'Dashboard' : 'Log in'}</span>
-          </Link>
-          <Link className={`${styles.navCell} ${styles.navCta}`} to={signupTo}>
-            Get started
-            <ArrowIcon className={styles.arrow} />
-          </Link>
+          {/* Only what this visitor can use now: signed out, log in or sign up; signed in, their dashboard. */}
+          {authed ? (
+            <Link className={`${styles.navCell} ${styles.navCta}`} to="/dashboard">
+              Dashboard
+              <ArrowIcon className={styles.arrow} />
+            </Link>
+          ) : (
+            <>
+              <Link className={`${styles.navCell} ${styles.navLogin} wipe-host`} to={loginTo}>
+                <span className="link-wipe">Log in</span>
+              </Link>
+              <Link className={`${styles.navCell} ${styles.navCta}`} to={signupTo}>
+                Get started
+                <ArrowIcon className={styles.arrow} />
+              </Link>
+            </>
+          )}
           {/* Phones/tablets: the section links live behind this button. */}
           <button
             type="button"
@@ -131,7 +143,7 @@ export default function PublicNav() {
               <span className="link-wipe">{l.label}</span>
             </Link>
           ))}
-          <Link to={loginTo} className={`${styles.mobileItem} wipe-host`}>
+          <Link to={authed ? '/dashboard' : loginTo} className={`${styles.mobileItem} wipe-host`}>
             <span className="link-wipe">{authed ? 'Dashboard' : 'Log in'}</span>
           </Link>
         </nav>

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useSectionSpy } from '../lib/sectionSpy'
 import PublicLayout from './PublicLayout'
 import styles from './public.module.css'
 
@@ -22,6 +23,7 @@ export default function LegalPage({
   intro: ReactNode
   sections: LegalSection[]
 }) {
+  const [current, pick] = useSectionSpy(sections.map((s) => s.id))
   return (
     <PublicLayout>
       <section className={styles.enter}>
@@ -32,7 +34,13 @@ export default function LegalPage({
       <div className={styles.legal}>
         <nav className={styles.toc} aria-label="On this page">
           {sections.map((s) => (
-            <a key={s.id} href={`#${s.id}`} className="link-wipe">
+            <a
+              key={s.id}
+              href={`#${s.id}`}
+              className={`link-wipe ${s.id === current ? styles.tocCurrent : ''}`}
+              aria-current={s.id === current ? 'location' : undefined}
+              onClick={() => pick(s.id)}
+            >
               {s.title}
             </a>
           ))}

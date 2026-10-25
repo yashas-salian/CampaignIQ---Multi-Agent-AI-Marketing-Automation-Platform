@@ -657,7 +657,8 @@
     "flagAdded": "Flag {{key}} adicionada (desligada).",
     "flagSaved": "Flag {{key}} atualizada.",
     "planSet": "{{name}} agora está no plano {{plan}}.",
-    "retryQueued": "Entrega colocada na fila para nova tentativa."
+    "retryQueued": "Entrega colocada na fila para nova tentativa.",
+    "notSetUp": "Esta parte do app ainda não está configurada no servidor: a atualização do banco de dados não foi aplicada."
   },
   "loader": {
     "score": "Avaliando a ideia…",
