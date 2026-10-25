@@ -27,7 +27,9 @@ def get_trend_interest(keyword: str, *, hl: str = "en-US") -> dict:
         return {"keyword": keyword, "mean_interest": 0, "latest_interest": 0, "trending_up": False, "rate_limited": True}
 
     if df.empty:
-        return {"keyword": keyword, "mean_interest": 0, "latest_interest": 0, "trending_up": False}
+        # No series at all: the phrase is below Google's reporting threshold
+        # (often just too specific), which isn't the same as measured zero.
+        return {"keyword": keyword, "mean_interest": 0, "latest_interest": 0, "trending_up": False, "no_data": True}
 
     series = df[keyword]
     mean_interest = float(series.mean())

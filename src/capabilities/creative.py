@@ -36,6 +36,9 @@ class Creative(BaseModel):
     # extra words on it, kept so Gate 2 can redraw the same ad.
     template: str = ""
     ad_slots: dict | None = None
+    # The painted background of a scene template, kept so the ad can be
+    # redrawn with new words (crash-test revision) without painting again.
+    scene_bytes: bytes | None = None
 
 
 # Extra copy attempts when brand-safety checks block a draft (see guardrails.py).
@@ -230,6 +233,7 @@ def _product_creative(
         cta=cta,
         template=template.id,
         ad_slots=ad_slots,
+        scene_bytes=scene,
     )
 
 

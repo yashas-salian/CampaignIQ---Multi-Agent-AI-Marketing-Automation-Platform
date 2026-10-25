@@ -18,6 +18,7 @@ DELIVERY_LEDGER=db|file to force one.
 import json
 import logging
 import os
+import re
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -45,7 +46,7 @@ def _dry_run() -> bool:
 
 
 def is_failure(ref: str | None) -> bool:
-    return bool(ref) and ref.startswith(("failed:", "dead:"))
+    return bool(ref) and ref.startswith(("failed:", "dead:", "held:"))
 
 
 # --- Ledgers -----------------------------------------------------------------
@@ -127,6 +128,20 @@ class FileLedger:
         return self._load()[row_id]["attempts"]
 
 
+_UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+
+def _circuit_check(campaign_id: str, book) -> None:
+    """Re-check the campaign's live conditions right before it sends (the
+    circuit breaker): anything wrong becomes a hold, which the claim below then
+    refuses to send past. Only for real campaigns on the database ledger."""
+    if not isinstance(book, DbLedger) or not _UUID.match(str(campaign_id)):
+        return
+    from src.capabilities.circuit_breaker import check_before_dispatch
+
+    check_before_dispatch(campaign_id)
+
+
 def ledger():
     choice = os.environ.get("DELIVERY_LEDGER", "").lower()
     if choice == "file" or (choice != "db" and not os.environ.get("SUPABASE_SERVICE_ROLE_KEY")):
@@ -184,6 +199,7 @@ def deliver(
     for attempt in range(IN_PROCESS_TRIES):
         try:
             book = ledger()
+            _circuit_check(campaign_id, book)
             verdict, row = book.claim(campaign_id, round_id, channel, user_id, payload)
             break
         except Exception as exc:

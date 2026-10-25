@@ -40,6 +40,8 @@ class CampaignState(TypedDict, total=False):
     best_creative: Creative
     best_preflight: PreflightResult
     rejected: bool
+    # The decision engine's recommendation before Gate 1 (src/capabilities/decision.py).
+    decision: Optional[dict]
     bluesky_post_uri: Optional[str]
     reddit_post_url: Optional[str]
     mastodon_post_url: Optional[str]

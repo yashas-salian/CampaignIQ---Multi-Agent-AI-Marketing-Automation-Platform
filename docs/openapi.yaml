@@ -23,6 +23,116 @@ components:
       scheme: bearer
       bearerFormat: mos_<48 hex>
   schemas:
+    Impact:
+      type: object
+      description: The spec's read-out of an experiment (see docs/PROOF_OF_IMPACT.md). Nulls mean "not enough data", never zero.
+      properties:
+        status: { type: string, enum: [COLLECTING, POSITIVE_IMPACT, NEGATIVE_IMPACT, NO_MEANINGFUL_IMPACT, INCONCLUSIVE] }
+        reason: { type: string, examples: [INSUFFICIENT_DATA, NO_OUTCOME_DATA, SAMPLE_RATIO_MISMATCH, INTERVAL_TOO_WIDE, INTERVAL_ABOVE_ZERO, BEFORE_PREDECLARED_END, NOT_ANALYZED_YET] }
+        primaryMetric: { type: [string, "null"], enum: [qualified_signup_rate, conversion_rate, click_through_rate, null] }
+        controlRate: { type: [number, "null"] }
+        treatmentRate: { type: [number, "null"] }
+        absoluteLift: { type: [number, "null"], description: Treatment minus control rate }
+        confidenceOrCredibleInterval: { type: [array, "null"], items: { type: number }, description: 95% interval of the absolute lift }
+        intervalMethod: { type: string, const: newcombe_hybrid_score_95 }
+        probabilityTreatmentBetter: { type: [number, "null"], description: Bayesian, Beta(1,1) priors }
+        relativeLift: { type: [number, "null"], description: Only when the control group has at least 10 successes }
+        final: { type: boolean, description: false = interim numbers before the predeclared end (no verdict) }
+        analyzedAt: { type: [string, "null"], format: date-time }
+    Experiment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        campaign_id: { type: string, format: uuid }
+        hypothesis: { type: string }
+        primary_metric: { type: string, enum: [qualified_signup_rate, conversion_rate, click_through_rate] }
+        design: { type: string, enum: [holdout, holdout_ab, ab] }
+        assignment_unit: { type: string, const: email_recipient }
+        control_share: { type: number }
+        attribution_window_days: { type: integer }
+        duration_days: { type: integer }
+        min_units_per_arm: { type: integer }
+        min_effect: { type: number, description: Smallest absolute lift worth acting on }
+        policy_version: { type: string, examples: [impact-v1] }
+        status: { type: string, enum: [declared, running, completed] }
+        started_at: { type: [string, "null"], format: date-time }
+        analysis_at: { type: [string, "null"], format: date-time, description: The predeclared final analysis }
+        result: { type: [object, "null"], description: The full analysis (arms, estimate, revenue, quality, assumptions) }
+    CampaignHold:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        channel: { type: [string, "null"], description: null = every channel }
+        trigger: { type: string, enum: [EXPIRED_OFFER, INVALID_DESTINATION, POLICY_VIOLATION, REVOKED_APPROVAL, BRAND_RISK, MANUAL_STOP] }
+        severity: { type: string, enum: [critical, warning], description: critical pauses; warning only notifies }
+        status: { type: string, enum: [active, resolved, false_alarm] }
+        detail: { type: string }
+        evidence: { type: object }
+        signal_at: { type: string, format: date-time, description: When the evidence was observed }
+        created_at: { type: string, format: date-time }
+        resolved_at: { type: [string, "null"], format: date-time }
+        resolution_note: { type: [string, "null"] }
+    CrashFinding:
+      type: object
+      properties:
+        key: { type: string }
+        source: { type: string, enum: [rule, simulation] }
+        scenario: { type: [string, "null"], description: "simulation only: skeptic, price_sensitive, competitor_discount, standards_reviewer, three_second_scroll, sensitivity, wrong_audience, non_native" }
+        type: { type: string, examples: [INVENTED_TESTIMONIAL, FALSE_URGENCY, TRUST_GAP] }
+        severity: { type: string, enum: [low, medium, high, critical], description: Only rule checks can be critical }
+        quote: { type: [string, "null"], description: The exact ad words it's about; null = the ad as a whole }
+        field: { type: [string, "null"], enum: [body, headline, cta, null] }
+        problem: { type: string }
+        fix: { type: string }
+    CrashTest:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        round_number: { type: integer }
+        trigger: { type: string, enum: [pipeline, rerun] }
+        scenario_set: { type: string, examples: [marketing-risk-v1] }
+        rules_version: { type: string }
+        status: { type: string, enum: [COMPLETED, RULES_ONLY] }
+        risk: { type: string, enum: [clear, low, medium, high, critical] }
+        revised_risk: { type: [string, "null"] }
+        applied_at: { type: [string, "null"], format: date-time, description: When an approver used the revised version }
+        simulation_only: { type: boolean, const: true }
+        report:
+          type: object
+          properties:
+            ad: { type: object }
+            findings: { type: array, items: { $ref: "#/components/schemas/CrashFinding" } }
+            revised: { type: [object, "null"] }
+            revised_findings: { type: array, items: { $ref: "#/components/schemas/CrashFinding" } }
+            comparison: { type: [object, "null"], description: "{ resolved, remaining, new }: finding keys" }
+    Decision:
+      type: object
+      properties:
+        decision: { type: string, enum: [LAUNCH, TEST_SMALL, WAIT, KILL, INSUFFICIENT_EVIDENCE] }
+        opportunity_score: { type: [integer, "null"], minimum: 0, maximum: 100, description: null when the evidence is too thin to score }
+        uncertainty: { type: number, description: Share of the scorecard's weight with missing or stale evidence (0-1) }
+        reason_codes: { type: array, items: { type: string }, examples: [[WEAK_PURCHASE_INTENT, HIGH_COMPETITOR_SATURATION]] }
+        factors:
+          type: array
+          items:
+            type: object
+            properties:
+              key: { type: string, enum: [demand, momentum, purchase_intent, competition, reachability, track_record] }
+              weight: { type: number }
+              score: { type: [number, "null"] }
+              value: { type: string }
+              source: { type: string }
+              reliability: { type: string, enum: [measured, proxy, estimate] }
+              fetched_at: { type: [string, "null"], format: date-time }
+              available: { type: boolean }
+              stale: { type: boolean }
+        hard_blocks: { type: array, items: { type: object, properties: { code: { type: string }, detail: { type: string } } } }
+        review_flags: { type: array, items: { type: object } }
+        constraints: { type: object, description: "TEST_SMALL: { max_rounds }" }
+        reevaluate: { type: [object, "null"], description: "WAIT: the trigger that re-checks it" }
+        baseline: { type: object, description: What the old rule (launch if feasibility ≥ 40) would have said }
+        policy_version: { type: string }
+        requires_human_approval: { type: boolean, const: true }
     Error:
       type: object
       properties:
@@ -99,6 +209,240 @@ paths:
       summary: Plan, limits and today's usage
       responses:
         "200": { description: "{ plan, limits, used }" }
+  /v1/campaigns/{id}/decision:
+    get:
+      summary: The decision engine's recommendation for a campaign
+      description: |
+        Made before Gate 1 (see docs/DECISION_ENGINE.md). `latest` is the
+        current recommendation; `history` holds earlier ones (a WAIT is
+        re-evaluated when its trigger fires). Recommendations never approve a
+        campaign: `requires_human_approval` is always true.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Decision
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      latest: { $ref: "#/components/schemas/Decision" }
+                      history: { type: array, items: { $ref: "#/components/schemas/Decision" } }
+        "404": { description: Not found in this organisation, or not decided yet }
+  /v1/campaigns/{id}/crash-tests:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      summary: The campaign's crash-test reports, newest first
+      description: |
+        Made before Gate 2 (see docs/CRASH_TEST.md): deterministic rule
+        checks plus a versioned set of simulated scenarios, and a revised
+        version when anything is high or critical. `simulation_only` is always
+        true: simulated reactions are not customer data.
+      responses:
+        "200":
+          description: Reports
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/CrashTest" } }
+        "404": { description: Not found in this organisation }
+    post:
+      summary: Re-run the crash test on the copy now at Gate 2 (asynchronous)
+      responses:
+        "202": { description: "{ run_id, status: pending }" }
+        "409": { description: The campaign isn't waiting at Gate 2 }
+        "429": { description: Tools-run limit reached }
+  /v1/campaigns/{id}/holds:
+    get:
+      summary: The circuit breaker's holds on a campaign
+      description: |
+        A critical hold pauses the campaign (or one channel): no send goes out
+        until an owner or admin resumes it in the app. See
+        docs/CIRCUIT_BREAKER.md.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: "{ paused, paused_at, holds }"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      paused: { type: boolean }
+                      paused_at: { type: [string, "null"], format: date-time }
+                      holds: { type: array, items: { $ref: "#/components/schemas/CampaignHold" } }
+        "404": { description: Not found in this organisation }
+  /v1/campaigns/{id}/circuit-breaker/evaluate:
+    post:
+      summary: Check the campaign's live conditions now (asynchronous)
+      description: Expired offer, broken link, live copy against hard rules, lapsed approvals. Holds appear in GET /holds.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "202": { description: "{ run_id, status: pending }" }
+        "404": { description: Not found in this organisation }
+  /v1/campaigns/{id}/experiment:
+    get:
+      summary: The campaign's proof-of-impact experiment and its latest analysis
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Experiment, content: { application/json: { schema: { type: object, properties: { data: { $ref: "#/components/schemas/Experiment" } } } } } }
+        "404": { description: No experiment for this campaign in this organisation }
+  /v1/experiments/{id}/impact:
+    get:
+      summary: Did the campaign cause extra conversions?
+      description: |
+        Randomized holdout (or A vs B) only; never a before/after comparison.
+        Analysed hourly; the verdict comes at the predeclared end.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Impact, content: { application/json: { schema: { type: object, properties: { data: { $ref: "#/components/schemas/Impact" } } } } } }
+        "404": { description: Experiment not found }
+  /v1/conversions:
+    post:
+      summary: Report a conversion from your site (scope `write`)
+      description: |
+        Matched by the `ciq_t` token from the emailed link, or by the person's
+        email address (hashed with the experiment id, never stored), which is
+        how people in the control group (who got no link) are matched.
+        Retries with the same `event_id` count once.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event_id]
+              properties:
+                experiment_id: { type: string, format: uuid }
+                campaign_id: { type: string, format: uuid, description: Instead of experiment_id }
+                event_id: { type: string, maxLength: 200, description: Your id for this conversion }
+                token: { type: string, pattern: "^[0-9a-f]{32}$", description: The ciq_t link parameter }
+                email: { type: string, format: email, description: Instead of token }
+                qualified: { type: boolean, default: false }
+                value: { type: number, minimum: 0 }
+                currency: { type: string, pattern: "^[A-Z]{3}$" }
+                occurred_at: { type: string, format: date-time, description: Defaults to now; not in the future }
+      responses:
+        "202": { description: "{ matched, duplicate, counted }" }
+        "400": { description: Invalid body }
+        "404": { description: Experiment not found in this organisation }
+        "409": { description: The experiment hasn't started yet }
+  /v1/market-intelligence/competitors:
+    get:
+      summary: Tracked competitors and the health of their sources
+      responses:
+        "200": { description: "Competitors, each with competitor_sources (kind, locator, approved, status: never|ok|stale|unavailable|blocked_by_robots, last_ok_at, last_error)" }
+  /v1/market-intelligence/competitors/{id}/signals:
+    get:
+      summary: What a competitor did (observed), what you could do (insight) and the forecast
+      description: |
+        Events come only from sources a person approved, each with its source
+        URL, outlet and times; duplicate and syndicated reports are one event
+        (`reports`, `outlets`, `original_outlet`). `insight.explanations` are
+        inferred hypotheses, labelled as such. `limitations` lists approved
+        sources that are stale or unavailable: the signals may be incomplete.
+        See docs/COMPETITOR_INTELLIGENCE.md.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+      responses:
+        "200":
+          description: Signals
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      competitor: { type: object }
+                      sources: { type: array, items: { type: object } }
+                      limitations: { type: array, items: { type: object } }
+                      signals:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            kind: { type: string, enum: [OFFER_CHANGE, MESSAGING_SHIFT, PRODUCT_LAUNCH, CONTENT_THEME] }
+                            summary: { type: string }
+                            observed: { type: object, description: "Quotes: before/after, headline, offer" }
+                            observed_or_inferred: { type: string, const: observed }
+                            url: { type: [string, "null"] }
+                            outlet: { type: [string, "null"] }
+                            published_at: { type: [string, "null"], format: date-time }
+                            observed_at: { type: string, format: date-time }
+                            reports: { type: integer }
+                            outlets: { type: array, items: { type: string } }
+                            original_outlet: { type: [string, "null"] }
+                            confidence: { type: number }
+                            insight:
+                              type: [object, "null"]
+                              properties:
+                                recommendation: { type: string, enum: [RESPOND, MONITOR, DIFFERENTIATE, NO_ACTION] }
+                                options: { type: array, description: All four actions, each with reasons }
+                                explanations: { type: array, description: Inferred hypotheses (inferred=true) with what would confirm or refute them }
+                                confidence: { type: number }
+                                policy_version: { type: string }
+                            forecast:
+                              type: [object, "null"]
+                              properties:
+                                target: { type: string, const: search_interest_change }
+                                keyword: { type: string }
+                                horizon_days: { type: integer }
+                                predicted_change: { type: number }
+                                interval_low: { type: number }
+                                interval_high: { type: number }
+                                status: { type: string, enum: [pending, resolved, unresolvable] }
+                                observed_change: { type: [number, "null"] }
+                                inside_interval: { type: [boolean, "null"] }
+                                materialized: { type: [boolean, "null"] }
+        "404": { description: Competitor not found in this organisation }
+  /v1/decision-engine/evaluate:
+    post:
+      summary: Should this idea be advertised at all? (asynchronous)
+      description: |
+        Gathers market research (search trends, news, community posts),
+        writes audience personas and runs the decision engine, without
+        starting a campaign. Counts as one Tools run. Poll the returned
+        `poll` path; results usually take 1-3 minutes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idea]
+              properties:
+                idea: { type: string, minLength: 5, maxLength: 2000 }
+                target_language: { type: string, default: en }
+                cta_url: { type: string, format: uri, description: Checked for a working destination }
+      responses:
+        "202": { description: "{ evaluation_id, status: pending, poll }" }
+        "400": { description: Invalid idea or cta_url }
+        "429": { description: Tools-run limit reached }
+  /v1/decision-engine/evaluations/{id}:
+    get:
+      summary: An evaluation's status and result
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: "{ id, status: pending|running|completed|failed, result: Decision & feasibility_score, error }" }
+        "404": { description: Not found }
 webhooks:
   auditEvent:
     post:

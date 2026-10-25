@@ -123,3 +123,47 @@ def notify_market_moment(campaign_id: str, kind: str, detail: dict) -> None:
         _send(settings, recipients, f"[MarketingOS] Market moment: {idea[:60]}", text, _app_url(f"/campaigns/{campaign_id}"))
     except Exception as exc:
         logger.warning("market moment notification for %s failed: %s", campaign_id, exc)
+
+
+def notify_decision_reevaluated(campaign_id: str, before: str, after: str, score: int | None) -> None:
+    """A campaign the decision engine said to WAIT on was re-checked because
+    its trigger fired (src/scheduler/market_watch.py)."""
+    try:
+        campaign, settings, members = _org_context(campaign_id)
+        recipients = [m["email"] for m in members if m["role"] in APPROVER_ROLES and m.get("email")]
+        idea = campaign["idea"][:120]
+        scored = f" (opportunity score {score})" if score is not None else ""
+        text = (f"The decision engine re-checked \"{idea}\" now that interest has risen: "
+                f"it moved from {before} to {after}{scored}. It's waiting for you at Gate 1.")
+        _send(settings, recipients, f"[MarketingOS] Re-evaluated: {after} for {idea[:50]}", text,
+              _app_url(f"/campaigns/{campaign_id}"))
+    except Exception as exc:
+        logger.warning("re-evaluation notification for %s failed: %s", campaign_id, exc)
+
+
+TRIGGER_ADVICE = {
+    "EXPIRED_OFFER": "Update or remove the offer in the ads, or extend the offer date, then resume.",
+    "INVALID_DESTINATION": "Fix the landing page or change the link, then resume.",
+    "POLICY_VIOLATION": "Edit the live copy so it no longer breaks the rule, then resume.",
+    "REVOKED_APPROVAL": "Get the round approved again by someone who can approve, then resume.",
+    "BRAND_RISK": "Check the news and decide whether the campaign should keep running; resume or mark it a false alarm.",
+    "MANUAL_STOP": "Review the reason given and resume when it's safe.",
+}
+
+
+def notify_hold(campaign_id: str, trigger: str, detail: str, severity: str, *, waiting_sends: int = 0) -> None:
+    """The circuit breaker paused a campaign (src/capabilities/circuit_breaker.py)."""
+    try:
+        campaign, settings, members = _org_context(campaign_id)
+        recipients = [m["email"] for m in members if m["role"] in APPROVER_ROLES and m.get("email")]
+        idea = campaign["idea"][:120]
+        what = "Paused" if severity == "critical" else "Warning"
+        text = (
+            f"{what}: \"{idea}\". {detail} "
+            f"{'Nothing more will be posted until an owner or admin resumes it. ' if severity == 'critical' else ''}"
+            f"{f'{waiting_sends} send(s) are waiting. ' if waiting_sends else ''}"
+            f"Already-published posts are not removed automatically. Suggested: {TRIGGER_ADVICE.get(trigger, 'Review it.')}"
+        )
+        _send(settings, recipients, f"[MarketingOS] {what}: {idea[:60]}", text, _app_url(f"/campaigns/{campaign_id}"))
+    except Exception as exc:
+        logger.warning("hold notification for %s failed: %s", campaign_id, exc)

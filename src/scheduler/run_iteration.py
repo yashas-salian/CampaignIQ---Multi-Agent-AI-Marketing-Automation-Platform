@@ -47,6 +47,10 @@ def process_campaign(app, campaign_id: str) -> None:
     campaign = get_campaign(campaign_id)
     status = campaign["status"]
     use_org(campaign.get("org_id"))
+    # Paused by the circuit breaker: nothing moves until an owner or admin resumes it.
+    if campaign.get("paused_at"):
+        print(f"Campaign {campaign_id}: paused by the circuit breaker since {campaign['paused_at']}.")
+        return
     blocked = budget_exhausted(campaign.get("org_id"))
     if blocked and status != "awaiting_gate_1":  # gate 1 resumes don't need the LLM until creative
         print(f"Campaign {campaign_id}: paused, {blocked}.")

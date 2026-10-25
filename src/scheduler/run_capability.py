@@ -84,6 +84,34 @@ def _run_image(params: dict, user_id: str) -> dict:
     }
 
 
+def _run_decision(params: dict, user_id: str) -> dict:
+    """Should we advertise this at all? Research, personas, then the decision
+    engine (src/capabilities/decision.py), without starting a campaign."""
+    from src.capabilities.audience import generate_personas
+    from src.capabilities.brand import brand_kit_for_org
+    from src.capabilities.decision import evaluate, inputs_from
+    from src.capabilities.feasibility import score_feasibility
+    from src.capabilities.idea_intake import normalize_idea
+
+    idea = str(params["idea"]).strip()
+    language = params.get("target_language", "en")
+    domain = params.get("domain_category") or normalize_idea(idea, user_id=user_id).domain_category
+    feasibility = score_feasibility(idea, user_id=user_id, target_language=language)
+    personas = generate_personas(idea, feasibility, n=3, user_id=user_id, target_language=language)
+    org_id = personal_org(user_id) if user_id else None  # the MCP server may run without a user
+    kit = brand_kit_for_org(org_id)
+    inputs = inputs_from(
+        idea, feasibility, personas, domain_category=domain, target_language=language, org_id=org_id,
+        cta_url=(params.get("cta_url") or None), banned_terms=kit.forbidden_words if kit else (),
+    )
+    return {
+        **evaluate(inputs).model_dump(),
+        "feasibility_score": feasibility.score,
+        "feasibility_rationale": feasibility.rationale,
+        "domain_category": domain,
+    }
+
+
 # New pictures per round at Gate 2: each one is a paid image call on some tiers.
 MAX_REPAINTS = 5
 APPROVER_ROLES = ("owner", "admin", "approver")  # role_can(..., 'approve') in the organizations migration
@@ -137,6 +165,7 @@ def _run_ad_image(params: dict, user_id: str) -> dict:
         scene = None
         if template and template.scene:
             scene = get_image_generator(user_id).generate_image((slots.get("scene") or template.scene) + SCENE_SUFFIX)
+            upload_ad_image(campaign_id, round_number, scene, variant="scene")  # kept for redrawing with new words
         ad = compose_product_ad(
             product.cutout, iteration["template"], {**slots, "headline": iteration.get("headline"), "cta": iteration.get("cta")},
             brand_color=kit.brand_color if kit else None, logo_bytes=brand_logo(kit), scene_bytes=scene, seed=version + 1,
@@ -154,12 +183,169 @@ def _run_ad_image(params: dict, user_id: str) -> dict:
     return {"campaign_id": campaign_id, "round": round_number, "image_version": version + 1}
 
 
+def _gate_2_round(params: dict, user_id: str, action: str) -> tuple[str, int, dict]:
+    """(campaign_id, round, campaign row) for an approver acting on a round
+    that's waiting at Gate 2; raises otherwise. The worker runs as the service
+    role, so the caller's right is checked here."""
+    campaign_id, round_number = str(params["campaign_id"]), int(params["round"])
+    client = get_client()
+    campaign = client.table("campaigns").select("org_id,status,current_round").eq("id", campaign_id).maybe_single().execute()
+    campaign = campaign.data if campaign else None
+    if not campaign:
+        raise ValueError("campaign not found")
+    member = (
+        client.table("memberships").select("role").eq("org_id", campaign["org_id"]).eq("user_id", user_id)
+        .maybe_single().execute()
+    )
+    if not member or not member.data or member.data["role"] not in APPROVER_ROLES:
+        raise PermissionError(f"only approvers can {action}")
+    if campaign["status"] != "awaiting_gate_2" or campaign.get("current_round") != round_number:
+        raise ValueError(f"you can only {action} while this round waits at Gate 2")
+    return campaign_id, round_number, campaign
+
+
+def _run_crash_test(params: dict, user_id: str) -> dict:
+    """Crash-test an ad. With campaign_id + round: re-run on the copy now at
+    Gate 2 (after edits), stored with the campaign. Otherwise (Tools page,
+    MCP, API): test the given idea and ad text without a campaign."""
+    from src.capabilities.crash_test import AdText, run_crash_test, run_for_round
+    from src.capabilities.decision import check_destination
+
+    if params.get("campaign_id"):
+        campaign_id, round_number, _ = _gate_2_round(params, user_id, "re-run the crash test")
+        it = (get_client().table("iterations").select("copy_text,headline,cta,image_prompt")
+              .eq("campaign_id", campaign_id).eq("round_number", round_number).maybe_single().execute())
+        it = (it.data if it else None) or {}
+        if not it.get("copy_text"):
+            raise ValueError("this round has no ad yet")
+        ad = AdText(body=it["copy_text"], headline=it.get("headline") or "", cta=it.get("cta") or "", visual=it.get("image_prompt") or "")
+        report = run_for_round(campaign_id, round_number, user_id=user_id, ad=ad, trigger="rerun")
+        return {"campaign_id": campaign_id, "round": round_number, "risk": report.risk, "revised_risk": report.revised_risk}
+    ad = AdText(body=str(params.get("copy") or "").strip(), headline=str(params.get("headline") or "").strip(),
+                cta=str(params.get("cta") or "").strip(), visual=str(params.get("visual") or "").strip())
+    if not ad.body:
+        raise ValueError("paste the ad's text to crash-test it")
+    cta_url = params.get("cta_url") or None
+    return run_crash_test(
+        ad, idea=str(params.get("idea") or ad.body), tagline=str(params.get("tagline") or ""),
+        domain_category=params.get("domain_category") or "other", cta_url=cta_url, destination=check_destination(cta_url),
+        language=params.get("target_language", "en"), user_id=user_id,
+    ).model_dump()
+
+
+def _run_apply_revision(params: dict, user_id: str) -> dict:
+    """Gate 2: use the crash test's revised version. The copy goes in through
+    the version history (like an approver's edit); a changed headline or button
+    redraws the ad from its template and stored background, with no new image
+    generation. The crash test is marked applied, so Gate 2's risk is the revision's."""
+    from src.capabilities.brand import brand_kit_for_campaign, brand_logo
+    from src.capabilities.product import product_for_campaign
+    from src.db.supabase_client import AD_IMAGES_BUCKET, download_object, upload_ad_image
+    from src.tools.ad_templates import TEMPLATES, compose_product_ad
+
+    campaign_id, round_number, campaign = _gate_2_round(params, user_id, "apply a revision")
+    client = get_client()
+    test = (client.table("crash_tests").select("id,report,applied_at,round_number,campaign_id")
+            .eq("id", str(params["crash_test_id"])).maybe_single().execute())
+    test = test.data if test else None
+    if not test or test["campaign_id"] != campaign_id or test["round_number"] != round_number:
+        raise ValueError("crash test not found for this round")
+    revised = (test["report"] or {}).get("revised")
+    if not revised:
+        raise ValueError("this crash test has no revised version")
+    if test.get("applied_at"):
+        raise ValueError("this revision is already applied")
+    it = (client.table("iterations").select("copy_text,headline,cta,template,ad_slots,image_version")
+          .eq("campaign_id", campaign_id).eq("round_number", round_number).maybe_single().execute())
+    it = (it.data if it else None) or {}
+
+    # The copy, with the version history Gate 2 shows (the AI's original kept as version 1).
+    has_history = (client.table("copy_revisions").select("id").eq("campaign_id", campaign_id)
+                   .eq("round_number", round_number).eq("variant", "a").limit(1).execute().data)
+    if not has_history and it.get("copy_text"):
+        client.table("copy_revisions").insert({"campaign_id": campaign_id, "round_number": round_number, "variant": "a",
+                                               "copy_text": it["copy_text"], "edited_by": None}).execute()
+    client.table("copy_revisions").insert({"campaign_id": campaign_id, "round_number": round_number, "variant": "a",
+                                           "copy_text": revised["body"], "edited_by": user_id}).execute()
+    update = {"copy_text": revised["body"]}
+    redrawn = False
+    words_changed = (revised.get("headline") or "") != (it.get("headline") or "") or (revised.get("cta") or "") != (it.get("cta") or "")
+    template = TEMPLATES.get(it.get("template") or "")
+    if words_changed and template:
+        product = product_for_campaign(campaign_id)
+        scene = None
+        if template.scene:
+            try:
+                scene = download_object(AD_IMAGES_BUCKET, f"{campaign_id}/round-{round_number}-scene.jpg")
+            except Exception:
+                scene = None  # older ads: the template draws its own background
+        if product.cutout:
+            kit = brand_kit_for_campaign(campaign_id)
+            version = int(it.get("image_version") or 0)
+            ad = compose_product_ad(
+                product.cutout, template.id, {**(it.get("ad_slots") or {}), "headline": revised.get("headline"), "cta": revised.get("cta")},
+                brand_color=kit.brand_color if kit else None, logo_bytes=brand_logo(kit), scene_bytes=scene, seed=version,
+            )
+            update |= {"image_path": upload_ad_image(campaign_id, round_number, ad), "image_version": version + 1,
+                       "headline": revised.get("headline"), "cta": revised.get("cta")}
+            redrawn = True
+    client.table("iterations").update(update).eq("campaign_id", campaign_id).eq("round_number", round_number).execute()
+    client.table("crash_tests").update({"applied_at": datetime.now(timezone.utc).isoformat(), "applied_by": user_id}).eq(
+        "id", test["id"]).execute()
+    return {"campaign_id": campaign_id, "round": round_number, "copy_applied": True, "image_redrawn": redrawn,
+            "words_kept": words_changed and not redrawn}
+
+
+def _run_circuit_breaker(params: dict, user_id: str) -> dict:
+    """Evaluate a campaign's live conditions now (API: circuit-breaker/evaluate).
+    Anyone who can view the campaign may ask; holds are placed as usual."""
+    from src.capabilities.circuit_breaker import evaluate_campaign
+
+    campaign_id = str(params["campaign_id"])
+    client = get_client()
+    campaign = client.table("campaigns").select("org_id").eq("id", campaign_id).maybe_single().execute()
+    campaign = campaign.data if campaign else None
+    if not campaign:
+        raise ValueError("campaign not found")
+    member = (client.table("memberships").select("role").eq("org_id", campaign["org_id"]).eq("user_id", user_id)
+              .maybe_single().execute())
+    if not member or not member.data:
+        raise PermissionError("not a member of this campaign's organisation")
+    signals = evaluate_campaign(campaign_id)
+    holds = (client.table("campaign_holds").select("id,trigger,severity,status,detail,created_at")
+             .eq("campaign_id", campaign_id).eq("status", "active").execute().data or [])
+    return {"campaign_id": campaign_id, "signals": [s.__dict__ for s in signals], "active_holds": holds,
+            "paused": any(h["severity"] == "critical" for h in holds)}
+
+
+def _run_competitor_scan(params: dict, user_id: str) -> dict:
+    """Fetch a competitor's approved sources now ("Scan now"). Owners, admins and
+    marketers of its organisation only; robots.txt and the rest still apply."""
+    from src.capabilities.competitors import scan_competitor
+
+    client = get_client()
+    found = client.table("competitors").select("*").eq("id", str(params["competitor_id"])).maybe_single().execute()
+    competitor = found.data if found else None
+    if not competitor:
+        raise ValueError("competitor not found")
+    member = (client.table("memberships").select("role").eq("org_id", competitor["org_id"]).eq("user_id", user_id)
+              .maybe_single().execute())
+    if not member or not member.data or member.data["role"] not in ("owner", "admin", "marketer"):
+        raise PermissionError("only owners, admins and marketers can scan competitors")
+    return scan_competitor(competitor, force=True, forecasts=[])
+
+
 CAPABILITY_DISPATCH = {
     "feasibility": _run_feasibility,
     "personas": _run_personas,
     "creative": _run_creative,
     "image": _run_image,
     "ad_image": _run_ad_image,
+    "decision": _run_decision,
+    "crash_test": _run_crash_test,
+    "apply_revision": _run_apply_revision,
+    "circuit_breaker": _run_circuit_breaker,
+    "competitor_scan": _run_competitor_scan,
 }
 
 

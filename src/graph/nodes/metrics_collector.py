@@ -15,7 +15,7 @@ def metrics_collector_node(state: CampaignState) -> CampaignState:
     # splitting the list and send everyone the winner's style from now on.
     bayes = (result.raw.get("email_b", {}).get("ab_test") or {}).get("bayes") or {}
     winner = bayes.get("decided")
-    if winner and state.get("ab_test"):
+    if winner and state.get("ab_test") and not _fixed_horizon(state["campaign_id"]):
         creative = state["creative"] if winner == "a" else state.get("creative_b")
         if creative is not None:
             decision = {
@@ -43,3 +43,16 @@ def _announce(state: CampaignState, decision: dict) -> None:
         }).execute()
     except Exception as exc:  # a missed announcement never undoes the decision
         log.warning("experiment.decided not audited: %s", exc)
+
+
+def _fixed_horizon(campaign_id: str) -> bool:
+    """A proof-of-impact experiment runs to its predeclared end: stopping the
+    A/B split early on a peek would break its design."""
+    try:
+        from src.capabilities.impact import experiment_for
+
+        exp = experiment_for(campaign_id)
+        return bool(exp and exp["status"] in ("declared", "running"))
+    except Exception as exc:
+        log.warning("experiment lookup for %s failed: %s", campaign_id, exc)
+        return False

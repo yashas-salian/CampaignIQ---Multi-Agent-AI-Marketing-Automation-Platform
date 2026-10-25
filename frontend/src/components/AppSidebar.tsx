@@ -15,6 +15,7 @@ const ICONS: Record<string, ReactNode> = {
   calendar: <path d="M4 6h16v14H4zM4 10h16M9 3v4M15 3v4" />,
   tools: <path d="M14 6a4 4 0 0 1-5.3 5.3L4 16l4 4 4.7-4.7A4 4 0 0 1 18 10l-2.5-.5L15 7z" />,
   history: <path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4M12 8v4l3 2" />,
+  competitors: <path d="M3 20h18M6 16V9M11 16V5M16 16v-5M20 7l-4 4-5-6-5 4" />,
   playbooks: <path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h10M9 8h5" />,
   model: <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5" />,
   settings: <path d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2.1-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2.1 1.2l-2.3-.9-2 3.4 2 1.5a7 7 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2.1 1.2L10 21h4l.5-2.6a7 7 0 0 0 2.1-1.2l2.3.9 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z" />,
@@ -108,6 +109,7 @@ export default function AppSidebar() {
         {item('/tools/history', 'history', t('hist.title'))}
 
         <p className={css.group}>{t('nav.insights')}</p>
+        {item('/competitors', 'competitors', t('ci.nav'))}
         {item('/playbooks', 'playbooks', t('pb.nav'))}
         {item('/models', 'model', t('mc.nav'))}
 

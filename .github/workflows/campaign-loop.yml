@@ -103,15 +103,21 @@ jobs:
           elif [ -n "$IN_CAMPAIGN_ID" ]; then
             python -m src.scheduler.run_iteration --campaign-id "$IN_CAMPAIGN_ID"
           else
+            # Circuit breaker first: a campaign that became unsafe is paused before anything else moves.
+            python -m src.capabilities.circuit_breaker
             python -m src.scheduler.run_iteration
             # Retry failed channel sends whose backoff has elapsed (delivery ledger).
             python -m src.scheduler.retry_deliveries
+            # Proof of impact: analyse running experiments (the final analysis happens at their predeclared end).
+            python -m src.capabilities.impact
             # Escalate gates waiting past their organisation's approval deadline.
             python -c "from dotenv import load_dotenv; load_dotenv(); from src.notifications import escalate_overdue_gates as e; print(f'Escalated {e()} overdue gate(s).')"
             # Confirm webhook deliveries and retry failed ones.
             python -m src.scheduler.webhooks
             # Market-moment alerts: has a live campaign's topic just spiked in search or news?
             python -m src.scheduler.market_watch
+            # Competitor intelligence: approved sources that are due (pages daily, feeds and posts 6-hourly), forecasts resolved.
+            python -m src.capabilities.competitors
             # Data retention (GDPR): prune old Tools results, usage rows, delivery payloads, click events.
             python -c "from dotenv import load_dotenv; load_dotenv(); from src.db.supabase_client import get_client; print('Retention:', get_client().rpc('apply_retention').execute().data)"
           fi

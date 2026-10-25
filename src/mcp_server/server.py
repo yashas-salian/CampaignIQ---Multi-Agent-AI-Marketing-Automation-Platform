@@ -108,6 +108,63 @@ async def score_feasibility(idea: str, target_language: Language = "en") -> dict
     return result.model_dump()
 
 
+@mcp.tool(annotations=READ_ONLY)
+async def evaluate_decision(
+    idea: Annotated[str, Field(description="Free-text ad-campaign or product idea")],
+    target_language: Language = "en",
+    cta_url: Annotated[str | None, Field(description="Optional landing page the ads would link to")] = None,
+) -> dict:
+    """Should this be advertised at all? Gathers the market research and
+    personas, then returns LAUNCH / TEST_SMALL / WAIT / KILL /
+    INSUFFICIENT_EVIDENCE with an opportunity score, reason codes, every
+    factor's evidence (source, freshness, reliability) and any hard blocks.
+    Deterministic given the evidence; a recommendation, not an approval."""
+    from src.scheduler.run_capability import _run_decision
+
+    return await _run(_run_decision, {"idea": idea, "target_language": target_language, "cta_url": cta_url}, _user_id())
+
+
+@mcp.tool(annotations=READ_ONLY)
+async def crash_test_ad(
+    idea: Annotated[str, Field(description="What the brand is advertising: the facts the ad may use")],
+    copy: Annotated[str, Field(description="The ad's post/body text")],
+    headline: str = "",
+    cta: Annotated[str, Field(description="Button label")] = "",
+    cta_url: str | None = None,
+    target_language: Language = "en",
+) -> dict:
+    """How could this ad fail before customers see it? Deterministic rule checks
+    (FTC fake-testimonial and dark-pattern rules, Meta personal-attribute policy,
+    unverified numbers, claims, broken link) plus a versioned set of simulated
+    scenarios, then a revised version and its re-test when anything is high or
+    critical. Results are simulations, not customer data."""
+    from src.scheduler.run_capability import _run_crash_test
+
+    params = {"idea": idea, "copy": copy, "headline": headline, "cta": cta, "cta_url": cta_url, "target_language": target_language}
+    return await _run(_run_crash_test, params, _user_id())
+
+
+@mcp.tool(annotations=READ_ONLY)
+async def measure_impact(
+    control_units: Annotated[int, Field(ge=0, le=200_000, description="People randomly held out (got nothing)")],
+    control_conversions: Annotated[int, Field(ge=0, description="Of them, how many converted in the window")],
+    treatment_units: Annotated[int, Field(ge=0, le=200_000, description="People randomly assigned to get the campaign")],
+    treatment_conversions: Annotated[int, Field(ge=0)],
+    min_effect: Annotated[float, Field(gt=0, lt=1, description="Smallest absolute lift worth acting on, e.g. 0.01 = 1 point")] = 0.01,
+    min_units_per_arm: Annotated[int, Field(ge=1)] = 100,
+) -> dict:
+    """Did the campaign cause extra conversions? For a randomized holdout only
+    (people assigned by chance, not self-selected): the absolute lift with a
+    Newcombe 95% interval, the chance the campaign helped, relative lift when
+    the baseline supports it, and a verdict (POSITIVE_IMPACT, NEGATIVE_IMPACT,
+    NO_MEANINGFUL_IMPACT or INCONCLUSIVE with a reason). Never use it for a
+    before/after comparison: that can't show causation."""
+    from src.capabilities.impact import analyze_counts
+
+    return await _run(analyze_counts, control_units, control_conversions, treatment_units, treatment_conversions,
+                      min_effect=min_effect, min_units_per_arm=min_units_per_arm)
+
+
 @mcp.tool(annotations=GENERATES)
 async def generate_personas(
     idea: str,

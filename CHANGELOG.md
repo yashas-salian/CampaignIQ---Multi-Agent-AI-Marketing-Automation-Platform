@@ -14,6 +14,129 @@ GitHub Release notes.
 ## [Unreleased]
 
 ### Added
+- **Competitor intelligence** (`capabilities/competitors.py`, migration `20261026000200_competitor_intelligence`, prompt `competitor.explain` 1.0.0, [docs/COMPETITOR_INTELLIGENCE.md](docs/COMPETITOR_INTELLIGENCE.md)):
+  - **Watch list:** an organisation lists competitors and approves the public sources to watch: pages they publish, their feed, news coverage, public Bluesky posts. Nothing is fetched until a source is approved.
+  - **Polite, safe fetching:** robots.txt honoured (RFC 9309), an identified user agent, at most daily for pages, public addresses only through every redirect, and short excerpts stored, never whole pages.
+  - **Observed events:** offer changes, messaging shifts, product launches and content themes, each with quotes (before/after), source URL, outlet and times.
+    - A page's first read is a baseline.
+    - Coverage that isn't about them, or isn't a move, is ignored.
+    - Duplicate and syndicated reports are one story, with every outlet and the original listed.
+  - **Insights (`competitor-v1`, deterministic):** RESPOND, MONITOR, DIFFERENTIATE or NO_ACTION, with all four options and their reasons, confidence, the live campaigns affected and how the move compares with the competitor's history.
+    - Inferred intent comes from the LLM as labelled hypotheses with alternatives; it never picks the recommendation.
+    - People mark insights acted on or dismissed (audited).
+  - **Forecasts (`trend-v1`):** each move stores a forecast of the market's search interest over the next two weeks with an 80% range, checked against what happened when it's due (error, inside the range, did the rise materialize).
+  - **Benchmark** (`python -m src.eval.competitor_benchmark`):
+    - forecasts on 5 years of Trends data for 12 markets: 14.9% error on held-out years against 17.4% for "no change", with the 80% range holding 76% of the time;
+    - signals: 18 reports of 8 stories counted as 8, with no false events.
+  - **Source health:** stale, unavailable and robots-blocked sources are shown as limitations, never as current data.
+  - **Decision engine:** recent competitor moves in the idea's market become `COMPETITOR_MOVE` review flags at Gate 1; the score is unchanged and no competitor text reaches the ad prompts.
+  - **Where it appears:**
+    - the "Competitors" page (timeline, insights, forecasts and their track record, sources, "Scan now");
+    - the API `GET /v1/market-intelligence/competitors` and `…/competitors/{id}/signals`.
+    
+    Translated into 5 languages.
+- **Proof of impact: did the campaign cause anything?** (`capabilities/impact.py`, migration `20261026000100_experiments`, [docs/PROOF_OF_IMPACT.md](docs/PROOF_OF_IMPACT.md)):
+  - **Pre-registered experiments:** before the first email, a campaign's audience can be run as a randomized experiment.
+    - The design is declared up front: hypothesis, primary metric (qualified sign-ups by default), a holdout control group that gets nothing, the attribution window, and a fixed-horizon stopping rule.
+    - A sample-size plan shows whether the list is big enough.
+    - The design locks at the first send (database trigger).
+  - **Stable assignment:** the arm is a hash of the experiment and the address, stored on first use, so retries, resumed runs and later rounds never move anyone.
+  - **Sending:** the control group is never emailed. Treatment emails go one per person, each with its own link token and idempotency key, so nobody sees other recipients' addresses.
+  - **Outcomes:** exposures, clicks (`track-click` credits the person and passes `ciq_t` to the site) and conversions (`POST /v1/conversions`, matched by token or hashed address, de-duplicated by `event_id`), each with a source and a time.
+  - **Analysis (`impact-v1`):**
+    - intention-to-treat;
+    - Newcombe 95% interval for the absolute lift;
+    - P(campaign helped);
+    - relative lift only with a supported baseline;
+    - extra conversions and revenue caused;
+    - a sample-ratio check.
+    
+    Observed counts, the causal estimate and click-attributed revenue are kept apart.
+  - **Verdicts:** `COLLECTING` (interim, no verdict, so no peeking), then at the predeclared end `POSITIVE_IMPACT`, `NEGATIVE_IMPACT`, `NO_MEANINGFUL_IMPACT` or `INCONCLUSIVE` with a reason (insufficient data, no outcome data, sample-ratio mismatch, interval too wide).
+  - **Learning:** a valid final result feeds the bandit once, with the reward defined as the primary metric credited to the latest email before it.
+  - **Fixed-horizon runs:** the A/B test's Bayesian early stop waits while an experiment runs.
+  - **Where it appears:**
+    - the campaign page's "Proof of impact" panel: setup, verdict, interval charts, observed table, revenue, data quality and freshness, assumptions, design;
+    - the API `GET /v1/experiments/{id}/impact`, `GET /v1/campaigns/{id}/experiment` and `POST /v1/conversions`;
+    - the MCP tool `measure_impact`.
+    
+    Translated into 5 languages.
+  - **Benchmark** (`python -m src.eval.impact_benchmark`): 9 synthetic scenarios with known truths, 400 experiments each. In the no-effect scenarios with usable data, the engine claimed an effect 5.2% of the time; the point estimate and before/after did so 99% of the time. It catches broken assignments and missing conversion data every time.
+- **Brand reputation circuit breaker** (`capabilities/circuit_breaker.py`, migration `20261025000400_circuit_breaker`, [docs/CIRCUIT_BREAKER.md](docs/CIRCUIT_BREAKER.md)):
+  - **Triggers (deterministic):**
+    - an expired offer (`offer_ends_at`);
+    - a definitely broken CTA link (no host, 404 or 410; a timeout isn't enough);
+    - live copy breaking a hard rule (such as a word banned after approval);
+    - Gate 2 approvals no longer meeting the quorum;
+    - crisis words next to the topic in 2+ separate news headlines;
+    - a person's emergency stop.
+  - **When it checks:** in the hourly sweep, right before each send (cached for 5 minutes) and in the daily market watch.
+  - **Enforced in the database:**
+    - `claim_delivery()` refuses every send while a critical hold is active and stores it as `held`, for the whole campaign or one channel;
+    - a row lock makes a pause racing a send win once it commits;
+    - one active hold per campaign, trigger and channel;
+    - the sweep skips paused campaigns, and held sends never count as posts.
+  - **People:**
+    - owners, admins and approvers can pull an emergency stop or revoke an approval, with a reason;
+    - only owners and admins resume or mark a false alarm, with a note;
+    - resuming re-queues held sends, which are checked again before they go;
+    - every action is audited.
+  - **Where it appears:**
+    - a paused panel leading the campaign page (trigger, channel, evidence and its freshness, the suggested response);
+    - safety controls (offer end date, stop, revoke, hold history);
+    - a Paused pill on the Dashboard;
+    - notifications with how many sends are waiting;
+    - the API `GET /v1/campaigns/{id}/holds` and `POST /v1/campaigns/{id}/circuit-breaker/evaluate`.
+    
+    Translated into 5 languages.
+- **Campaign crash test: how could this ad fail?** (`capabilities/crash_test.py`, graph node `crash_test`, migration `20261025000300_crash_tests`, prompts `crashtest.simulate` 1.0.0 and `crashtest.revise` 1.1.0, [docs/CRASH_TEST.md](docs/CRASH_TEST.md)):
+  - **Rule checks (`rules-v1`, deterministic):** before Gate 2, every ad (post, on-image headline and button) is checked for:
+    - invented testimonials and ratings (FTC 16 CFR 465);
+    - fake social proof and false urgency (FTC dark-patterns report);
+    - personal-attribute questions (Meta ad standards);
+    - numbers not in the brief, unsupported claims, policy blocks and a broken link.
+    
+    The brand's own words are exempt, and only rule checks can be critical.
+  - **Simulated scenarios (`marketing-risk-v1`):** 8 situations in one LLM call (skeptic, price-sensitive buyer, a competitor's 20% off, an ad-standards reviewer, a 3-second scroll, a sensitivity read, the wrong audience, a non-native reader).
+    - Findings must quote the ad's exact words.
+    - They are capped at high and labelled simulation, not real customers.
+  - **Revise and re-test:** high or critical findings get a revised version, re-tested on the same checks and scenarios, showing what was resolved, what remains and what's new.
+    - The revision may not invent facts or grow longer; a much longer one is asked again.
+    - "Use the revised version" puts it in through the copy history and redraws the ad from its template and stored background, with no new image generation.
+  - **Gate 2 rule:** approving an ad whose current crash test is critical needs a written reason (database trigger).
+  - **Storage:** reports are stored (`crash_tests`) and audited.
+  - **Where it appears:** Gate 2 report with the problems marked in the ad, a chip per round, the Tools page "Crash-test an ad", the MCP tool `crash_test_ad`, and the API `GET`/`POST /v1/campaigns/{id}/crash-tests`. Translated into 5 languages.
+  - **Benchmark** (`python -m src.eval.crashtest_benchmark`) over 28 ads: the rule checks catch 22/22 planted problems with 0 false alarms on 6 clean ads; the old brand-safety checks alone caught 6/22.
+  - **Supporting change:** the painted background of a scene template is now stored with the ad (`round-N-scene.jpg`), so it can be redrawn with new words.
+- **Decision intelligence: knowing when not to advertise** (`capabilities/decision.py`, graph node `decide`, migration `20261025000200_campaign_decisions`, [docs/DECISION_ENGINE.md](docs/DECISION_ENGINE.md)):
+  - **What it recommends:** before Gate 1, every campaign gets a recommendation of LAUNCH, TEST_SMALL, WAIT, KILL or INSUFFICIENT_EVIDENCE. It's deterministic (no LLM), so a recommendation can be reproduced from its stored inputs snapshot and policy version (`decision-v1`).
+  - **Hard blocks first:** prohibited products, unsupportable claims, banned words and a broken CTA link. No score overrides them; the campaign stops as the new status `blocked`, which the database won't let anyone approve.
+  - **Six-factor scorecard:** demand, momentum, purchase intent, competition, audience reach and track record.
+    - Each factor records its source, fetch time and reliability (measured, proxy or estimate).
+    - Missing or stale evidence raises the uncertainty instead of counting as zero.
+  - **What each outcome does:**
+    - TEST_SMALL caps the campaign at 2 rounds.
+    - WAIT is re-evaluated by the daily market watch once search interest reaches its threshold, and approvers are notified.
+    - Approving against a KILL, WAIT or INSUFFICIENT_EVIDENCE recommendation needs a written reason, enforced by a database trigger.
+  - **Storage:** decisions are stored and audited (`campaign.decision`), and the campaign's eventual outcome is written back to the decision.
+  - **UI:**
+    - Gate 1 leads with the decision card: verdict, score, uncertainty, reasons, the evidence for each factor, and the baseline comparison.
+    - A blocked campaign shows why.
+    - The Dashboard shows each campaign's verdict.
+    - The Tools page has "Should we advertise?".
+    - All of it is translated into 5 languages.
+  - **Access:** MCP tool `evaluate_decision`. API: `GET /v1/campaigns/{id}/decision`, `POST /v1/decision-engine/evaluate` and `GET /v1/decision-engine/evaluations/{id}`.
+  - **Benchmark** (`python -m src.eval.decision_benchmark`) over 25 hand-labelled scenarios against "launch whenever feasibility ≥ 40":
+
+    | | Decision engine | Old rule |
+    |---|---|---|
+    | Matches the expected decision | 96% | 28% |
+    | Hard-blocked campaigns launched (of 6) | 0 | 4 |
+    | Weak opportunities spent on (of 5) | 0 | 2 |
+  - **Supporting changes:**
+    - Feasibility signals now carry a fetch time.
+    - Bluesky and Mastodon searches keep a sample of post texts for purchase intent (kept out of the LLM prompt).
+    - A blocked campaign no longer counts toward the active-campaign limit.
 - **Product-first ads with 34 industry templates** (`tools/ad_templates.py`, `tools/product_cutout.py`, `capabilities/product.py`, migration `20261025000100_product_photo`, prompt `creative.generate` 2.0.0, [docs/AD_TEMPLATES.md](docs/AD_TEMPLATES.md)):
   - **Campaign form:** a product photo is now required when creating a campaign; a tagline and a link are optional.
     - The photo uploads to a private `product-photos` bucket, into the user's own folder.
@@ -56,6 +179,10 @@ GitHub Release notes.
 - Pollinations' corner watermark is cropped off its pictures.
 
 ### Fixed
+- **Campaign emails no longer show every recipient's address.** Each recipient now gets their own email, instead of one message with the whole list in "To".
+  - Each email has its own Resend idempotency key, so a retry after a partial failure never emails anyone twice.
+  - Sends are paced to Resend's rate limit.
+  - Deliveries already queued in the old format still replay as before.
 - **No duplicate posts or emails after a timed-out send.** A send can time out after the provider already accepted it, and a retry then posted twice.
   - Emails now carry a Resend idempotency key per campaign/round/variant.
   - Before any repeat Bluesky attempt, in-process or scheduled, `deliver()` reconciles: it looks for our own post with exactly that text and records it instead of posting again.

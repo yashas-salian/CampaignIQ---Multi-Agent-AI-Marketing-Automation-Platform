@@ -1,7 +1,9 @@
 from langgraph.graph import END, START, StateGraph
 
 from src.graph.nodes.audience import audience_node
+from src.graph.nodes.crash_test import crash_test_node
 from src.graph.nodes.creative import creative_node
+from src.graph.nodes.decision import decision_node, route_after_decision
 from src.graph.nodes.distribution_bluesky import distribution_bluesky_node
 from src.graph.nodes.distribution_email import distribution_email_node
 from src.graph.nodes.distribution_mastodon import distribution_mastodon_node
@@ -41,12 +43,14 @@ def build_graph(checkpointer=None):
     graph.add_node("idea_intake", traced_node("idea_intake", idea_intake_node))
     graph.add_node("score_feasibility", traced_node("score_feasibility", feasibility_node))
     graph.add_node("audience", traced_node("audience", audience_node))
+    graph.add_node("decide", traced_node("decide", decision_node))
     graph.add_node("gate_1", traced_node("gate_1", gate_1_node))
     graph.add_node("generate_creative", traced_node("generate_creative", creative_node))
     graph.add_node("novelty_check", traced_node("novelty_check", novelty_check_node))
     graph.add_node("run_preflight", traced_node("run_preflight", preflight_node))
     graph.add_node("generate_variant_b", traced_node("generate_variant_b", generate_variant_b_node))
     graph.add_node("focus_group", traced_node("focus_group", focus_group_node))
+    graph.add_node("crash_test", traced_node("crash_test", crash_test_node))
     graph.add_node("gate_2", traced_node("gate_2", gate_2_node))
     graph.add_node("distribution_bluesky", traced_node("distribution_bluesky", distribution_bluesky_node))
     graph.add_node("distribution_reddit", traced_node("distribution_reddit", distribution_reddit_node))
@@ -60,7 +64,9 @@ def build_graph(checkpointer=None):
     graph.add_edge(START, "idea_intake")
     graph.add_edge("idea_intake", "score_feasibility")
     graph.add_edge("score_feasibility", "audience")
-    graph.add_edge("audience", "gate_1")
+    # Decision intelligence: should this run at all? A hard block ends it here.
+    graph.add_edge("audience", "decide")
+    graph.add_conditional_edges("decide", route_after_decision, {"end": END, "gate_1": "gate_1"})
     graph.add_conditional_edges("gate_1", route_after_gate_1, {END: END, "generate_creative": "generate_creative"})
     graph.add_edge("generate_creative", "novelty_check")
     graph.add_conditional_edges(
@@ -75,7 +81,9 @@ def build_graph(checkpointer=None):
     )
     # The personas react to the final draft before a human sees it at Gate 2.
     graph.add_edge("generate_variant_b", "focus_group")
-    graph.add_edge("focus_group", "gate_2")
+    # How could it fail? Rule checks + simulated scenarios + a revised version, for the approver.
+    graph.add_edge("focus_group", "crash_test")
+    graph.add_edge("crash_test", "gate_2")
     graph.add_conditional_edges(
         "gate_2",
         route_after_gate_2,

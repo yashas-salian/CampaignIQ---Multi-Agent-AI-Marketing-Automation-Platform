@@ -58,4 +58,6 @@ def search_bluesky(keyword: str, *, limit: int = 25) -> dict:
         "result_count": len(posts),
         "avg_score": sum((p.like_count or 0) + (p.repost_count or 0) for p in posts) / len(posts),
         "avg_comments": sum(p.reply_count or 0 for p in posts) / len(posts),
+        # A sample of what people say, for the decision engine's purchase-intent read.
+        "texts": [str(getattr(p.record, "text", "") or "")[:280] for p in posts[:20] if getattr(p.record, "text", None)],
     }

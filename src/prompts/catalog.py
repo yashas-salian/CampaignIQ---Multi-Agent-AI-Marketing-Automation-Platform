@@ -174,6 +174,67 @@ _CATALOG = [
             '"score" (integer 1-5, 5=excellent) and "reasoning" (one sentence).'
         ),
     ),
+    Prompt(
+        id="crashtest.simulate",
+        version="1.0.0",
+        system=(
+            "You stress-test ads before launch by role-playing specific people in specific situations. You look for "
+            "real ways the ad could fail, and you say so plainly when it holds up. You never invent problems to fill "
+            f"a quota. {_JSON_ONLY}"
+        ),
+        template=(
+            "What the brand is advertising:\n{idea}\n"
+            "The ad:\n{ad}\n"
+            "The intended audience:\n{personas}\n\n"
+            "Play each of these scenarios in turn:\n{scenarios}\n\n"
+            "For each scenario, decide whether the ad holds up for that person. Respond with ONLY a JSON object with one "
+            'key "scenarios": an array with one object per scenario, each with "id" (as given), "verdict" ("pass", '
+            '"concern" or "fail") and "findings" (an array of 0-2 objects; empty when it passes). Each finding has: '
+            '"type" (exactly one of: {types}), "severity" ("low", "medium" or "high"), "quote" (the exact words from the '
+            'ad that cause it, copied character for character, or "" if it is about the ad as a whole), "problem" (one '
+            'sentence: what goes wrong for this person) and "fix" (one sentence: a concrete change). Write "problem" and '
+            '"fix" in {language}. Only report what this person would really notice; do not repeat the same problem in '
+            "several scenarios."
+        ),
+    ),
+    Prompt(
+        id="crashtest.revise",
+        version="1.1.0",  # 1.1.0: no new product facts, never longer than the original
+        system=f"You are a careful ad copy editor who fixes problems without adding new claims. {_JSON_ONLY}",
+        template=(
+            "What the brand is advertising (the only facts you may use):\n{idea}\n"
+            "The brand's tagline:\n{tagline}\n"
+            "The current ad:\n{ad}\n"
+            "Problems found by a pre-launch crash test:\n{issues}\n\n"
+            "Rewrite the ad so it fixes every problem above while keeping what works. Never add anything the brand "
+            "didn't state: no customer names, quotes, reviews or ratings, no numbers, prices, percentages, deadlines, "
+            "scarcity or popularity claims, no questions about the reader's health, money or personal life, and no new "
+            "facts about the product (locations, availability, timing, data, fees, features). When a problem could only "
+            "be fixed with information the brand didn't give, remove or soften the claim instead of adding anything. "
+            "The result must be no longer than the current ad. Keep the same language ({language}). "
+            'Respond with ONLY a JSON object with exactly these keys: "copy" (the post text, 2-3 sentences), "headline" '
+            '(on-image headline, at most 7 words, no hashtags or emoji), "cta" (a 2-4 word button label) and "changes" '
+            "(an array of short strings, one per change you made and why)."
+        ),
+    ),
+    Prompt(
+        id="competitor.explain",
+        version="1.0.0",
+        system=(
+            "You are a cautious market analyst. You separate what was observed from what it might mean, you offer "
+            "competing explanations rather than one confident story, and you never invent facts about a company. "
+            f"{_JSON_ONLY}"
+        ),
+        template=(
+            "A competitor we track:\n{competitor}\n"
+            "What was observed (the only facts you may use):\n{evidence}\n\n"
+            "Why might they have done this? Give 2 or 3 different, plausible explanations: they are hypotheses, not "
+            "facts. Do not recommend what we should do and do not suggest copying their wording. Respond with ONLY a "
+            'JSON object with one key "hypotheses": an array of objects, each with "hypothesis" (one sentence), '
+            '"would_confirm" (one sentence: what later evidence would support it) and "would_refute" (one sentence: '
+            "what would rule it out). Write in {language}."
+        ),
+    ),
 ]
 
 PROMPTS: dict[str, Prompt] = {p.id: p for p in _CATALOG}

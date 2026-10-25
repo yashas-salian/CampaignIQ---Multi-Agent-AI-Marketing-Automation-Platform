@@ -24,7 +24,7 @@ MAX_PER_SWEEP = 15  # Google Trends rate-limits hard: spread the checks out
 COOLDOWN_DAYS = 3  # one alert of a kind per campaign per few days
 TREND_RATIO, TREND_MIN = 1.5, 30  # interest index (0-100)
 NEWS_RATIO, NEWS_MIN = 2.0, 10  # matching articles
-DONE = ("completed", "rejected")
+DONE = ("completed", "rejected", "blocked")
 
 
 def detect(baseline: dict, trend: dict | None, news: dict | None) -> list[dict]:
@@ -94,6 +94,8 @@ def scan(now: datetime | None = None) -> int:
                 }).execute()
                 _announce(campaign, alert["kind"], detail)
                 raised += 1
+            _reevaluate(campaign, trend, news, now)
+            _brand_risk(campaign, watch["keyword"], news, now)
             client.table("campaigns").update({"market_watch": {
                 **watch, "checked_at": now.isoformat(),
                 "last": {"trend_latest": (trend or {}).get("latest_interest"), "news_total": (news or {}).get("total_results")},
@@ -101,6 +103,29 @@ def scan(now: datetime | None = None) -> int:
         except Exception as exc:  # one campaign's failure never stops the sweep
             log.warning("market watch for %s failed: %s", campaign["id"], exc)
     return raised
+
+
+def _brand_risk(campaign: dict, keyword: str, news: dict | None, now: datetime) -> None:
+    """Crisis headlines about the campaign's topic pause it (circuit breaker). Never raises."""
+    try:
+        from src.capabilities.circuit_breaker import check_news
+
+        check_news(campaign, keyword, {**(news or {}), "fetched_at": now.isoformat()} if news else None)
+    except Exception as exc:
+        log.warning("brand-risk check for %s failed: %s", campaign["id"], exc)
+
+
+def _reevaluate(campaign: dict, trend: dict | None, news: dict | None, now: datetime) -> None:
+    """A WAIT decision's trigger: with fresh signals in hand, decide again (never raises)."""
+    try:
+        from src.capabilities.decision import reevaluate_waiting
+        from src.notifications import notify_decision_reevaluated
+
+        decision = reevaluate_waiting(campaign, trend, news, now=now)
+        if decision is not None:
+            notify_decision_reevaluated(campaign["id"], "WAIT", decision.decision, decision.opportunity_score)
+    except Exception as exc:
+        log.warning("re-evaluating %s failed: %s", campaign["id"], exc)
 
 
 def _recent(client, campaign_id: str, kind: str, now: datetime) -> bool:

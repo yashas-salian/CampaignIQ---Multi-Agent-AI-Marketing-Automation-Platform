@@ -3,6 +3,18 @@
     "fingerprint": "1c8fa2910aeb3acf",
     "version": "1.2.0"
   },
+  "competitor.explain": {
+    "fingerprint": "d11c72996d65b229",
+    "version": "1.0.0"
+  },
+  "crashtest.revise": {
+    "fingerprint": "2037b1700c5b1c67",
+    "version": "1.1.0"
+  },
+  "crashtest.simulate": {
+    "fingerprint": "b9670715cd3d50da",
+    "version": "1.0.0"
+  },
   "creative.generate": {
     "fingerprint": "f3f6631d18634e64",
     "version": "2.0.0"

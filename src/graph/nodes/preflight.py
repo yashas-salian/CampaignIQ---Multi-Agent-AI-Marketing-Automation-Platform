@@ -9,11 +9,16 @@ MAX_PREFLIGHT_ATTEMPTS = 3
 logger = logging.getLogger("graph.preflight")
 
 
-def _stored_image(state: CampaignState, image_bytes: bytes) -> dict:
+def _stored_image(state: CampaignState, image_bytes: bytes, scene: bytes | None = None) -> dict:
     """{"image_path": ...} once the finished ad is stored, else {} (the page
     then falls back to a preview drawn from the prompt). Never fails the round."""
     if not image_bytes:
         return {}
+    if scene:  # the template's painted background, for redrawing the ad with revised words
+        try:
+            upload_ad_image(state["campaign_id"], state["round_id"], scene, variant="scene")
+        except Exception as exc:
+            logger.warning("storing the ad's background failed: %s", exc)
     try:
         return {"image_path": upload_ad_image(state["campaign_id"], state["round_id"], image_bytes)}
     except Exception as exc:
@@ -54,7 +59,7 @@ def preflight_node(state: CampaignState) -> CampaignState:
         cta=best_creative.cta,
         template=best_creative.template or None,
         ad_slots=best_creative.ad_slots,
-        **_stored_image(state, best_creative.image_bytes),
+        **_stored_image(state, best_creative.image_bytes, getattr(best_creative, "scene_bytes", None)),
     )
 
     return {

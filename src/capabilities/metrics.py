@@ -19,8 +19,8 @@ class MetricsResult(BaseModel):
 
 
 def _is_real_post_ref(value: str | None) -> bool:
-    # Not a dry run, a dedup skip, or a failed/dead delivery (see capabilities/delivery.py).
-    return bool(value) and not value.startswith(("DRY_RUN", "skipped", "failed:", "dead:"))
+    # Not a dry run, a dedup skip, a failed/dead delivery, or one the circuit breaker held.
+    return bool(value) and not value.startswith(("DRY_RUN", "skipped", "failed:", "dead:", "held:"))
 
 
 def collect_metrics(campaign_id: str, user_id: str, round_number: int, email_to: list[str] | None = None) -> MetricsResult:
@@ -68,8 +68,13 @@ def collect_metrics(campaign_id: str, user_id: str, round_number: int, email_to:
     email_ref = iteration.get("email_id")
     email_ref_b = iteration.get("email_id_b")
     ab = _is_real_post_ref(email_ref_b)
-    # A/B rounds sent each variant to half the list (the same split as the send).
-    list_a, list_b = split_recipients(email_to or [], salt=campaign_id) if ab else (email_to or [], [])
+    # A/B rounds sent each variant to half the list (the same split as the send);
+    # with a proof-of-impact experiment, to its treatment groups (the control got nothing).
+    groups = _experiment_groups(campaign_id, email_to or [], ab)
+    if groups is not None:
+        list_a, list_b = groups
+    else:
+        list_a, list_b = split_recipients(email_to or [], salt=campaign_id) if ab else (email_to or [], [])
     if _is_real_post_ref(email_ref):
         def read_email():
             clicks = get_click_count(campaign_id, round_number)
@@ -90,3 +95,13 @@ def collect_metrics(campaign_id: str, user_id: str, round_number: int, email_to:
 
     overall_reward = sum(channel_rewards.values()) / len(channel_rewards) if channel_rewards else 0.0
     return MetricsResult(channel_rewards=channel_rewards, overall_reward=overall_reward, raw=raw)
+
+
+def _experiment_groups(campaign_id: str, email_to: list[str], ab: bool) -> tuple[list[str], list[str]] | None:
+    try:
+        from src.capabilities.impact import email_groups
+
+        return email_groups(campaign_id, email_to, ab)
+    except Exception as exc:  # fall back to the plain split's counts
+        logger.warning("experiment groups for %s unavailable: %s", campaign_id, exc)
+        return None

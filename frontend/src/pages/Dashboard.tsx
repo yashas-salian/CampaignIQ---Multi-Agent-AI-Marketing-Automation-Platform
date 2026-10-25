@@ -14,11 +14,12 @@ import { useOrg } from '../lib/useOrg'
 import { supabase } from '../lib/supabaseClient'
 import { displayName } from '../lib/profile'
 import { useSession } from '../lib/useAuth'
-import type { Campaign, CampaignStatus, Metric } from '../lib/types'
+import type { Campaign, CampaignDecision, CampaignStatus, Metric } from '../lib/types'
 import styles from './Dashboard.module.css'
 import Select from '../components/Select'
 import { ProductFields } from '../components/ProductFields'
 import { isWebLink } from '../lib/product'
+import { DecisionBadge } from '../components/DecisionCard'
 
 // Only the iteration fields the dashboard needs (arm per round).
 interface IterationArm {
@@ -39,10 +40,11 @@ const STATUS_ORDER: CampaignStatus[] = [
   'awaiting_next_round',
   'completed',
   'rejected',
+  'blocked',
 ]
 const NEEDS_ACTION: CampaignStatus[] = ['awaiting_gate_1', 'awaiting_gate_2']
 const RUNNING: CampaignStatus[] = ['created', 'awaiting_metrics', 'awaiting_next_round']
-const DONE: CampaignStatus[] = ['completed', 'rejected']
+const DONE: CampaignStatus[] = ['completed', 'rejected', 'blocked']
 const FILTER_STATUSES: Record<Filter, CampaignStatus[] | null> = {
   all: null,
   action: NEEDS_ACTION,
@@ -196,13 +198,21 @@ function BarList({
   )
 }
 
-function StatusPill({ status }: { status: CampaignStatus }) {
+function StatusPill({ status, paused }: { status: CampaignStatus; paused?: boolean }) {
   const { t } = useTranslation()
+  if (paused) {
+    return (
+      <span className={`${styles.pill} ${styles.pillRejected}`} data-testid="paused-pill">
+        <span className={styles.pillDot} aria-hidden="true" />
+        {t('circuit.pausedPill')}
+      </span>
+    )
+  }
   const tone = NEEDS_ACTION.includes(status)
     ? styles.pillAction
     : status === 'completed'
       ? styles.pillDone
-      : status === 'rejected'
+      : status === 'rejected' || status === 'blocked'
         ? styles.pillRejected
         : styles.pillRunning
   return (
@@ -270,6 +280,7 @@ export default function Dashboard() {
   const [tier, setTier] = useState<'free' | 'subscribed'>('free')
   const [usage, setUsage] = useState<OrgUsage | null>(null)
   const [firstLoad, setFirstLoad] = useState(true)
+  const [decisions, setDecisions] = useState<Map<string, Pick<CampaignDecision, 'decision' | 'hard_blocks'>>>(new Map())
   usePageLoading(firstLoad)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -291,7 +302,7 @@ export default function Dashboard() {
   const load = useCallback(async () => {
     if (!orgId) return
     // One round trip: everything the dashboard shows, fetched in parallel.
-    const [c, m, it, sub, moments, armStats, u] = await Promise.all([
+    const [c, m, it, sub, moments, armStats, u, dec] = await Promise.all([
       supabase.from('campaigns').select('*').eq('org_id', orgId).order('created_at', { ascending: false }),
       supabase.from('metrics').select('*').order('collected_at', { ascending: true }),
       supabase.from('iterations').select('campaign_id,round_number,preflight_attempt,image_style,copy_tone'),
@@ -308,6 +319,8 @@ export default function Dashboard() {
       // The shared learning loop's size (every campaign on MarketingOS feeds it).
       supabase.from('bandit_arms').select('pulls'),
       supabase.rpc('org_usage', { p_org: orgId }),
+      // The decision engine's latest call per campaign (newest first; RLS-scoped).
+      supabase.from('campaign_decisions').select('campaign_id,decision,hard_blocks,created_at').order('created_at', { ascending: false }),
     ])
     // Campaigns are the page; the rest degrade to empty. Say so rather than show a blank dashboard.
     toastLoadError(t, c.error, () => load())
@@ -321,6 +334,11 @@ export default function Dashboard() {
     const pulls = ((armStats.data as { pulls: number }[] | null) ?? []).map((a) => a.pulls ?? 0)
     setLoop(pulls.length ? { rounds: pulls.reduce((a, b) => a + b, 0), tried: pulls.filter((p) => p > 0).length } : null)
     setUsage((u.data as OrgUsage | null) ?? null)
+    const latest = new Map<string, Pick<CampaignDecision, 'decision' | 'hard_blocks'>>()
+    for (const d of (dec.data as (CampaignDecision & { campaign_id: string })[] | null) ?? []) {
+      if (!latest.has(d.campaign_id)) latest.set(d.campaign_id, d)
+    }
+    setDecisions(latest)
     setFirstLoad(false)
   }, [orgId, t])
 
@@ -336,6 +354,7 @@ export default function Dashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'metrics' }, () => load())
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'market_alerts' }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_decisions' }, () => load())
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
@@ -998,8 +1017,11 @@ export default function Dashboard() {
                       {lang ? ` · ${lang.label}` : ''}
                     </small>
                   </span>
-                  <span role="cell">
-                    <StatusPill status={c.status} />
+                  <span role="cell" className={styles.cellStatus}>
+                    <StatusPill status={c.status} paused={!!c.paused_at} />
+                    {decisions.get(c.id) && (
+                      <DecisionBadge decision={decisions.get(c.id)!.decision} blocked={decisions.get(c.id)!.hard_blocks?.length > 0} />
+                    )}
                   </span>
                   <span role="cell" className={styles.cellFeas}>
                     {c.feasibility_score ?? '—'}

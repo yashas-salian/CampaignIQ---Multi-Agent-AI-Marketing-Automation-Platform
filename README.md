@@ -19,6 +19,40 @@ Architecture diagram + what makes this more than an LLM wrapper:
 
 Demo data, captured from the real app (`SCREENSHOTS=1 npx playwright test e2e/screenshots.spec.ts --project=desktop` in `frontend/`). For a guided tour, see the [demo script](docs/DEMO.md).
 
+**Decision intelligence.** Before any ad is made, MarketingOS decides whether the campaign should exist at all: LAUNCH, TEST_SMALL, WAIT, KILL or "not enough evidence".
+- **Evidence:** the recommendation is based on demand, momentum, purchase intent, competition, audience reach and track record. Each piece shows its source, freshness and reliability.
+- **Hard blocks:** prohibited products, unsupportable claims and broken links are blocked outright.
+- **Benchmark:** it agrees with hand-labelled scenarios 96% of the time, against 28% for "launch whenever feasibility passes", and it never launches a blocked idea. See [docs/DECISION_ENGINE.md](docs/DECISION_ENGINE.md).
+
+**Crash test.** Before Gate 2, every ad is checked for how it could fail.
+- **Rule checks** catch invented testimonials (FTC 16 CFR 465), false urgency, fake social proof, personal-attribute questions (Meta) and numbers the brand never gave.
+- **Eight simulated scenarios** play a skeptic, a price-sensitive buyer, a competitor's 20% off and others, each finding quoting the exact words.
+- **A revised version** is re-tested on the same checks, and the approver can use it with one click.
+
+See [docs/CRASH_TEST.md](docs/CRASH_TEST.md).
+
+**Proof of impact.** Did the campaign *cause* extra sign-ups, or would they have happened anyway?
+- **Randomized holdout:** a pre-registered experiment holds out a random control group that gets nothing.
+- **Tracking:** each person's link carries a token, and the brand's site reports conversions through the API.
+- **Verdict:** at the predeclared end, the engine reports the lift with a 95% interval, or says "inconclusive" when the evidence is thin. It keeps the causal estimate apart from clicks and attribution.
+- **Benchmark:** on synthetic experiments with known truths it claims a non-existent effect about 5% of the time; before/after comparisons do so 99% of the time.
+
+See [docs/PROOF_OF_IMPACT.md](docs/PROOF_OF_IMPACT.md).
+
+**Competitor intelligence.** Name your competitors and approve the public sources to watch: their pages, feed, news coverage and Bluesky posts.
+- **Observed moves:** offer changes, messaging shifts, launches and content themes, each quoted with its source and time. One story counts once, however many outlets ran it.
+- **Response:** a recommendation of respond, monitor, differentiate or do nothing, with all four weighed. Guesses about why they did it are kept separate and labelled as inference.
+- **Forecast:** search interest in their market, checked later against what actually happened.
+
+See [docs/COMPETITOR_INTELLIGENCE.md](docs/COMPETITOR_INTELLIGENCE.md).
+
+**Circuit breaker.** After launch, a live campaign pauses itself the moment it becomes unsafe.
+- **Triggers:** the offer ended, the link died, the copy now breaks a brand rule, an approval lapsed, crisis news about the topic, or a person pulls the emergency stop.
+- **Enforced where sends happen:** the database refuses every send while a hold is active, even one already in flight.
+- **Resuming:** only an owner or admin can resume, with a note saying what they checked.
+
+See [docs/CIRCUIT_BREAKER.md](docs/CIRCUIT_BREAKER.md).
+
 **Product-first ads.** Every campaign starts from a photo of the real product (plus an optional tagline and link).
 - **Cut-out:** the photo is cut out with rembg and set into one of **34 layout templates**. The templates come from a study of 128 real ads, from Coca-Cola, Chanel and Nike to Canva template packs; see [docs/AD_TEMPLATES.md](docs/AD_TEMPLATES.md).
 - **Template choice:** the bandit's image style picks the template family. The AI picks the template that suits the product and fills in its words, taken only from the idea.

@@ -165,3 +165,9 @@
 .gateAdInfo dt { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mos-text-muted); padding-top: 3px; }
 .gateAdInfo dd { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
 @media (max-width: 720px) { .gateAd { grid-template-columns: minmax(0, 1fr); } }
+
+/* Gate 1: approving against the decision engine's advice needs a reason. */
+.override {
+  display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 14px; font-size: 14px;
+  background: color-mix(in srgb, var(--mos-accent) 10%, transparent); border: 1px solid color-mix(in srgb, var(--mos-accent) 35%, transparent);
+}

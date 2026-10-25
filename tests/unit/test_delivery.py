@@ -153,4 +153,4 @@ def test_emails_carry_an_idempotency_key(live, monkeypatch):
     seen = {}
     monkeypatch.setattr(distribution, "send_email", lambda *a, **k: seen.update(k) or "em_1")
     distribution.send_campaign_email("c7", 2, ["a@x.io"], "Hi", "<p>x</p>", user_id="u1")
-    assert seen["idempotency_key"] == "c7:2:email"
+    assert seen["idempotency_key"] == "c7:2:email:" + distribution.recipient_key("a@x.io")[:32]  # one key per recipient

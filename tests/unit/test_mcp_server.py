@@ -32,8 +32,11 @@ def test_lists_every_tool_with_safety_annotations():
     assert set(tools) == {
         "classify_idea", "score_feasibility", "generate_personas", "generate_creative", "generate_image",
         "preflight_creative", "post_bluesky", "send_campaign_email", "list_campaigns", "campaign_summary",
+        "evaluate_decision", "crash_test_ad", "measure_impact",
     }
     assert tools["classify_idea"].annotations.readOnlyHint is True
+    assert tools["evaluate_decision"].annotations.readOnlyHint is True
+    assert tools["measure_impact"].annotations.readOnlyHint is True
     assert tools["post_bluesky"].annotations.destructiveHint is True
     assert tools["send_campaign_email"].annotations.destructiveHint is True
 

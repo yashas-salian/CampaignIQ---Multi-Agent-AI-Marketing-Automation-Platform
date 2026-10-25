@@ -16,6 +16,10 @@ import styles from '../styles/app.module.css'
 import local from './Tools.module.css'
 import Select from '../components/Select'
 import { ProductFields } from '../components/ProductFields'
+import DecisionCard from '../components/DecisionCard'
+import CrashTestReport from '../components/CrashTestReport'
+import type { CrashReport } from '../lib/types'
+import type { CampaignDecision } from '../lib/types'
 import { AD_TEMPLATES } from '../lib/adTemplates'
 import { useSession } from '../lib/useAuth'
 
@@ -56,6 +60,14 @@ function ResultView({ capability, result, runId }: { capability: string; result:
         </a>
       </div>
     )
+  }
+
+  if (capability === 'crash_test' && r && !Array.isArray(r) && Array.isArray(r.findings)) {
+    return <CrashTestReport report={r as unknown as CrashReport} />
+  }
+
+  if (capability === 'decision' && r && !Array.isArray(r) && typeof r.decision === 'string') {
+    return <DecisionCard decision={r as unknown as CampaignDecision} />
   }
 
   if (capability === 'feasibility' && r && !Array.isArray(r) && typeof r.score === 'number') {
@@ -145,6 +157,10 @@ export default function Tools() {
   const [tagline, setTagline] = useState('')
   const [template, setTemplate] = useState('')
   const { session } = useSession()
+  // The crash test's input: the ad itself, next to what's being advertised (the idea box).
+  const [adCopy, setAdCopy] = useState('')
+  const [adHeadline, setAdHeadline] = useState('')
+  const [adCta, setAdCta] = useState('')
   const [language, setLanguage] = useState('en')
   const [submitting, setSubmitting] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -184,7 +200,14 @@ export default function Tools() {
     const value = capability === 'image' ? prompt.trim() : idea.trim()
     if (!value || submitting || (capability === 'image' && !productPhoto)) return
     setSubmitting(true)
-    let params: Record<string, unknown> = { idea: value, target_language: language }
+    if (capability === 'crash_test' && !adCopy.trim()) {
+      setSubmitting(false)
+      return
+    }
+    let params: Record<string, unknown> =
+      capability === 'crash_test'
+        ? { idea: value, copy: adCopy.trim(), headline: adHeadline.trim(), cta: adCta.trim(), target_language: language }
+        : { idea: value, target_language: language }
     if (capability === 'image' && productPhoto) {
       // The photo goes up first, into the user's own folder; the run gets its path.
       const ext = productPhoto.type === 'image/png' ? 'png' : productPhoto.type === 'image/webp' ? 'webp' : 'jpg'
@@ -239,6 +262,9 @@ export default function Tools() {
     if (typeof run.params.target_language === 'string') setLanguage(run.params.target_language)
     if (typeof run.params.tagline === 'string') setTagline(run.params.tagline)
     if (typeof run.params.template === 'string') setTemplate(run.params.template)
+    if (typeof run.params.copy === 'string') setAdCopy(run.params.copy)
+    if (typeof run.params.headline === 'string') setAdHeadline(run.params.headline)
+    if (typeof run.params.cta === 'string') setAdCta(run.params.cta)
     setActiveId(run.id)
   }
 
@@ -303,6 +329,24 @@ export default function Tools() {
                 placeholder={capability === 'image' ? t('tools.imagePromptPlaceholder') : t('tools.ideaPlaceholder')}
               />
             </label>
+            {capability === 'crash_test' && (
+              <div className={local.adFields}>
+                <label className={styles.field}>
+                  <span>{t('crash.toolCopy')}</span>
+                  <textarea className={styles.textarea} rows={3} value={adCopy} onChange={(e) => setAdCopy(e.target.value)} placeholder={t('crash.toolCopyPlaceholder')} />
+                </label>
+                <div className={local.adRow}>
+                  <label className={styles.field}>
+                    <span>{t('crash.toolHeadline')}</span>
+                    <input className={styles.input} value={adHeadline} onChange={(e) => setAdHeadline(e.target.value)} />
+                  </label>
+                  <label className={styles.field}>
+                    <span>{t('crash.button')}</span>
+                    <input className={styles.input} value={adCta} onChange={(e) => setAdCta(e.target.value)} />
+                  </label>
+                </div>
+              </div>
+            )}
             {capability === 'image' && (
               <ProductFields
                 photo={productPhoto}
@@ -336,7 +380,7 @@ export default function Tools() {
                 type="button"
                 className={`${styles.btn} ${styles.primary}`}
                 onClick={submit}
-                disabled={submitting || !inputValue.trim() || (capability === 'image' && !productPhoto)}
+                disabled={submitting || !inputValue.trim() || (capability === 'image' && !productPhoto) || (capability === 'crash_test' && !adCopy.trim())}
                 title={capability === 'image' && !productPhoto ? t('product.photoNeeded') : undefined}
               >
                 {submitting && <span className={styles.spinner} aria-hidden="true" />}

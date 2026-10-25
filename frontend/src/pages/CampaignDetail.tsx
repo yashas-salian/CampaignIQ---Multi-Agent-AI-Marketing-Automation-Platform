@@ -19,7 +19,11 @@ import { toast } from '../lib/toast'
 import { toastFailure, toastLoadError } from '../lib/notify'
 import { usePageLoading } from '../lib/loading'
 import { supabase } from '../lib/supabaseClient'
-import type { Campaign, CampaignStatus, GateDecision, Iteration, Persona } from '../lib/types'
+import type { Campaign, CampaignDecision, CampaignHold, CampaignStatus, CrashTestRow, Experiment, GateDecision, Iteration, Persona } from '../lib/types'
+import ProofOfImpact from '../components/ProofOfImpact'
+import { PausedPanel, SafetyControls } from '../components/CircuitBreaker'
+import CrashTestReport from '../components/CrashTestReport'
+import DecisionCard from '../components/DecisionCard'
 import styles from '../styles/app.module.css'
 import local from './CampaignDetail.module.css'
 import Select from '../components/Select'
@@ -53,6 +57,7 @@ function currentStep(status: CampaignStatus): number {
     case 'completed':
       return STEPS.length
     case 'rejected':
+    case 'blocked':
       return -1
   }
 }
@@ -141,14 +146,22 @@ function RoundImage({ prompt, path, seedFrom, version = 0 }: { prompt: string | 
   )
 }
 
-function StatusPill({ status }: { status: CampaignStatus }) {
+function StatusPill({ status, paused }: { status: CampaignStatus; paused?: boolean }) {
   const { t } = useTranslation()
+  if (paused) {
+    return (
+      <span className={`${styles.pill} ${styles.pillRejected}`} data-testid="paused-pill">
+        <span className={styles.pillDot} aria-hidden="true" />
+        {t('circuit.pausedPill')}
+      </span>
+    )
+  }
   const tone =
     status === 'awaiting_gate_1' || status === 'awaiting_gate_2'
       ? styles.pillAction
       : status === 'completed'
         ? styles.pillDone
-        : status === 'rejected'
+        : status === 'rejected' || status === 'blocked'
           ? styles.pillRejected
           : styles.pillRunning
   return (
@@ -212,15 +225,27 @@ export default function CampaignDetail() {
   const [alerts, setAlerts] = useState<MarketAlert[]>([])
   const [confirm, setConfirm] = useState<'reject' | 'stop' | null>(null)
   const [category, setCategory] = useState('')
+  // The decision engine's recommendations, newest first (re-evaluations add rows).
+  const [decisions, setDecisions] = useState<CampaignDecision[]>([])
+  // Crash tests before Gate 2, newest first (re-runs add rows).
+  const [crashTests, setCrashTests] = useState<CrashTestRow[]>([])
+  // Circuit-breaker holds, newest first.
+  const [holds, setHolds] = useState<CampaignHold[]>([])
+  // The proof-of-impact experiment, if one was declared.
+  const [experiment, setExperiment] = useState<Experiment | null>(null)
 
   usePageLoading(!campaign && !missing)
 
   const load = useCallback(async () => {
     if (!id) return
-    const [{ data: campaignData, error: campaignError }, { data: personaData }, { data: iterationData }] = await Promise.all([
+    const [{ data: campaignData, error: campaignError }, { data: personaData }, { data: iterationData }, { data: decisionData }, { data: crashData }, { data: holdData }, { data: experimentData }] = await Promise.all([
       supabase.from('campaigns').select('*').eq('id', id).maybeSingle(),
       supabase.from('personas').select('*').eq('campaign_id', id),
       supabase.from('iterations').select('*').eq('campaign_id', id).order('round_number').order('preflight_attempt'),
+      supabase.from('campaign_decisions').select('*').eq('campaign_id', id).order('created_at', { ascending: false }),
+      supabase.from('crash_tests').select('id,round_number,trigger,risk,revised_risk,report,applied_at,created_at').eq('campaign_id', id).order('created_at', { ascending: false }),
+      supabase.from('campaign_holds').select('*').eq('campaign_id', id).order('created_at', { ascending: false }),
+      supabase.from('experiments').select('*').eq('campaign_id', id).maybeSingle(),
     ])
     // A failed request isn't "not found": say so and offer a retry.
     if (toastLoadError(t, campaignError, () => load())) return
@@ -239,6 +264,10 @@ export default function CampaignDetail() {
     setAlerts((moments as MarketAlert[] | null) ?? [])
     setPersonas(((personaData as Persona[]) ?? []).sort((a, b) => Number(b.is_primary) - Number(a.is_primary)))
     setIterations((iterationData as Iteration[]) ?? [])
+    setDecisions((decisionData as CampaignDecision[]) ?? [])
+    setCrashTests((crashData as CrashTestRow[]) ?? [])
+    setHolds((holdData as CampaignHold[]) ?? [])
+    setExperiment((experimentData as Experiment | null) ?? null)
 
     const gateNumber = GATE_NUMBER_BY_STATUS[(campaignData as Campaign).status]
     if (gateNumber) {
@@ -280,6 +309,10 @@ export default function CampaignDetail() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'iterations', filter: `campaign_id=eq.${id}` }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'personas', filter: `campaign_id=eq.${id}` }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'gate_decisions', filter: `campaign_id=eq.${id}` }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_decisions', filter: `campaign_id=eq.${id}` }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'crash_tests', filter: `campaign_id=eq.${id}` }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_holds', filter: `campaign_id=eq.${id}` }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'experiments', filter: `campaign_id=eq.${id}` }, () => load())
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
@@ -418,13 +451,25 @@ export default function CampaignDetail() {
     )
   }
 
-  const isActive = !['completed', 'rejected'].includes(campaign.status)
+  const isActive = !['completed', 'rejected', 'blocked'].includes(campaign.status)
+  const latestDecision = decisions[0] ?? null
+  // Approving against the engine's advice needs a reason (the database enforces it too).
+  // The crash test of the round now at Gate 2; its risk is the revision's once that's applied.
+  const crashNow = crashTests.find((c) => c.round_number === campaign.current_round) ?? null
+  const crashRisk = crashNow ? (crashNow.applied_at && crashNow.revised_risk ? crashNow.revised_risk : crashNow.risk) : null
+  const crashCritical = pendingGate?.gate_number === 2 && crashRisk === 'critical'
+  const decisionAgainst =
+    pendingGate?.gate_number === 1 && !!latestDecision && !latestDecision.hard_blocks.length &&
+    ['KILL', 'WAIT', 'INSUFFICIENT_EVIDENCE'].includes(latestDecision.decision)
+  const needsReason = decisionAgainst || crashCritical
+  const reasonMissing = needsReason && comment.trim().length < 10
   const step = currentStep(campaign.status)
   const lang = CAMPAIGN_LANGUAGES.find((l) => l.code === campaign.target_language)
   const gateOpen = pendingGate && !pendingGate.decided_at
   // The database enforces these; the UI only hides what the role can't do.
   const canApprove = can('approve', campaign?.org_id)
   const canCreate = can('create', campaign?.org_id)
+  const canManage = can('manage', campaign?.org_id)
   const alreadyVoted = votes.some((v) => v.user_id === session?.user.id)
   const created = new Date(campaign.created_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' })
   const summaryEntries = campaign.campaign_summary
@@ -450,7 +495,7 @@ export default function CampaignDetail() {
           <span className={styles.eyebrow}>{humanize(campaign.domain_category)}</span>
           <h1 className={styles.title}>{campaign.idea}</h1>
           <div className={styles.meta}>
-            <StatusPill status={campaign.status} />
+            <StatusPill status={campaign.status} paused={!!campaign.paused_at} />
             <span className={styles.metaChip}>
               {campaign.max_rounds
                 ? t('campaignDetail.roundOf', { current: campaign.current_round, max: campaign.max_rounds })
@@ -485,6 +530,8 @@ export default function CampaignDetail() {
         </div>
       </header>
 
+      <PausedPanel campaign={campaign} holds={holds} canResume={canManage} onDone={load} />
+
       {gateOpen && (
         <section className={`${styles.panel} ${local.gate} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties} aria-live="polite">
           <div className={local.gateHead}>
@@ -513,11 +560,27 @@ export default function CampaignDetail() {
           )}
           {pendingGate.gate_number === 2 && <ComplianceRadar flags={rounds[0]?.guardrail_flags ?? null} alwaysShow />}
           {pendingGate.gate_number === 2 && rounds[0]?.focus_group && <FocusGroup result={rounds[0].focus_group} />}
+          {pendingGate.gate_number === 2 && crashNow && (
+            <CrashTestReport test={crashNow} campaignId={campaign.id} round={campaign.current_round} canAct={canApprove && !alreadyVoted} onChanged={load} />
+          )}
+          {crashCritical && (
+            <div className={local.override} role="note">
+              <strong>{t('crash.overrideTitle')}</strong>
+              <span>{t('crash.overrideHint')}</span>
+            </div>
+          )}
           {pendingGate.gate_number === 2 && canApprove && !alreadyVoted && rounds[0]?.copy_text && (
             <CopyEditor campaignId={campaign.id} round={rounds[0].round_number} variant="a" text={rounds[0].copy_text} people={voters} onSaved={load} />
           )}
           {pendingGate.gate_number === 2 && canApprove && !alreadyVoted && rounds[0]?.copy_text_b && (
             <CopyEditor campaignId={campaign.id} round={rounds[0].round_number} variant="b" text={rounds[0].copy_text_b} people={voters} onSaved={load} />
+          )}
+          {pendingGate.gate_number === 1 && latestDecision && <DecisionCard decision={latestDecision} history={decisions} />}
+          {decisionAgainst && (
+            <div className={local.override} role="note">
+              <strong>{t('decision.overrideTitle', { decision: t(`decision.outcome.${latestDecision!.decision}`) })}</strong>
+              <span>{t('decision.overrideHint')}</span>
+            </div>
           )}
           {pendingGate.gate_number === 1 && (
             <label className={styles.field}>
@@ -533,7 +596,7 @@ export default function CampaignDetail() {
             </label>
           )}
           <label className={styles.field}>
-            <span>{t('cd.commentLabel')}</span>
+            <span>{needsReason ? t('decision.overrideLabel') : t('cd.commentLabel')}</span>
             <textarea
               className={styles.textarea}
               rows={2}
@@ -558,11 +621,11 @@ export default function CampaignDetail() {
             </div>
           )}
           <div className={local.gateActions}>
-            <button type="button" disabled={submitting || !canApprove || alreadyVoted} onClick={() => submitDecision('approve')} className={`${styles.btn} ${styles.primary}`}>
+            <button type="button" disabled={submitting || !canApprove || alreadyVoted || reasonMissing} onClick={() => submitDecision('approve')} className={`${styles.btn} ${styles.primary}`}>
               {submitting && <span className={styles.spinner} aria-hidden="true" />}
               {t('campaignDetail.approve')}
             </button>
-            <button type="button" disabled={submitting || !canApprove || alreadyVoted} onClick={() => submitDecision('edit')} className={`${styles.btn} ${styles.ghost}`}>
+            <button type="button" disabled={submitting || !canApprove || alreadyVoted || reasonMissing} onClick={() => submitDecision('edit')} className={`${styles.btn} ${styles.ghost}`}>
               {t('campaignDetail.approveEdits')}
             </button>
             <button
@@ -578,11 +641,20 @@ export default function CampaignDetail() {
         </section>
       )}
 
+      {campaign.status === 'blocked' && latestDecision && (
+        <section className={`${styles.panel} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties} aria-live="polite">
+          <div className={styles.panelHead}>
+            <h2>{t('decision.blockedTitle')}</h2>
+          </div>
+          <DecisionCard decision={latestDecision} history={decisions} />
+        </section>
+      )}
+
       <section className={`${styles.panel} ${styles.enter}`} style={{ '--i': 3 } as CSSProperties}>
         <div className={styles.panelHead}>
           <h2>{t('cd.progressTitle')}</h2>
         </div>
-        <ol className={`${local.stepper} ${campaign.status === 'rejected' ? local.stepperRejected : ''}`}>
+        <ol className={`${local.stepper} ${campaign.status === 'rejected' || campaign.status === 'blocked' ? local.stepperRejected : ''}`}>
           {STEPS.map((s, i) => {
             const state = step === -1 ? '' : i < step ? local.done : i === step ? local.current : ''
             return (
@@ -611,6 +683,12 @@ export default function CampaignDetail() {
           <p className={`${styles.muted} ${local.rationale}`}>{campaign.feasibility_rationale || t('cd.noRationale')}</p>
         </div>
       </section>
+
+      {latestDecision && !(gateOpen && pendingGate?.gate_number === 1) && campaign.status !== 'blocked' && (
+        <section className={`${styles.panel} ${styles.enter}`} style={{ '--i': 4 } as CSSProperties}>
+          <DecisionCard decision={latestDecision} history={decisions} />
+        </section>
+      )}
 
       <MarketMoments alerts={alerts} onDismiss={dismissAlert} />
 
@@ -689,6 +767,12 @@ export default function CampaignDetail() {
                           {humanize(it.image_style)} × {it.copy_tone.replace(/_/g, ' ')}
                         </span>
                       )}
+                      {(() => {
+                        const ct = crashTests.find((c) => c.round_number === it.round_number)
+                        if (!ct) return null
+                        const r = ct.applied_at && ct.revised_risk ? ct.revised_risk : ct.risk
+                        return <span className={styles.chip}>{t('crash.chip', { risk: t(`crash.risk.${r}`) })}</span>
+                      })()}
                     </div>
                     <div className={local.creative}>
                       <RoundImage key={`${it.id}-${it.image_version ?? 0}`} seedFrom={it.id} prompt={it.image_prompt} path={it.image_path} version={it.image_version ?? 0} />
@@ -752,6 +836,25 @@ export default function CampaignDetail() {
           </ol>
         )}
       </section>
+
+      <ProofOfImpact
+        campaign={campaign}
+        experiment={experiment}
+        canEdit={canCreate || canManage}
+        emailSent={iterations.some((it) => !!it.email_id && !/^(DRY_RUN|skipped|failed:|dead:|held:)/.test(it.email_id))}
+        onDone={load}
+      />
+
+      {(isActive || holds.length > 0) && (
+        <SafetyControls
+          key={campaign.offer_ends_at ?? 'none'}
+          campaign={campaign}
+          holds={holds}
+          canStop={isActive && canApprove}
+          canEdit={isActive && (canCreate || canManage)}
+          onDone={load}
+        />
+      )}
 
       {campaign.status === 'completed' && campaign.campaign_summary && (
         <section className={`${styles.panel} ${local.summary} ${styles.enter}`} style={{ '--i': 7 } as CSSProperties}>

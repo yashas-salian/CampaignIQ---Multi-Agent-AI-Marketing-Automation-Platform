@@ -78,6 +78,10 @@ def gate_2_node(state: CampaignState) -> CampaignState:
     creative = state.get("creative")
     if creative is not None and iteration.get("copy_text") and iteration["copy_text"] != creative.copy_text:
         update["creative"] = creative.model_copy(update={"copy_text": iteration["copy_text"]})
+    # A crash-test revision applied at the gate may also have changed the on-image words.
+    if creative is not None and iteration.get("headline") and (iteration["headline"], iteration.get("cta") or "") != (creative.headline, creative.cta):
+        base = update.get("creative", creative)
+        update["creative"] = base.model_copy(update={"headline": iteration["headline"], "cta": iteration.get("cta") or ""})
     # A new picture painted at the gate (capability "ad_image") replaced the
     # stored ad: send that one. If it can't be read, the original still goes.
     if creative is not None and iteration.get("image_version") and iteration.get("image_path"):

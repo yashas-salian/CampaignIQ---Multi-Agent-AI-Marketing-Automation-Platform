@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import datetime, timezone
 
 from pydantic import BaseModel
 
@@ -79,6 +80,7 @@ def score_feasibility(idea: str, *, user_id: str | None = None, target_language:
     if len(safe_headlines) != len(headlines):
         news = {**news, "headlines": safe_headlines, "headlines_dropped": len(headlines) - len(safe_headlines)}
     signals = {"trend": trend, "news": news, "bluesky": bluesky}
+    fetched_at = datetime.now(timezone.utc).isoformat()
 
     # Unauthenticated Mastodon status search is unreliable (confirmed: most
     # instances return empty results for any keyword without a token) — only
@@ -93,6 +95,10 @@ def score_feasibility(idea: str, *, user_id: str | None = None, target_language:
         reddit = _safe_signal(search_reddit, keywords, {"result_count": 0, "avg_score": 0.0, "avg_comments": 0.0})
         signals["reddit"] = reddit
         community_scores.append(min(reddit["avg_score"], 100))
+
+    # When each signal was read, so the decision engine can tell fresh evidence from stale.
+    for value in signals.values():
+        value.setdefault("fetched_at", fetched_at)
 
     community_score = sum(community_scores) / len(community_scores)
     composite = round(TREND_WEIGHT * trend_score + NEWS_WEIGHT * news_score + COMMUNITY_WEIGHT * community_score)
@@ -114,7 +120,9 @@ def score_feasibility(idea: str, *, user_id: str | None = None, target_language:
 
     prompt, system = PROMPTS["feasibility.rationale"].render(
         idea=fence(idea, "user_idea"),
-        signals=fence(signals, "research_signals", max_len=4000),
+        # Sample post texts are for the decision engine, not the rationale (and they're third-party text).
+        signals=fence({k: {kk: vv for kk, vv in v.items() if kk not in ("texts", "fetched_at")} for k, v in signals.items()},
+                      "research_signals", max_len=4000),
         similar=similar_text,
         score=composite,
         language=language_name(target_language),

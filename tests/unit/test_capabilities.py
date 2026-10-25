@@ -99,8 +99,11 @@ class TestDistribution:
 
     def test_live_send_when_dry_run_is_off(self, monkeypatch):
         monkeypatch.setenv("DRY_RUN", "false")
-        monkeypatch.setattr(distribution, "send_email", lambda to, subject, html, **_: f"email-id-for-{len(to)}")
-        assert distribution.send_campaign_email("c2", 1, ["a@x.io", "b@x.io"], "Hi", "<p>x</p>") == "email-id-for-2"
+        sent = []
+        monkeypatch.setattr("src.capabilities.impact.SEND_PACING_SECONDS", 0)
+        monkeypatch.setattr(distribution, "send_email", lambda to, subject, html, **_: sent.append(to) or f"email-id-{len(sent)}")
+        assert distribution.send_campaign_email("c2", 1, ["a@x.io", "b@x.io"], "Hi", "<p>x</p>") == "2 emails (email-id-1)"
+        assert sent == [["a@x.io"], ["b@x.io"]]  # one person per email: nobody sees the other addresses
 
     def test_cta_link_is_click_tracked_when_configured(self, monkeypatch):
         sent = {}

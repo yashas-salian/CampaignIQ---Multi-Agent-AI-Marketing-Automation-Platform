@@ -1,4 +1,5 @@
 import os
+import re
 import time
 
 import requests
@@ -44,6 +45,7 @@ def search_mastodon(keyword: str, *, limit: int = 25) -> dict:
         "result_count": len(statuses),
         "avg_score": sum(s["favourites_count"] + s["reblogs_count"] for s in statuses) / len(statuses),
         "avg_comments": sum(s["replies_count"] for s in statuses) / len(statuses),
+        "texts": [re.sub(r"<[^>]+>", " ", s.get("content") or "")[:280].strip() for s in statuses[:20] if s.get("content")],
     }
 
 

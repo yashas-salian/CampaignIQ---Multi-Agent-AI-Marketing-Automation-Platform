@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 // Shared by Tools (run + recent runs) and Tools history (every run, searchable).
-export const CAPABILITIES = ['feasibility', 'personas', 'image'] as const
+export const CAPABILITIES = ['feasibility', 'decision', 'crash_test', 'personas', 'image'] as const
 export type Capability = (typeof CAPABILITIES)[number]
 export type RunStatus = 'pending' | 'running' | 'completed' | 'failed'
 
@@ -27,6 +27,27 @@ export const CAP_META: Record<Capability, { title: string; desc: string; icon: R
     title: 'tl.capFeasibility',
     desc: 'tl.capFeasibilityDesc',
     icon: <path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />,
+  },
+  decision: {
+    title: 'tl.capDecision',
+    desc: 'tl.capDecisionDesc',
+    icon: (
+      <>
+        <path d="M12 3v4M12 17v4M5 12H3M21 12h-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2" />
+        <path d="M10 12l1.5 1.5L14.5 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </>
+    ),
+  },
+  crash_test: {
+    title: 'tl.capCrash',
+    desc: 'tl.capCrashDesc',
+    icon: (
+      <>
+        <path d="M12 3l8 4v5c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V7z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M12 8v5M12 16v.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </>
+    ),
   },
   personas: {
     title: 'tl.capPersonas',

@@ -1,6 +1,8 @@
 /* Tools-only layout; shared pieces come from styles/app.module.css. */
-.caps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-@media (max-width: 860px) { .caps { grid-template-columns: 1fr; } }
+.caps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1280px) { .caps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { .caps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .caps { grid-template-columns: 1fr; } }
 .cap {
   position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left;
   padding: 20px; border-radius: var(--mos-radius); cursor: pointer; font: inherit; color: var(--mos-text);
@@ -96,3 +98,8 @@
 
 /* The ad image's template picker, set beside the tagline in ProductFields. */
 .templatePick { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--mos-text-muted); min-width: 0; }
+
+/* The crash test's ad fields: the text, then headline and button side by side. */
+.adFields { display: flex; flex-direction: column; gap: 12px; }
+.adRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 600px) { .adRow { grid-template-columns: minmax(0, 1fr); } }

@@ -33,6 +33,7 @@ const Tools = lazy(() => import('./pages/Tools'))
 const ToolsHistory = lazy(() => import('./pages/ToolsHistory'))
 const ModelCard = lazy(() => import('./pages/ModelCard'))
 const Playbooks = lazy(() => import('./pages/Playbooks'))
+const Competitors = lazy(() => import('./pages/Competitors'))
 // Secondary public pages, also on demand.
 const About = lazy(() => import('./pages/About'))
 const Contact = lazy(() => import('./pages/Contact'))
@@ -318,6 +319,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ToolsHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/competitors"
+            element={
+              <ProtectedRoute>
+                <Competitors />
               </ProtectedRoute>
             }
           />

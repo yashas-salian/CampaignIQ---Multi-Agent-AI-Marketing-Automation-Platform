@@ -3,12 +3,18 @@
 // are injected automatically into every deployed Edge Function's environment.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+// A proof-of-impact link carries the recipient's experiment token (`t`): the
+// click is credited to their unit, and the token goes on to the brand's site
+// as `ciq_t` so a later conversion postback can say who converted.
+const TOKEN = /^[0-9a-f]{32}$/;
+
 Deno.serve(async (req) => {
   const params = new URL(req.url).searchParams;
   const destinationUrl = params.get("url");
   const campaignId = params.get("campaign_id");
   const roundId = params.get("round_id");
   const channel = params.get("channel") ?? "email";
+  const token = params.get("t");
 
   if (!destinationUrl || !campaignId || !roundId) {
     return new Response("Missing required query params: url, campaign_id, round_id", { status: 400 });
@@ -26,5 +32,18 @@ Deno.serve(async (req) => {
     destination_url: destinationUrl,
   });
 
-  return Response.redirect(destinationUrl, 302);
+  let target = destinationUrl;
+  if (token && TOKEN.test(token)) {
+    // Never block the redirect on the experiment write.
+    const { error } = await supabase.rpc("record_click", { p_token: token, p_round: Number(roundId) });
+    if (error) console.warn("record_click failed:", error.message);
+    try {
+      const url = new URL(destinationUrl);
+      url.searchParams.set("ciq_t", token);
+      target = url.toString();
+    } catch {
+      // not a parseable URL: redirect as given
+    }
+  }
+  return Response.redirect(target, 302);
 });

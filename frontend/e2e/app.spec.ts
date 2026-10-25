@@ -38,7 +38,8 @@ async function signIn(page: Page) {
 test('dashboard renders for a signed-in user with plan usage', async ({ page }) => {
   await signIn(page)
   await page.goto('/dashboard')
-  await expect(page.getByRole('progressbar').first()).toBeVisible()
+  // The first load can be slow while six browsers start at once.
+  await expect(page.getByRole('progressbar').first()).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText('1 / 3').first()).toBeVisible()
 })
 
