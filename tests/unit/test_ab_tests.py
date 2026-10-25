@@ -17,9 +17,25 @@ def creative(copy: str, arm: int = 0) -> Creative:
 
 class TestStatistics:
     def test_split_is_deterministic_and_balanced(self):
-        a, b = split_recipients(["d@x.io", "A@x.io", "c@x.io", "b@x.io", "a@x.io", " "])
-        assert (a, b) == (["a@x.io", "c@x.io"], ["b@x.io", "d@x.io"])  # de-duplicated, case-folded
-        assert split_recipients(["b@x.io", "d@x.io", "a@x.io", "c@x.io"]) == (a, b)
+        a, b = split_recipients(["d@x.io", "A@x.io", "c@x.io", "b@x.io", "a@x.io", " "], salt="c1")
+        assert sorted(a + b) == ["a@x.io", "b@x.io", "c@x.io", "d@x.io"] and len(a) == len(b) == 2  # de-duplicated, case-folded
+        assert split_recipients(["b@x.io", "d@x.io", "a@x.io", "c@x.io"], salt="c1") == (a, b)  # order of input doesn't matter
+
+    def test_split_is_not_alphabetical_and_differs_between_campaigns(self):
+        people = [f"user{i:03d}@x.io" for i in range(200)]
+        a, _ = split_recipients(people, salt="c1")
+        assert a != people[0::2]  # not the old alternate-by-name split
+        first_half = sum(1 for p in a if p < "user100")
+        assert 35 <= first_half <= 65  # names early and late in the alphabet land in both halves
+        assert split_recipients(people, salt="c2")[0] != a
+
+    def test_bayesian_lift_is_stable_with_a_zero_baseline(self):
+        from src.capabilities.experiments import bayesian_ab
+
+        zero = bayesian_ab(0, 20, 3, 20)
+        assert zero["expected_lift"] is None and 0 < zero["expected_difference"] < 0.3
+        some = bayesian_ab(1, 20, 4, 20)
+        assert some["expected_lift"] is not None and some["expected_lift"] < 20
 
     def test_clear_difference_is_significant(self):
         result = two_proportion_test(20, 1000, 60, 1000)
@@ -78,7 +94,8 @@ def test_email_node_sends_each_half_its_variant(monkeypatch):
     state = {"campaign_id": "c1", "user_id": "u1", "round_id": 1, "domain_category": "other", "idea": "Meal kits",
              "email_to": ["d@x.io", "c@x.io", "b@x.io", "a@x.io"], "creative": creative("Copy A"), "creative_b": creative("Copy B")}
     distribution_email.distribution_email_node(state)
-    assert [(s[0], s[1]) for s in sends] == [(("a@x.io", "c@x.io"), "email"), (("b@x.io", "d@x.io"), "email_b")]
+    half_a, half_b = split_recipients(state["email_to"], salt="c1")  # the same split metrics use
+    assert [(s[0], s[1]) for s in sends] == [(tuple(half_a), "email"), (tuple(half_b), "email_b")]
     assert "Copy A" in sends[0][2] and "Copy B" in sends[1][2]
     assert saved == {"email_id": "id-1", "email_id_b": "id-2"}
 
@@ -95,3 +112,33 @@ def test_metrics_compare_the_variants(monkeypatch):
     test = result.raw["email_b"]["ab_test"]
     assert test["winner"] == "b" and test["significant"]
     assert [r[3] for r in rows] == ["email", "email_b"]
+
+
+def test_one_channel_failing_keeps_the_others(monkeypatch):
+    """A Bluesky outage must not lose Mastodon's or email's numbers, and the
+    failed channel is "not measured", never a zero."""
+    rows = []
+    monkeypatch.setattr("src.db.supabase_client.get_iteration", lambda cid, r: {
+        "bluesky_post_uri": "at://x/app.bsky.feed.post/1", "mastodon_post_url": "https://m.social/@a/1", "email_id": "em_1"})
+    monkeypatch.setattr("src.db.supabase_client.get_click_count", lambda cid, r, channel="email": 2)
+    monkeypatch.setattr("src.db.supabase_client.upsert_metric", lambda *a: rows.append(a[3]))
+
+    def down(ref):
+        raise ConnectionError("bluesky 502")
+
+    monkeypatch.setattr(metrics_mod, "get_bluesky_metrics", down)
+    monkeypatch.setattr(metrics_mod, "get_mastodon_metrics", lambda ref: {"likes": 5, "reposts": 0, "replies": 0})
+    result = metrics_mod.collect_metrics("c1", "u1", 1, email_to=["a@x.io", "b@x.io"])
+    assert set(result.channel_rewards) == {"mastodon", "email"} and "bluesky" not in result.raw
+    assert rows == ["mastodon", "email"]
+
+
+def test_a_failed_metrics_write_still_counts_the_reward(monkeypatch):
+    monkeypatch.setattr("src.db.supabase_client.get_iteration", lambda cid, r: {"mastodon_post_url": "https://m.social/@a/1"})
+    monkeypatch.setattr(metrics_mod, "get_mastodon_metrics", lambda ref: {"likes": 10, "reposts": 0, "replies": 0})
+
+    def db_down(*a):
+        raise ConnectionError("db")
+
+    monkeypatch.setattr("src.db.supabase_client.upsert_metric", db_down)
+    assert metrics_mod.collect_metrics("c1", "u1", 1).channel_rewards == {"mastodon": 0.2}

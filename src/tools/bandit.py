@@ -96,23 +96,38 @@ def select_arms_for_campaign(
     return [(index, *ARMS[index]) for _, index in scored[:k]]
 
 
+# Concurrent feedback (two campaigns finishing a round together) must not
+# lose an update: the write only lands if the arm's pull count is still the
+# one it was read with (compare-and-swap); otherwise it re-reads and retries.
+UPDATE_TRIES = 6
+
+
+class ArmUpdateConflict(RuntimeError):
+    pass
+
+
 def update_arm(arm_index: int, context: np.ndarray, reward: float) -> None:
-    result = get_client().table("bandit_arms").select("*").eq("arm_index", arm_index).single().execute()
-    arm = result.data
-    a_matrix = np.array(arm["a_matrix"])
-    b_vector = np.array(arm["b_vector"])
+    import random
+    import time
 
-    a_matrix = a_matrix + np.outer(context, context)
-    b_vector = b_vector + reward * context
-
-    get_client().table("bandit_arms").update(
-        {
-            "a_matrix": a_matrix.tolist(),
-            "b_vector": b_vector.tolist(),
-            "pulls": arm["pulls"] + 1,
-            "total_reward": float(arm["total_reward"]) + reward,
-        }
-    ).eq("arm_index", arm_index).execute()
+    for attempt in range(UPDATE_TRIES):
+        arm = get_client().table("bandit_arms").select("*").eq("arm_index", arm_index).single().execute().data
+        a_matrix = np.array(arm["a_matrix"]) + np.outer(context, context)
+        b_vector = np.array(arm["b_vector"]) + reward * context
+        written = (
+            get_client().table("bandit_arms").update(
+                {
+                    "a_matrix": a_matrix.tolist(),
+                    "b_vector": b_vector.tolist(),
+                    "pulls": arm["pulls"] + 1,
+                    "total_reward": float(arm["total_reward"]) + reward,
+                }
+            ).eq("arm_index", arm_index).eq("pulls", arm["pulls"]).execute()
+        )
+        if written.data:
+            return
+        time.sleep(random.uniform(0.05, 0.3) * (attempt + 1))  # another worker updated it first
+    raise ArmUpdateConflict(f"arm {arm_index} kept changing under {UPDATE_TRIES} update attempts")
 
 
 def _arm_view(arm: dict, contexts: list[np.ndarray]) -> dict:

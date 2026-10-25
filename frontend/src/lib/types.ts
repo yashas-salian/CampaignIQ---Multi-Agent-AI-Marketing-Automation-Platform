@@ -94,6 +94,8 @@ export interface AbTestResult {
   /** Bayesian read-out (rounds measured after it was added). */
   bayes?: {
     prob_b_beats_a: number | null
+    /** B - A in click rate (the headline number); lift is null when A has no clicks. */
+    expected_difference?: number | null
     expected_lift: number | null
     interval: [number, number] | null
     decided: 'a' | 'b' | null

@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 
 from src.capabilities.feedback_correction import run_feedback_correction
@@ -5,6 +6,8 @@ from src.db.supabase_client import get_campaign, insert_feedback, update_campaig
 from src.graph.state import CampaignState
 from src.tools.bandit import build_context_vector, update_arm
 from src.tools.memory import write_embedding
+
+logger = logging.getLogger("graph.feedback_correction")
 
 
 def _update_bandit_and_memory(state: CampaignState) -> None:
@@ -24,7 +27,10 @@ def _update_bandit_and_memory(state: CampaignState) -> None:
         arm_index = variant_b.arm_index if channel == "email_b" and variant_b else creative.arm_index
         context_channel = "email" if channel == "email_b" else channel
         context = build_context_vector(persona.age_bracket, persona.income_tier, context_channel, state["domain_category"])
-        update_arm(arm_index, context, reward)
+        try:
+            update_arm(arm_index, context, reward)
+        except Exception as exc:  # one lost learning step must not fail the round
+            logger.warning("bandit update for arm %s (%s) failed: %s", arm_index, channel, exc)
 
     if not user_id:
         return

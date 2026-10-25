@@ -126,12 +126,25 @@ class TestFeedbackCorrection:
         directive = run_feedback_correction("idea", metrics, current_round=1, max_rounds=3)
         assert directive.continue_campaign is True
 
-    def test_measured_zero_still_asks_the_model(self, monkeypatch, fake_llm):
+    def test_zero_engagement_everywhere_continues_without_an_llm_call(self, monkeypatch):
+        # Seen in production: a new account's first round got 0 on every channel
+        # and the model stopped the campaign as a failure after round 1.
+        monkeypatch.setattr("src.capabilities.feedback_correction.get_llm", lambda *a: pytest.fail("no LLM on all zeros"))
+        metrics = MetricsResult(channel_rewards={"bluesky": 0.0, "mastodon": 0.0, "email": 0.0}, overall_reward=0.0, raw={})
+        directive = run_feedback_correction("idea", metrics, current_round=1, max_rounds=3)
+        assert directive.continue_campaign is True and directive.adjustments
+
+    def test_zero_engagement_at_the_round_cap_still_stops(self, monkeypatch):
+        monkeypatch.setattr("src.capabilities.feedback_correction.get_llm", lambda *a: pytest.fail("no LLM at cap"))
+        metrics = MetricsResult(channel_rewards={"email": 0.0}, overall_reward=0.0, raw={})
+        assert run_feedback_correction("idea", metrics, current_round=3, max_rounds=3).continue_campaign is False
+
+    def test_some_engagement_asks_the_model(self, monkeypatch, fake_llm):
         monkeypatch.setattr(
             "src.capabilities.feedback_correction.get_llm",
-            lambda *a: fake_llm('{"continue_campaign": false, "reasoning": "no clicks", "adjustments": ""}'),
+            lambda *a: fake_llm('{"continue_campaign": false, "reasoning": "weak", "adjustments": ""}'),
         )
-        metrics = MetricsResult(channel_rewards={"email": 0.0}, overall_reward=0.0, raw={})
+        metrics = MetricsResult(channel_rewards={"email": 0.0, "bluesky": 0.04}, overall_reward=0.02, raw={})
         assert run_feedback_correction("idea", metrics, current_round=1, max_rounds=3).continue_campaign is False
 
     def test_summary_aggregates_rewards_and_engagement(self, monkeypatch):

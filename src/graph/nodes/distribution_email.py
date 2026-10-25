@@ -35,7 +35,7 @@ def distribution_email_node(state: CampaignState) -> CampaignState:
         if disclaimer:
             body += f'<p style="font-size:12px;color:#666">{html_lib.escape(disclaimer)}</p>'
         variant = state.get("creative_b")
-        recipients_a, recipients_b = split_recipients(state["email_to"]) if variant else (state["email_to"], [])
+        recipients_a, recipients_b = split_recipients(state["email_to"], salt=state["campaign_id"]) if variant else (state["email_to"], [])
         email_id = send_campaign_email(
             state["campaign_id"],
             state["round_id"],

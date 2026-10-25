@@ -56,6 +56,19 @@ GitHub Release notes.
 - Pollinations' corner watermark is cropped off its pictures.
 
 ### Fixed
+- **No duplicate posts or emails after a timed-out send.** A send can time out after the provider already accepted it, and a retry then posted twice.
+  - Emails now carry a Resend idempotency key per campaign/round/variant.
+  - Before any repeat Bluesky attempt, in-process or scheduled, `deliver()` reconciles: it looks for our own post with exactly that text and records it instead of posting again.
+  - If it can't tell, it doesn't resend; the attempt is rescheduled.
+  - Mastodon already sent an `Idempotency-Key`.
+- **One channel's metrics outage no longer loses the others.** Each channel is collected on its own. A channel that can't be read is "not measured" (left out of the reward), never a zero, and a failed metrics write still counts for the round.
+- **A/B split no longer alphabetical:** recipients are split by a hash of campaign + address. The split is stable for a campaign (retries never move anyone) and independent between campaigns; halves differ by at most one.
+- **Bayesian A/B read-out is stable with a zero baseline:**
+  - The headline number is now the absolute difference in click rate (`expected_difference`).
+  - Relative lift is reported only when A has clicks, as the posterior median.
+- **Bandit updates can't overwrite each other:** an arm's write is compare-and-swap on its pull count, with a re-read and retry. A learning step that still fails is logged without failing the round.
+- **A round with zero engagement on every channel no longer stops the campaign:** it's treated as too little evidence. The next round tries another angle, and the round and time caps still apply. This is what ended the 2026-10-24 smoke-test campaign after round 1.
+- **LLM fallbacks were never used in production:** the `llm_fallback` switch defaults to on, but with no row in `feature_flags` the database answered "off". A flag with no row now keeps its default, so Gemini (and Cerebras/OpenRouter when keys are set) take over when Groq is rate-limited.
 - **Campaigns never got their link:** the Dashboard form and `create-campaign` never passed the call-to-action link through, so posts and emails carried none and email clicks couldn't be counted. The link is now a composer field.
 - **Security:** the campaign and Tools workflows pasted user-typed inputs (the idea, Tools parameters) straight into their shell scripts. A crafted idea could therefore run commands on the runner, where the secrets are. Inputs now arrive as environment variables.
 - A dropped database connection while claiming a delivery lost that round's post or email ("delivery ledger unavailable"); the claim is now retried like the send.

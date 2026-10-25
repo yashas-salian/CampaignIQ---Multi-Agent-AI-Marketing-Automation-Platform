@@ -43,6 +43,13 @@ def is_enabled(key: str, user_id: str | None = None, *, default: bool = False) -
 
         result = get_client().rpc("feature_enabled_for", {"flag_key": key, "uid": user_id}).execute()
         value = bool(result.data)
+        # The database answers "false" for a flag that has no row at all; for a
+        # flag that defaults to on (llm_fallback) that must mean "not set",
+        # not "switched off".
+        if not value and default:
+            row = get_client().table("feature_flags").select("key").eq("key", key).limit(1).execute()
+            if not row.data:
+                value = default
     except Exception as exc:  # DB down, migration not applied, no credentials
         logger.warning("feature flag %s lookup failed (%s) -> default %s", key, exc, default)
         return default

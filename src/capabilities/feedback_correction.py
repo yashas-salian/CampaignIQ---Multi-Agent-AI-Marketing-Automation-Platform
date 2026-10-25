@@ -41,6 +41,17 @@ def run_feedback_correction(
             reasoning="Nothing could be measured this round (a dry run, or no delivery went out), so there is no result to act on; running the next round.",
             adjustments="",
         )
+    # Zero engagement on every channel is no evidence either: a new account's
+    # first post often gets none in the wait window. Seen in production: the
+    # model read "reward 0.00" as failure and stopped a campaign after round 1.
+    # The bandit has already recorded the zeros, so the next round tries
+    # another angle; the round and time caps still bound the campaign.
+    if all(reward == 0 for reward in metrics.channel_rewards.values()):
+        return RevisionDirective(
+            continue_campaign=True,
+            reasoning="No engagement on any channel yet this round, which is too little evidence to judge the campaign; running the next round with a different angle.",
+            adjustments="Try a clearly different hook and visual from the previous round.",
+        )
 
     prompt, system = PROMPTS["feedback.decide"].render(
         idea=fence(idea, "user_idea"),

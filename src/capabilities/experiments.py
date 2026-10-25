@@ -1,15 +1,20 @@
 """A/B test statistics for email variants.
 
-Recipients are split deterministically into halves (the same list always splits
-the same way, so a resumed run never re-shuffles who got what), and click rates
-are compared with a two-sided two-proportion z-test.
+Recipients are split into halves by a hash of the campaign and the address:
+random-like (not alphabetical, so the halves don't differ by name or domain),
+the same every time for a campaign (a resumed run or a retry never moves anyone
+to the other variant), and independent between campaigns. Click rates are
+compared with a two-sided two-proportion z-test and a Bayesian read-out.
 """
+import hashlib
 import math
 
 
-def split_recipients(recipients: list[str]) -> tuple[list[str], list[str]]:
-    """Alternate over the sorted, de-duplicated list: A gets 1st, 3rd, ..."""
-    ordered = sorted(dict.fromkeys(r.strip().lower() for r in recipients if r and r.strip()))
+def split_recipients(recipients: list[str], *, salt: str = "") -> tuple[list[str], list[str]]:
+    """De-duplicate and normalise, order by hash(salt:address), then alternate:
+    the halves differ in size by at most one. Pass the campaign id as `salt`."""
+    unique = dict.fromkeys(r.strip().lower() for r in recipients if r and r.strip())
+    ordered = sorted(unique, key=lambda r: hashlib.sha256(f"{salt}:{r}".encode()).hexdigest())
     return ordered[0::2], ordered[1::2]
 
 
@@ -54,13 +59,15 @@ MIN_RECIPIENTS_PER_VARIANT = 10
 def bayesian_ab(clicks_a: int, n_a: int, clicks_b: int, n_b: int, *, draws: int = 20000, seed: int = 7) -> dict:
     """Beta(1, 1) priors on each click rate, compared by sampling the posteriors.
 
-    Returns P(B beats A), B's expected relative lift over A, a 95% interval on
-    the rate difference (B - A), and `decided` ("a"/"b") once the evidence is
-    strong enough to stop splitting. Fixed seed: the same counts always give
-    the same read-out."""
+    Returns P(B beats A), the expected absolute difference in click rate
+    (B - A) with its 95% interval, and `decided` ("a"/"b") once the evidence
+    is strong enough to stop splitting. The relative lift is given only when
+    A has clicks: dividing by a near-zero baseline gives meaningless numbers.
+    It is the posterior median, which a few tiny baseline draws can't blow up.
+    Fixed seed: the same counts always give the same read-out."""
     import numpy as np
 
-    result = {"prob_b_beats_a": None, "expected_lift": None, "interval": None, "decided": None,
+    result = {"prob_b_beats_a": None, "expected_difference": None, "expected_lift": None, "interval": None, "decided": None,
               "threshold": DECISION_PROBABILITY, "min_recipients": MIN_RECIPIENTS_PER_VARIANT}
     if not n_a or not n_b:
         return result
@@ -73,7 +80,8 @@ def bayesian_ab(clicks_a: int, n_a: int, clicks_b: int, n_b: int, *, draws: int 
     low, high = np.percentile(b - a, [2.5, 97.5])
     result.update(
         prob_b_beats_a=round(prob, 4),
-        expected_lift=round(float(np.mean((b - a) / a)), 4),
+        expected_difference=round(float(np.mean(b - a)), 4),
+        expected_lift=round(float(np.median((b - a) / a)), 4) if clicks_a > 0 else None,
         interval=[round(float(low), 4), round(float(high), 4)],
     )
     if min(n_a, n_b) >= MIN_RECIPIENTS_PER_VARIANT:

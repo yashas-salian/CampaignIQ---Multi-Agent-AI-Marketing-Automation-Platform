@@ -167,10 +167,18 @@ def deliver(
     *,
     describe: str,
     user_id: str | None = None,
+    reconcile: Callable[[], str | None] | None = None,
 ) -> str:
     """Send at most once per (campaign, round, channel). Returns the result
     reference, a "DRY_RUN: ..." / "skipped: ..." note, or "failed: ..." /
-    "dead: ..." -- never raises."""
+    "dead: ..." -- never raises.
+
+    A send that times out may still have reached the provider. Channels
+    without an idempotency key pass `reconcile`: before any repeat attempt
+    (in-process or scheduled) it looks for the earlier post and returns its
+    reference, or None if it really didn't go out. If it can't tell (it
+    raises), nothing is sent this time: the attempt is rescheduled rather
+    than risking a duplicate."""
     # A dropped connection ("Server disconnected") is usually transient, so the
     # claim is retried too. claim_delivery() locks the row: a retry can't double-send.
     for attempt in range(IN_PROCESS_TRIES):
@@ -196,6 +204,17 @@ def deliver(
 
     error = ""
     for attempt in range(IN_PROCESS_TRIES):
+        if reconcile and (attempt > 0 or book.attempts(row) > 1):
+            try:
+                found = reconcile()
+            except Exception as exc:
+                error = f"outcome of an earlier attempt unknown, not resending: {type(exc).__name__}: {str(exc)[:200]}"
+                logger.warning("%s reconcile failed: %s", channel, error)
+                break
+            if found:
+                logger.info("%s: an earlier attempt did go out (%s); not resending", channel, found)
+                book.finish(row, status="sent", result_ref=found)
+                return found
         try:
             result = send()
         except Exception as exc:

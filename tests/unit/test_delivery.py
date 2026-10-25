@@ -98,3 +98,59 @@ def test_stored_payload_replays_the_same_send(live, monkeypatch):
     payload = {"to": ["a@x.io"], "subject": "Hi", "html": "<p>x</p><p><a href='t'>Learn more</a></p>"}
     assert distribution.resend_from_payload("email", "c9", 3, payload, "u1") == "em_1"
     assert sent == [(["a@x.io"], "Hi", payload["html"])]  # CTA link not appended twice
+
+
+class Ambiguous:
+    """A send that reaches the provider and then times out the first time."""
+
+    def __init__(self):
+        self.posted, self.calls = [], 0
+
+    def __call__(self):
+        self.calls += 1
+        self.posted.append("at://post/1")
+        if self.calls == 1:
+            raise TimeoutError("read timed out after the post was accepted")
+        return "at://post/1"
+
+    def reconcile(self):
+        return self.posted[0] if self.posted else None
+
+
+def send_with(fn, reconcile, round_id=1):
+    return delivery.deliver("bluesky", "c1", round_id, {"copy_text": "hi"}, fn, describe="would post",
+                            user_id="u1", reconcile=reconcile)
+
+
+def test_a_timed_out_send_that_went_out_is_not_posted_again(live):
+    post = Ambiguous()
+    assert send_with(post, post.reconcile) == "at://post/1"
+    assert post.calls == 1  # the retry found the first post instead of posting twice
+
+
+def test_a_send_that_failed_before_reaching_the_provider_is_retried(live):
+    flaky = Flaky(failures=1)
+    assert send_with(flaky, lambda: None) == "at://post/1" and flaky.calls == 2
+
+
+def test_when_the_outcome_is_unknown_nothing_is_resent(live, delivery_ledger):
+    flaky = Flaky(failures=1)
+
+    def cannot_tell():
+        raise ConnectionError("feed unavailable")
+
+    result = send_with(flaky, cannot_tell)
+    assert flaky.calls == 1 and result.startswith("failed: outcome of an earlier attempt unknown")
+    assert json.loads(delivery_ledger.read_text())["c1:1:bluesky"]["status"] == "failed"
+
+
+def test_a_scheduled_retry_reconciles_first(live):
+    send(Flaky(failures=99))  # attempt 1 fails (maybe after reaching Bluesky)
+    assert send_with(lambda: pytest.fail("posted again"), lambda: "at://post/found") == "at://post/found"
+
+
+def test_emails_carry_an_idempotency_key(live, monkeypatch):
+    seen = {}
+    monkeypatch.setattr(distribution, "send_email", lambda *a, **k: seen.update(k) or "em_1")
+    distribution.send_campaign_email("c7", 2, ["a@x.io"], "Hi", "<p>x</p>", user_id="u1")
+    assert seen["idempotency_key"] == "c7:2:email"

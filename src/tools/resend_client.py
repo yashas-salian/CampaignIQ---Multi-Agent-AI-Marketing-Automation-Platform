@@ -8,7 +8,9 @@ import resend
 AD_IMAGE_CID = "ad-image"
 
 
-def send_email(to: list[str], subject: str, html: str, image_bytes: bytes | None = None) -> str:
+def send_email(
+    to: list[str], subject: str, html: str, image_bytes: bytes | None = None, *, idempotency_key: str | None = None
+) -> str:
     resend.api_key = os.environ["RESEND_API_KEY"]
     params = {
         "from": os.environ["RESEND_FROM_EMAIL"],
@@ -25,5 +27,7 @@ def send_email(to: list[str], subject: str, html: str, image_bytes: bytes | None
                 "content_id": AD_IMAGE_CID,
             }
         ]
-    result = resend.Emails.send(params)
+    # With a key, Resend answers a repeat of the same request (a retry after a
+    # timeout) with the first email instead of sending it again.
+    result = resend.Emails.send(params, {"idempotency_key": idempotency_key}) if idempotency_key else resend.Emails.send(params)
     return result["id"]

@@ -3,7 +3,7 @@ import html as html_lib
 import os
 
 from src.capabilities.delivery import deliver
-from src.tools.bluesky_client import post_to_bluesky
+from src.tools.bluesky_client import find_own_post, post_to_bluesky
 from src.tools.mastodon_client import post_to_mastodon
 from src.tools.reddit_client import post_to_reddit
 from src.tools.resend_client import AD_IMAGE_CID, send_email
@@ -27,6 +27,7 @@ def post_bluesky(
         lambda: post_to_bluesky(copy_text, image_bytes=image_bytes),
         describe=f"would post to Bluesky: {copy_text[:60]!r}",
         user_id=user_id,
+        reconcile=lambda: find_own_post(copy_text),
     )
 
 
@@ -98,7 +99,7 @@ def send_campaign_email(
         campaign_id,
         round_id,
         payload,
-        lambda: send_email(to, subject, html, image_bytes=image_bytes),
+        lambda: send_email(to, subject, html, image_bytes=image_bytes, idempotency_key=f"{campaign_id}:{round_id}:{channel}"),
         describe=f"would email {to}: {subject!r}",
         user_id=user_id,
     )
@@ -136,7 +137,10 @@ def resend_from_payload(channel: str, campaign_id: str, round_id: int, payload: 
         image = base64.b64decode(payload["image_base64"]) if payload.get("image_base64") else None
         return deliver(
             channel, campaign_id, round_id, payload,
-            lambda: send_email(payload["to"], payload["subject"], payload["html"], image_bytes=image),
+            lambda: send_email(
+                payload["to"], payload["subject"], payload["html"], image_bytes=image,
+                idempotency_key=f"{campaign_id}:{round_id}:{channel}",
+            ),
             describe=f"would email {payload['to']}: {payload['subject']!r}", user_id=user_id,
         )
     raise ValueError(f"unknown channel {channel}")
