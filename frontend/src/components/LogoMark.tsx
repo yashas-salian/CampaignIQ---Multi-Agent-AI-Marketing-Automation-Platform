@@ -1,7 +1,7 @@
 /**
- * The MarketingOS emblem (public/brand/, cropped from the source artwork in
+ * The CampaignIQ emblem (public/brand/, cropped from the source artwork in
  * public/media/). Its black background is part of the mark, so it's shown as
- * a rounded app-icon tile. Decorative here: the "MarketingOS" text beside it
+ * a rounded app-icon tile. Decorative here: the "CampaignIQ" text beside it
  * carries the name, so alt is empty.
  */
 export default function LogoMark({ className = '', size = 'small' }: { className?: string; size?: 'small' | 'large' }) {

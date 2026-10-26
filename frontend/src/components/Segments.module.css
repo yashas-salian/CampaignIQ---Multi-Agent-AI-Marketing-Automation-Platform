@@ -1,0 +1,26 @@
+/* Contacts → Segments. */
+.meta { margin: 0; font-size: 12.5px; color: var(--ciq-text-muted); line-height: 1.5; overflow-wrap: anywhere; }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 12px 0;
+  border-top: 1px solid var(--ciq-surface-border); }
+.row:first-child { border-top: 0; }
+.what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.what strong { font-size: 14.5px; overflow-wrap: anywhere; }
+.people { font-size: 13px; white-space: nowrap; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.small { height: 34px; padding: 0 12px; font-size: 13px; }
+.editor { display: flex; flex-direction: column; gap: 12px; padding: 14px; margin-bottom: 14px; border-radius: 14px;
+  background: var(--ciq-bg); border: 1px solid var(--ciq-surface-border); }
+.chips { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.chips legend { font-size: 13px; font-weight: 500; color: var(--ciq-text-muted); margin-bottom: 6px; padding: 0; }
+.chip { padding: 4px 11px; border-radius: 999px; border: 1px solid var(--ciq-surface-border); background: var(--ciq-surface);
+  color: var(--ciq-text); font: inherit; font-size: 12.5px; cursor: pointer; }
+.on { background: var(--ciq-text); color: var(--ciq-bg); border-color: var(--ciq-text); }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13.5px; }
+.count { margin: 0; font-size: 14px; font-weight: 600; }
+
+@media (max-width: 640px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+}

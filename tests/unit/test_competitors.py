@@ -43,7 +43,7 @@ class TestSafeFetching:
         (404, b"", True),                                     # no robots.txt: allowed (RFC 9309)
         (503, b"", False),                                    # unreachable: assume disallowed
         (200, b"User-agent: *\nDisallow: /pricing", False),
-        (200, b"User-agent: MarketingOS-CompetitorWatch\nDisallow: /\n\nUser-agent: *\nAllow: /", False),
+        (200, b"User-agent: CampaignIQ-CompetitorWatch\nDisallow: /\n\nUser-agent: *\nAllow: /", False),
         (200, b"User-agent: *\nDisallow: /admin", True),
     ])
     def test_robots_txt_is_respected(self, status, body, allowed):

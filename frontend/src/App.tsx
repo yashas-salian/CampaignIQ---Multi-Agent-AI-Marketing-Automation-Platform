@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Toaster from './components/Toaster'
 import AppSidebar from './components/AppSidebar'
+import NotificationBell from './components/NotificationBell'
 import { APP_PREFIXES, setDrawerOpen } from './lib/shell'
 import PageLoader, { LoadingMarker } from './components/PageLoader'
 import { signOutWithToast } from './lib/notify'
@@ -34,6 +35,11 @@ const ToolsHistory = lazy(() => import('./pages/ToolsHistory'))
 const ModelCard = lazy(() => import('./pages/ModelCard'))
 const Playbooks = lazy(() => import('./pages/Playbooks'))
 const Competitors = lazy(() => import('./pages/Competitors'))
+const BrandMemory = lazy(() => import('./pages/BrandMemory'))
+const Contacts = lazy(() => import('./pages/Contacts'))
+const Unsubscribe = lazy(() => import('./pages/Unsubscribe'))
+const Join = lazy(() => import('./pages/Join'))
+const Confirm = lazy(() => import('./pages/Confirm'))
 // Secondary public pages, also on demand.
 const About = lazy(() => import('./pages/About'))
 const Contact = lazy(() => import('./pages/Contact'))
@@ -219,7 +225,7 @@ function TopBar() {
       </button>
       <Link to="/dashboard" className={`${styles.topbarCell} ${styles.topbarBrand}`}>
         <LogoMark className={styles.topbarLogo} />
-        MarketingOS
+        CampaignIQ
       </Link>
       <div className={`${styles.topbarLinks} ${styles.topbarRight}`}>
         <label className={`${styles.topbarCell} ${styles.topbarLang}`}>
@@ -232,6 +238,7 @@ function TopBar() {
             options={UI_LOCALES.map((l) => ({ value: l.code, label: l.label }))}
           />
         </label>
+        <NotificationBell />
         <ThemeToggle />
         <AccountMenu name={displayName(session.user)} email={session.user.email ?? ''} />
       </div>
@@ -266,6 +273,9 @@ function App() {
           <Route path="/terms" element={<Lazy><Terms /></Lazy>} />
           <Route path="/docs" element={<Lazy><Docs /></Lazy>} />
           <Route path="/status" element={<Lazy><Status /></Lazy>} />
+          <Route path="/unsubscribe" element={<Lazy><Unsubscribe /></Lazy>} />
+          <Route path="/join/:slug" element={<Lazy><Join /></Lazy>} />
+          <Route path="/confirm" element={<Lazy><Confirm /></Lazy>} />
           <Route
             path="/dashboard"
             element={
@@ -327,6 +337,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <Competitors />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contacts"
+            element={
+              <ProtectedRoute>
+                <Contacts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/memory"
+            element={
+              <ProtectedRoute>
+                <BrandMemory />
               </ProtectedRoute>
             }
           />

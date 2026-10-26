@@ -23,7 +23,7 @@ interface Playbook {
 
 const human = (s: string) => s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
 
-/** What MarketingOS has learned per industry, written up after each finished campaign. */
+/** What CampaignIQ has learned per industry, written up after each finished campaign. */
 export default function Playbooks() {
   const { t, i18n } = useTranslation()
   const { active } = useOrg()

@@ -109,10 +109,12 @@ def generate_personas(
     n: int = 3,
     user_id: str | None = None,
     target_language: str = "en",
+    memory: str = "",
 ) -> list[Persona]:
     prompt, system = PROMPTS["audience.personas"].render(
         idea=fence(idea, "user_idea"),
         rationale=fence(feasibility.rationale, "feasibility_rationale"),
+        memory=memory,
         n=n,
         language=language_name(target_language),
         age_brackets=list(_AGE_BRACKETS),

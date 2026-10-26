@@ -55,7 +55,7 @@ function ResultView({ capability, result, runId }: { capability: string; result:
         <img src={src} alt={typeof r.headline === 'string' ? r.headline : ''} />
         {typeof r.template === 'string' && r.template && <span className={styles.chip}>{t('product.template')}: {humanize(r.template)}</span>}
         {typeof r.copy_text === 'string' && r.copy_text && <p className={local.rationale}>{r.copy_text}</p>}
-        <a className={`${styles.btn} ${styles.ghost}`} href={src} download={mime === 'image/jpeg' ? 'marketingos-ad.jpg' : 'marketingos-ad.png'}>
+        <a className={`${styles.btn} ${styles.ghost}`} href={src} download={mime === 'image/jpeg' ? 'campaigniq-ad.jpg' : 'campaigniq-ad.png'}>
           {t('tl.download')}
         </a>
       </div>

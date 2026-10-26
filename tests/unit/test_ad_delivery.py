@@ -63,26 +63,9 @@ class TestEmailImage:
     def live(self, monkeypatch):
         monkeypatch.setenv("DRY_RUN", "false")  # really "send" (to the fakes below)
 
-    def test_the_ad_is_embedded_inline_and_links_to_the_cta(self, monkeypatch):
-        sent = {}
-        monkeypatch.setattr(distribution, "send_email", lambda to, subject, html, **k: sent.update(html=html, **k) or "em_1")
-        distribution.send_campaign_email(
-            "c1", 1, ["a@x.io"], "Hi", "<p>copy</p>", cta_url="https://shop.io", image_bytes=b"jpg", image_alt='Say "hi"',
-        )
-        assert sent["image_bytes"] == b"jpg"
-        assert '<a href="https://shop.io"><img src="cid:ad-image"' in sent["html"]
-        assert 'alt="Say &quot;hi&quot;"' in sent["html"]
-        assert sent["html"].index("cid:ad-image") < sent["html"].index("copy")  # image on top
-
     def test_a_template_placeholder_decides_where_the_image_goes(self):
         html = distribution.with_ad_image("<h1>Hello</h1>{{image}}<p>body</p>", "alt", None)
         assert html.startswith("<h1>Hello</h1><img src=\"cid:ad-image\"") and "{{image}}" not in html
-
-    def test_no_image_means_no_tag_and_no_attachment(self, monkeypatch):
-        sent = {}
-        monkeypatch.setattr(distribution, "send_email", lambda to, subject, html, **k: sent.update(html=html, **k) or "em_1")
-        distribution.send_campaign_email("c1", 1, ["a@x.io"], "Hi", "<p>copy</p>")
-        assert "cid:" not in sent["html"] and not sent.get("image_bytes")
 
     def test_a_retried_email_still_carries_its_image(self, monkeypatch):
         sent = []

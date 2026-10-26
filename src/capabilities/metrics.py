@@ -19,8 +19,9 @@ class MetricsResult(BaseModel):
 
 
 def _is_real_post_ref(value: str | None) -> bool:
-    # Not a dry run, a dedup skip, a failed/dead delivery, or one the circuit breaker held.
-    return bool(value) and not value.startswith(("DRY_RUN", "skipped", "failed:", "dead:", "held:"))
+    # Not a dry run, a dedup skip, a failed/dead delivery, one the circuit breaker
+    # held, or an email batch that is still waiting for its sending window.
+    return bool(value) and not value.startswith(("DRY_RUN", "skipped", "failed:", "dead:", "held:", "deferred:"))
 
 
 def collect_metrics(campaign_id: str, user_id: str, round_number: int, email_to: list[str] | None = None) -> MetricsResult:
@@ -68,33 +69,53 @@ def collect_metrics(campaign_id: str, user_id: str, round_number: int, email_to:
     email_ref = iteration.get("email_id")
     email_ref_b = iteration.get("email_id_b")
     ab = _is_real_post_ref(email_ref_b)
-    # A/B rounds sent each variant to half the list (the same split as the send);
-    # with a proof-of-impact experiment, to its treatment groups (the control got nothing).
+    # Who each variant reached. The per-recipient log knows (a brand's own
+    # contacts, sent in batches): Resend-confirmed deliveries once its webhook
+    # has reported them, else the emails sent. Older rounds without a log: the
+    # list as it was split for the send (an A/B half each; with a proof-of-impact
+    # experiment its treatment groups, the control got nothing).
+    sends = _send_counts(campaign_id, round_number)
     groups = _experiment_groups(campaign_id, email_to or [], ab)
     if groups is not None:
         list_a, list_b = groups
     else:
         list_a, list_b = split_recipients(email_to or [], salt=campaign_id) if ab else (email_to or [], [])
+
+    def reached(channel: str, fallback: list[str]) -> int:
+        c = sends.get(channel)
+        return (c["delivered"] or c["sent"]) if c else len(fallback)
+
+    n_a, n_b = reached("email", list_a), reached("email_b", list_b)
     if _is_real_post_ref(email_ref):
         def read_email():
             clicks = get_click_count(campaign_id, round_number)
-            recipients = max(len(list_a), 1)
+            recipients = max(n_a, 1)
             return {"clicks": clicks, "recipients": recipients}, min(clicks / recipients, 1.0)
 
         record("email", read_email)
     if ab and "email" in raw:
         def read_email_b():
             clicks_b = get_click_count(campaign_id, round_number, "email_b")
-            recipients_b = max(len(list_b), 1)
+            recipients_b = max(n_b, 1)
             clicks_a = raw["email"]["clicks"]
-            test = two_proportion_test(clicks_a, max(len(list_a), 1), clicks_b, recipients_b)
-            test["bayes"] = bayesian_ab(clicks_a, len(list_a), clicks_b, len(list_b))
+            test = two_proportion_test(clicks_a, max(n_a, 1), clicks_b, recipients_b)
+            test["bayes"] = bayesian_ab(clicks_a, n_a, clicks_b, n_b)
             return {"clicks": clicks_b, "recipients": recipients_b, "ab_test": test}, min(clicks_b / recipients_b, 1.0)
 
         record("email_b", read_email_b)
 
     overall_reward = sum(channel_rewards.values()) / len(channel_rewards) if channel_rewards else 0.0
     return MetricsResult(channel_rewards=channel_rewards, overall_reward=overall_reward, raw=raw)
+
+
+def _send_counts(campaign_id: str, round_number: int) -> dict[str, dict[str, int]]:
+    try:
+        from src.db.supabase_client import get_email_send_counts
+
+        return get_email_send_counts(campaign_id, round_number)
+    except Exception as exc:  # fall back to the list's counts
+        logger.warning("email send counts for %s round %s unavailable: %s", campaign_id, round_number, exc)
+        return {}
 
 
 def _experiment_groups(campaign_id: str, email_to: list[str], ab: bool) -> tuple[list[str], list[str]] | None:

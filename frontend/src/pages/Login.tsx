@@ -141,7 +141,7 @@ export default function Login() {
         <header className={styles.top}>
           <Link to="/" className={styles.logo}>
             <LogoMark />
-            MarketingOS
+            CampaignIQ
           </Link>
           <div className={styles.topRight}>
             <Link to="/" className={`${styles.back} link-wipe`}>

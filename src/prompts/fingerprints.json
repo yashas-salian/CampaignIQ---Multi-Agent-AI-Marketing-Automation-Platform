@@ -1,7 +1,7 @@
 {
   "audience.personas": {
-    "fingerprint": "1c8fa2910aeb3acf",
-    "version": "1.2.0"
+    "fingerprint": "301303c4dd7bc106",
+    "version": "1.3.0"
   },
   "competitor.explain": {
     "fingerprint": "d11c72996d65b229",
@@ -16,8 +16,12 @@
     "version": "1.0.0"
   },
   "creative.generate": {
-    "fingerprint": "f3f6631d18634e64",
-    "version": "2.0.0"
+    "fingerprint": "27c394232c2eae76",
+    "version": "2.1.0"
+  },
+  "email.audience": {
+    "fingerprint": "3efcaa017db7d8de",
+    "version": "1.0.0"
   },
   "eval.judge_personas": {
     "fingerprint": "e6a1c0f528eb4595",
@@ -28,8 +32,8 @@
     "version": "1.0.0"
   },
   "feasibility.rationale": {
-    "fingerprint": "23b0822b19162b7f",
-    "version": "1.0.0"
+    "fingerprint": "2a689c1312776c9f",
+    "version": "1.1.0"
   },
   "feedback.decide": {
     "fingerprint": "20da48f3a0d9e3e2",

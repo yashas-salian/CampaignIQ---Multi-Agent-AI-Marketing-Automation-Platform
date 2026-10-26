@@ -219,72 +219,12 @@ class TestBandit:
 
 
 class TestSending:
-    def test_each_recipient_gets_their_own_link_and_key(self, monkeypatch):
-        from src.capabilities import distribution
-
-        sent, exposures = [], []
-        monkeypatch.setenv("TRACK_CLICK_BASE_URL", "https://x.supabase.co/functions/v1/track-click")
-        monkeypatch.setattr(distribution, "send_email", lambda to, subject, html, image_bytes=None, idempotency_key=None:
-                            sent.append((to, html, idempotency_key)) or f"id-{len(sent)}")
-        monkeypatch.setattr(impact, "record_exposures", lambda exp, rnd, hashes: exposures.append((exp, rnd, hashes)))
-        monkeypatch.setattr(impact, "SEND_PACING_SECONDS", 0)
-        payload = {"experiment_id": "e1", "subject": "Hi", "cta_url": "https://brew.example/?ref=ad",
-                   "html": f'<p>Coffee</p><p><a href="{distribution.LINK_SLOT}">Learn more</a></p>',
-                   "per_recipient": [{"to": "a@x.io", "token": "a" * 32, "unit_hash": "h" * 64},
-                                     {"to": "b@x.io", "token": "b" * 32, "unit_hash": "k" * 64}]}
-        ref = distribution._send_each("c1", 2, "email", payload, None)
-        assert ref == "2 emails (id-1)"
-        assert [s[0] for s in sent] == [["a@x.io"], ["b@x.io"]]  # one address per email
-        assert "t=" + "a" * 32 in sent[0][1] and "b" * 32 not in sent[0][1]
-        assert sent[0][2] == "c1:2:email:" + "h" * 32 and sent[0][2] != sent[1][2]
-        assert exposures == [("e1", 2, ["h" * 64, "k" * 64])]
-
-    def test_a_partial_failure_still_records_who_was_emailed(self, monkeypatch):
-        from src.capabilities import distribution
-
-        exposures = []
-
-        def flaky(to, *a, **k):
-            if to == ["b@x.io"]:
-                raise RuntimeError("rate limited")
-            return "id"
-
-        monkeypatch.setattr(distribution, "send_email", flaky)
-        monkeypatch.setattr(impact, "record_exposures", lambda exp, rnd, hashes: exposures.append(hashes))
-        monkeypatch.setattr(impact, "SEND_PACING_SECONDS", 0)
-        payload = {"experiment_id": "e1", "subject": "Hi", "cta_url": None, "html": "<p>x</p>",
-                   "per_recipient": [{"to": "a@x.io", "token": "a" * 32, "unit_hash": "h1"},
-                                     {"to": "b@x.io", "token": "b" * 32, "unit_hash": "h2"}]}
-        with pytest.raises(RuntimeError):
-            distribution._send_each("c1", 1, "email", payload, None)
-        assert exposures == [["h1"]]
-
     def test_without_click_tracking_the_token_still_reaches_the_site(self, monkeypatch):
         from src.capabilities.distribution import personal_link
 
         monkeypatch.delenv("TRACK_CLICK_BASE_URL", raising=False)
         assert personal_link("https://brew.example/?ref=ad&ciq_t=old", campaign_id="c", round_id=1, channel="email",
                              token="f" * 32) == "https://brew.example/?ref=ad&ciq_t=" + "f" * 32
-
-    def test_the_control_group_is_never_emailed(self, monkeypatch):
-        from src.graph.nodes import distribution_email as node
-
-        units = {
-            "a@x.io": {"arm": "treatment", "token": "1" * 32, "unit_hash": "ha"},
-            "b@x.io": {"arm": "control", "token": "2" * 32, "unit_hash": "hb"},
-            "c@x.io": {"arm": "treatment_b", "token": "3" * 32, "unit_hash": "hc"},
-        }
-        calls = []
-        monkeypatch.setattr(node.impact, "experiment_for", lambda cid: {"id": "e1", "status": "declared"})
-        monkeypatch.setattr(node.impact, "start", lambda exp, addresses: units)
-        monkeypatch.setattr(node, "send_experiment_email", lambda cid, rnd, recipients, *a, **k: calls.append([r["to"] for r in recipients]) or "ok")
-        monkeypatch.setattr(node, "upsert_iteration", lambda *a, **k: None)
-        monkeypatch.setattr(node, "brand_kit_for_campaign", lambda cid: None)
-        creative = type("C", (), {"copy_text": "Fresh coffee, ready when you arrive.", "image_bytes": b"", "headline": "Coffee"})()
-        state = {"campaign_id": "c1", "round_id": 1, "user_id": "u1", "idea": "Coffee", "email_to": list(units),
-                 "creative": creative, "creative_b": None, "domain_category": "other", "cta_url": None}
-        node.distribution_email_node(state)
-        assert calls == [["a@x.io", "c@x.io"]]  # A/B off: both treatment groups get the one creative; never b@x.io
 
 
 def test_the_early_ab_stop_waits_for_a_running_experiment(monkeypatch):

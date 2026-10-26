@@ -1,7 +1,7 @@
 import css from './PageLoader.module.css'
 
 /**
- * The MarketingOS robot, redrawn as vector so each part can move: the growth
+ * The CampaignIQ robot, redrawn as vector so each part can move: the growth
  * swoosh draws itself round, the chart bars rise in turn, the megaphone sends
  * out sound, and the robot bobs and blinks. Decorative (the loader's caption
  * carries the meaning).

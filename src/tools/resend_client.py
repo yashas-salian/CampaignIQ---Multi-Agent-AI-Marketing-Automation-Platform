@@ -9,15 +9,23 @@ AD_IMAGE_CID = "ad-image"
 
 
 def send_email(
-    to: list[str], subject: str, html: str, image_bytes: bytes | None = None, *, idempotency_key: str | None = None
+    to: list[str], subject: str, html: str, image_bytes: bytes | None = None, *, idempotency_key: str | None = None,
+    sender: dict | None = None, headers: dict | None = None,
 ) -> str:
-    resend.api_key = os.environ["RESEND_API_KEY"]
+    """Send one email. `sender` ({api_key, from, reply_to}) is an organisation's
+    own Resend account; without it, the app's own (RESEND_API_KEY /
+    RESEND_FROM_EMAIL: notifications, alerts and the test inbox)."""
+    resend.api_key = sender["api_key"] if sender else os.environ["RESEND_API_KEY"]
     params = {
-        "from": os.environ["RESEND_FROM_EMAIL"],
+        "from": sender["from"] if sender else os.environ["RESEND_FROM_EMAIL"],
         "to": to,
         "subject": subject,
         "html": html,
     }
+    if sender and sender.get("reply_to"):
+        params["reply_to"] = sender["reply_to"]
+    if headers:
+        params["headers"] = headers
     if image_bytes:
         params["attachments"] = [
             {

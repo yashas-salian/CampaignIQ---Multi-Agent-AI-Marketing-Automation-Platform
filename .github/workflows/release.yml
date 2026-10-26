@@ -37,4 +37,4 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --title "MarketingOS $GITHUB_REF_NAME" --notes-file notes.md --verify-tag
+        run: gh release create "$GITHUB_REF_NAME" --title "CampaignIQ $GITHUB_REF_NAME" --notes-file notes.md --verify-tag

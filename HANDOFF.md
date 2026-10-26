@@ -1,4 +1,4 @@
-# MarketingOS — Handoff / Continuation Guide
+# CampaignIQ — Handoff / Continuation Guide
 
 > Written 2026-10-19 so work can continue on a different laptop and a different
 > Claude account. Give this file to the new Claude session first, then
@@ -89,8 +89,8 @@ Local `main` was level with `origin/main` at that point.
 
 Copy these files securely (password manager, encrypted USB; not chat or
 email):
-- `MarketingOS/.env` (26 keys, listed in §5.3)
-- `MarketingOS/frontend/.env` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`)
+- `CampaignIQ/.env` (26 keys, listed in §5.3)
+- `CampaignIQ/frontend/.env` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`)
 
 The Supabase project, the Edge Functions and the GitHub Actions secrets live
 in the cloud and are **already set up**. You don't redeploy them on the new
@@ -106,7 +106,7 @@ Files you don't need to copy (local, regenerated or gitignored):
 ## 4. Repo map
 
 ```
-MarketingOS/
+CampaignIQ/
   DESIGN.md              ← full spec + "Implementation specifics" (source of truth)
   README.md              ← setup per milestone, Edge Function table
   docs/architecture.md   ← mermaid flow + "why this isn't an LLM wrapper"
@@ -215,8 +215,8 @@ anon key, never the service role key).
 ## 6. Setup and smoke tests on the new laptop (do these before writing new code)
 
 ```powershell
-git clone https://github.com/yashas-salian/CampaignIQ---Multi-Agent-AI-Marketing-Automation-Platform MarketingOS
-cd MarketingOS
+git clone https://github.com/yashas-salian/CampaignIQ---Multi-Agent-AI-Marketing-Automation-Platform CampaignIQ
+cd CampaignIQ
 # put the copied .env here and frontend\.env in frontend\
 py -3.12 -m venv .venv
 .venv\Scripts\python.exe -m pip install -U pip
@@ -328,10 +328,10 @@ and the README has the demo video and portfolio write-up.
 ## 9. Starter prompt for the new Claude session
 
 Paste this as the first message in Claude Code, run from inside the cloned
-`MarketingOS` folder:
+`CampaignIQ` folder:
 
 ```
-I'm continuing an existing project, MarketingOS (an agentic ad-campaign
+I'm continuing an existing project, CampaignIQ (an agentic ad-campaign
 platform: Python/LangGraph + Supabase + Vite/React + GitHub Actions). I've
 moved to a new laptop and a new Claude account, so you have no prior context.
 

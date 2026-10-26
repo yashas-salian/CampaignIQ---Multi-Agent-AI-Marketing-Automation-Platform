@@ -1,6 +1,6 @@
 {
-  "name": "MarketingOS",
-  "short_name": "MarketingOS",
+  "name": "CampaignIQ",
+  "short_name": "CampaignIQ",
   "description": "Turn one idea into a campaign that learns from every round of real engagement.",
   "start_url": "/",
   "display": "standalone",

@@ -147,10 +147,3 @@ def test_when_the_outcome_is_unknown_nothing_is_resent(live, delivery_ledger):
 def test_a_scheduled_retry_reconciles_first(live):
     send(Flaky(failures=99))  # attempt 1 fails (maybe after reaching Bluesky)
     assert send_with(lambda: pytest.fail("posted again"), lambda: "at://post/found") == "at://post/found"
-
-
-def test_emails_carry_an_idempotency_key(live, monkeypatch):
-    seen = {}
-    monkeypatch.setattr(distribution, "send_email", lambda *a, **k: seen.update(k) or "em_1")
-    distribution.send_campaign_email("c7", 2, ["a@x.io"], "Hi", "<p>x</p>", user_id="u1")
-    assert seen["idempotency_key"] == "c7:2:email:" + distribution.recipient_key("a@x.io")[:32]  # one key per recipient

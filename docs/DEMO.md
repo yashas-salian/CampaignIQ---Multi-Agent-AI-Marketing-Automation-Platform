@@ -1,4 +1,4 @@
-# MarketingOS demo script
+# CampaignIQ demo script
 
 A 10-minute walkthrough for the project submission: one campaign from idea to
 learning loop, then the parts that make it more than "an app that calls an

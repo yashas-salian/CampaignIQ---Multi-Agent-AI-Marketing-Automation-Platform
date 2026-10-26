@@ -6,10 +6,16 @@ from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 TOKEN_PARAM = "ciq_t"
 
 
-def wrap_tracked_url(url: str, *, campaign_id: str, round_id: int, channel: str = "email", token: str | None = None) -> str:
+def wrap_tracked_url(url: str, *, campaign_id: str, round_id: int, channel: str = "email", token: str | None = None,
+                     contact_token: str | None = None) -> str:
+    """The click-tracking link. `token`: an experiment unit's token (credited to
+    the experiment, passed on to the brand's site); `contact_token`: the
+    contact's own click token (marks them engaged; never passed on)."""
     base = os.environ["TRACK_CLICK_BASE_URL"].rstrip("/")
     tracked = f"{base}?url={quote(url, safe='')}&campaign_id={campaign_id}&round_id={round_id}&channel={channel}"
-    return f"{tracked}&t={token}" if token else tracked
+    if token:
+        tracked += f"&t={token}"
+    return f"{tracked}&k={contact_token}" if contact_token else tracked
 
 
 def with_token(url: str, token: str) -> str:

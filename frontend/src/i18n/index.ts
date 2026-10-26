@@ -14,11 +14,12 @@ export const UI_LOCALES = [
   { code: 'pt', label: 'Português' },
 ] as const
 
-const STORAGE_KEY = 'marketingos_ui_locale'
+const STORAGE_KEY = 'campaigniq_ui_locale'
+const OLD_STORAGE_KEY = 'marketingos_ui_locale' // the app's earlier name: a choice saved under it still counts
 
 i18next.use(initReactI18next).init({
   resources: { en: { translation: en }, es: { translation: es }, fr: { translation: fr }, hi: { translation: hi }, pt: { translation: pt } },
-  lng: localStorage.getItem(STORAGE_KEY) ?? 'en',
+  lng: localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(OLD_STORAGE_KEY) ?? 'en',
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
 })

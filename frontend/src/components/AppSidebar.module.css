@@ -4,8 +4,8 @@
   --rail: 64px;
   position: fixed; z-index: 55; top: var(--topbar-h, 64px); bottom: 0; left: 0; width: var(--rail);
   display: flex; flex-direction: column; gap: 2px; padding: 12px 10px; overflow: hidden auto;
-  background: var(--mos-surface); border-right: 1px solid var(--mos-surface-border);
-  transition: width 0.28s var(--mos-ease), box-shadow 0.28s ease;
+  background: var(--ciq-surface); border-right: 1px solid var(--ciq-surface-border);
+  transition: width 0.28s var(--ciq-ease), box-shadow 0.28s ease;
   scrollbar-width: none;
 }
 .sidebar::-webkit-scrollbar { display: none; }
@@ -13,7 +13,7 @@
 
 .group {
   margin: 14px 0 4px !important; padding: 0 12px; height: 16px; white-space: nowrap; overflow: hidden;
-  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mos-text-muted);
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ciq-text-muted);
   opacity: 0; transition: opacity 0.2s ease;
   flex: none; /* the column scrolls when tall; headings must not shrink to nothing */
 }
@@ -21,31 +21,31 @@
 
 .item {
   display: flex; align-items: center; gap: 14px; height: 42px; padding: 0 11px; border-radius: 12px; flex: none;
-  color: var(--mos-text-muted); text-decoration: none; white-space: nowrap; font-size: 14px; font-weight: 500;
+  color: var(--ciq-text-muted); text-decoration: none; white-space: nowrap; font-size: 14px; font-weight: 500;
   transition: background 0.2s ease, color 0.2s ease;
   /* The underline effect paints text from --wipe-base (its own colour is transparent). */
-  --wipe-base: var(--mos-text-muted);
+  --wipe-base: var(--ciq-text-muted);
 }
 .item svg { width: 20px; height: 20px; flex: none; }
-.item:hover { background: var(--mos-bg-raised); color: var(--mos-text); --wipe-base: var(--mos-text); }
-.item:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: -2px; }
+.item:hover { background: var(--ciq-bg-raised); color: var(--ciq-text); --wipe-base: var(--ciq-text); }
+.item:focus-visible { outline: 2px solid var(--ciq-accent); outline-offset: -2px; }
 .label { opacity: 0; transition: opacity 0.18s ease; }
 .open .label { opacity: 1; }
 /* Current page: orange icon and the site's drawn underline, no side stripe. */
-.active { color: var(--mos-text); background: var(--mos-bg-raised); --wipe-base: var(--mos-text); }
-.active svg { color: var(--mos-accent); }
+.active { color: var(--ciq-text); background: var(--ciq-bg-raised); --wipe-base: var(--ciq-text); }
+.active svg { color: var(--ciq-accent); }
 .active :global(.link-wipe) { background-position: 0 0; }
 .active :global(.link-wipe)::after { transform: scaleX(1); }
 
-.create { margin-bottom: 4px; background: var(--mos-accent); color: #111316; }
-.create:hover { background: var(--mos-accent); color: #111316; filter: brightness(1.06); }
+.create { margin-bottom: 4px; background: var(--ciq-accent); color: #111316; }
+.create:hover { background: var(--ciq-accent); color: #111316; filter: brightness(1.06); }
 
 /* Settings sections, nested under Settings while on that page. */
 .sub { list-style: none; margin: 2px 0 6px; padding: 0 0 0 44px; display: none; flex-direction: column; gap: 2px; flex: none; }
 .open .sub { display: flex; }
-.sub a { display: block; padding: 6px 8px; font-size: 13px; color: var(--mos-text-muted); text-decoration: none; white-space: nowrap; border-radius: 8px; }
-.sub a:hover { color: var(--mos-text); }
-.sub a:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: -2px; }
+.sub a { display: block; padding: 6px 8px; font-size: 13px; color: var(--ciq-text-muted); text-decoration: none; white-space: nowrap; border-radius: 8px; }
+.sub a:hover { color: var(--ciq-text); }
+.sub a:focus-visible { outline: 2px solid var(--ciq-accent); outline-offset: -2px; }
 .subCurrent { font-weight: 600; }
 .subCurrent :global(.link-wipe) { background-position: 0 0; }
 .subCurrent :global(.link-wipe)::after { transform: scaleX(1); }
@@ -59,9 +59,9 @@
   .sidebar {
     top: 0; z-index: 75; width: min(288px, 86vw); padding-top: 18px;
     transform: translateX(-100%); visibility: hidden;
-    transition: transform 0.32s var(--mos-ease), visibility 0s linear 0.32s;
+    transition: transform 0.32s var(--ciq-ease), visibility 0s linear 0.32s;
   }
-  .sidebar.drawer { transform: none; visibility: visible; transition: transform 0.32s var(--mos-ease), visibility 0s; box-shadow: 30px 0 60px -30px rgba(0, 0, 0, 0.6); }
+  .sidebar.drawer { transform: none; visibility: visible; transition: transform 0.32s var(--ciq-ease), visibility 0s; box-shadow: 30px 0 60px -30px rgba(0, 0, 0, 0.6); }
   .group, .label { opacity: 1; }
   .sub { display: flex; }
   .backdrop { display: block; position: fixed; inset: 0; z-index: 74; background: rgba(0, 0, 0, 0.4); opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }

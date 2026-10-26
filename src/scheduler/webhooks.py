@@ -5,8 +5,8 @@ audit-log trigger). This sweep, run with the hourly loop:
   1. reads pg_net's responses: 2xx -> sent; anything else -> scheduled retry;
   2. re-sends due retries directly (same HMAC signature), with backoff;
   3. marks a delivery failed after MAX_ATTEMPTS.
-Receivers should verify `X-MarketingOS-Signature: sha256=<hex>` =
-HMAC-SHA256(secret, raw body) and de-duplicate on `X-MarketingOS-Delivery`.
+Receivers should verify `X-CampaignIQ-Signature: sha256=<hex>` =
+HMAC-SHA256(secret, raw body) and de-duplicate on `X-CampaignIQ-Delivery`.
 """
 import hashlib
 import hmac
@@ -90,7 +90,11 @@ def sweep() -> dict[str, int]:
                 hook["url"], data=body, timeout=10,
                 headers={
                     "Content-Type": "application/json",
-                    "User-Agent": "MarketingOS-Webhooks/1",
+                    "User-Agent": "CampaignIQ-Webhooks/1",
+                    "X-CampaignIQ-Event": delivery["event"],
+                    "X-CampaignIQ-Delivery": str(delivery["id"]),
+                    "X-CampaignIQ-Signature": sign(hook["secret"], body),
+                    # The old names too, while existing receivers move over.
                     "X-MarketingOS-Event": delivery["event"],
                     "X-MarketingOS-Delivery": str(delivery["id"]),
                     "X-MarketingOS-Signature": sign(hook["secret"], body),

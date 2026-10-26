@@ -397,7 +397,7 @@ function Design({ experiment }: { experiment: Experiment }) {
 function Integration({ experiment }: { experiment: Experiment }) {
   const { t } = useTranslation()
   const sample = `POST /functions/v1/api/v1/conversions
-Authorization: Bearer mos_...
+Authorization: Bearer ciq_...
 { "experiment_id": "${experiment.id}", "event_id": "order-123",
   "token": "<ciq_t from the link>", "qualified": true, "value": 25, "currency": "USD" }`
   return (

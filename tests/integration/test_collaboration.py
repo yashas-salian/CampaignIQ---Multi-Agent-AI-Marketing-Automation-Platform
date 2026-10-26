@@ -44,9 +44,13 @@ def test_members_comment_outsiders_cannot(db, setup, act_as, as_admin):
 def test_edit_keeps_the_original_and_every_version(db, setup, act_as, as_admin):
     cid, u = setup
     act_as(u["approver"])
-    assert run(db, "select edit_round_copy(%s, 1, 'a', 'Edited once')", (cid,)) == "ok"
-    assert run(db, "select edit_round_copy(%s, 1, 'a', 'Edited twice')", (cid,)) == "ok"
+    # A substantial rewrite needs a reason (it's kept with the version, and proposed as a brand lesson).
+    assert "say why" in run(db, "select edit_round_copy(%s, 1, 'a', 'Edited once')", (cid,))
+    assert run(db, "select edit_round_copy(%s, 1, 'a', 'Edited once', 'The draft sounded too salesy')", (cid,)) == "ok"
+    assert run(db, "select edit_round_copy(%s, 1, 'a', 'Edited twice', 'Tighter wording for the email')", (cid,)) == "ok"
     as_admin()
+    assert db.execute("select reason, material from copy_revisions where campaign_id = %s and copy_text = 'Edited once'",
+                      (cid,)).fetchone() == ("The draft sounded too salesy", True)
     versions = db.execute("select copy_text, edited_by is null from copy_revisions where campaign_id = %s and variant = 'a' order by id", (cid,)).fetchall()
     assert versions == [("AI draft", True), ("Edited once", False), ("Edited twice", False)]
     assert db.execute("select copy_text, copy_text_b from iterations where campaign_id = %s", (cid,)).fetchone() == ("Edited twice", "AI draft B")

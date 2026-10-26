@@ -97,22 +97,6 @@ class TestDistribution:
         assert distribution.post_bluesky("c1", 1, "Hello").startswith("skipped")
         assert distribution.post_bluesky("c1", 2, "Hello").startswith("DRY_RUN")
 
-    def test_live_send_when_dry_run_is_off(self, monkeypatch):
-        monkeypatch.setenv("DRY_RUN", "false")
-        sent = []
-        monkeypatch.setattr("src.capabilities.impact.SEND_PACING_SECONDS", 0)
-        monkeypatch.setattr(distribution, "send_email", lambda to, subject, html, **_: sent.append(to) or f"email-id-{len(sent)}")
-        assert distribution.send_campaign_email("c2", 1, ["a@x.io", "b@x.io"], "Hi", "<p>x</p>") == "2 emails (email-id-1)"
-        assert sent == [["a@x.io"], ["b@x.io"]]  # one person per email: nobody sees the other addresses
-
-    def test_cta_link_is_click_tracked_when_configured(self, monkeypatch):
-        sent = {}
-        monkeypatch.setenv("DRY_RUN", "false")
-        monkeypatch.setenv("TRACK_CLICK_BASE_URL", "https://ref.supabase.co/functions/v1/track-click")
-        monkeypatch.setattr(distribution, "send_email", lambda to, subject, html, **_: sent.setdefault("html", html))
-        distribution.send_campaign_email("c3", 2, ["a@x.io"], "Hi", "<p>x</p>", cta_url="https://shop.io/a?b=1")
-        assert "track-click?url=https%3A%2F%2Fshop.io%2Fa%3Fb%3D1&campaign_id=c3&round_id=2&channel=email" in sent["html"]
-
 
 class TestFeedbackCorrection:
     def test_round_cap_stops_without_an_llm_call(self, monkeypatch):

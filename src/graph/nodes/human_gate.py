@@ -30,6 +30,17 @@ def gate_1_node(state: CampaignState) -> CampaignState:
         update_campaign_status(state["campaign_id"], "rejected")
         return {"rejected": True}
 
+    # The email audience is fixed now (if the campaign has one); the first email
+    # round fixes it instead if this fails, so a hiccup here never stops the gate.
+    try:
+        from src.capabilities.email_engine import freeze_audience
+
+        size = freeze_audience(state["campaign_id"])
+        if size:
+            logger.info("campaign %s: email audience fixed at %d people", state["campaign_id"], size)
+    except Exception as exc:
+        logger.warning("fixing the email audience for %s failed (the first round retries): %s", state["campaign_id"], exc)
+
     # Re-read from Supabase: an "edit" decision overwrites fields directly in the
     # DB via the frontend, so the graph must pick up the latest values here
     # rather than trust its own pre-gate in-memory state.

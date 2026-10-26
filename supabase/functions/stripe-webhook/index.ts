@@ -1,4 +1,4 @@
-// Stripe → MarketingOS: keeps each organisation's plan in step with its
+// Stripe → CampaignIQ: keeps each organisation's plan in step with its
 // subscription. JWT verification OFF (Stripe can't send a Supabase JWT); every
 // request is authenticated by its Stripe-Signature instead.
 // Secrets: STRIPE_WEBHOOK_SECRET (whsec_...), STRIPE_SECRET_KEY.

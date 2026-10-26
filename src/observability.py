@@ -25,9 +25,9 @@ _initialised = False
 
 def _release() -> str:
     try:
-        return f"marketingos@{version('ad-campaign-agent')}"
+        return f"campaigniq@{version('ad-campaign-agent')}"
     except PackageNotFoundError:
-        return "marketingos@dev"
+        return "campaigniq@dev"
 
 
 def init(service: str) -> None:

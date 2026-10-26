@@ -1,0 +1,58 @@
+/* Contacts: counts on top, the import wizard when open, then the list. No side stripes. */
+.meta { margin: 0; font-size: 12.5px; color: var(--ciq-text-muted); line-height: 1.6; overflow-wrap: anywhere; }
+.counts { display: flex; flex-direction: column; gap: 12px; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.tiles div { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 12px; background: var(--ciq-bg);
+  border: 1px solid var(--ciq-surface-border); min-width: 0; }
+.tiles dt { font-size: 12.5px; color: var(--ciq-text-muted); }
+.tiles dd { margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 600; letter-spacing: -0.02em; }
+.cap { margin: 0; font-size: 13px; color: var(--ciq-text-muted); }
+
+.toolbar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.search { width: 100%; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.filter { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--ciq-surface-border); background: var(--ciq-surface);
+  color: var(--ciq-text); font: inherit; font-size: 12.5px; cursor: pointer; }
+.filterOn { background: var(--ciq-text); color: var(--ciq-bg); border-color: var(--ciq-text); }
+
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1.4fr); gap: 12px; align-items: center;
+  padding: 12px 0; border-top: 1px solid var(--ciq-surface-border); }
+.row:first-child { border-top: 0; }
+.who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.email { font-size: 14px; overflow-wrap: anywhere; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.tag { display: inline-block; margin-left: 4px; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; background: var(--ciq-bg-raised);
+  border: 1px solid var(--ciq-surface-border); }
+.tags .tag { margin-left: 0; }
+.facts { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; min-width: 0; }
+.status { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--ciq-surface-border); }
+.subscribed { border-color: color-mix(in srgb, var(--ciq-success, #2f9e6b) 55%, var(--ciq-surface-border)); }
+.unsubscribed, .bounced, .complained { color: var(--ciq-text-muted); }
+.pending { border-style: dashed; }
+.more { margin-top: 12px; }
+
+.wizard { display: flex; flex-direction: column; gap: 14px; }
+.file { display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 500; color: var(--ciq-text-muted); }
+.file input { font: inherit; color: var(--ciq-text); max-width: 100%; }
+.mapping { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.mapping legend { font-size: 13px; font-weight: 600; margin-bottom: 10px; padding: 0; }
+.preview ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; overflow-wrap: anywhere; }
+.consent { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.attest { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; line-height: 1.5; }
+.attest input { margin-top: 3px; flex: none; }
+.wizard > button { align-self: flex-start; }
+.result { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.result p { margin: 0; }
+.result summary { cursor: pointer; color: var(--ciq-text-muted); font-size: 13px; }
+.result ul { margin: 6px 0 0; padding-left: 18px; font-size: 13px; overflow-wrap: anywhere; }
+.reason { color: var(--ciq-text-muted); }
+
+.headActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.more2 { padding: 0; border: 0; background: none; font: inherit; font-size: 12.5px; color: var(--ciq-text); text-decoration: underline; cursor: pointer; }
+
+@media (max-width: 760px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .mapping, .consent { grid-template-columns: minmax(0, 1fr); }
+}

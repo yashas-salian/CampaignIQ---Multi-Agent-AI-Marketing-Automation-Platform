@@ -60,7 +60,7 @@ def _safe_signal(fetch_fn, keyword: str, neutral: dict, **kwargs) -> dict:
         return {**neutral, "keyword": keyword, "error": str(exc)}
 
 
-def score_feasibility(idea: str, *, user_id: str | None = None, target_language: str = "en") -> FeasibilityResult:
+def score_feasibility(idea: str, *, user_id: str | None = None, target_language: str = "en", memory: str = "") -> FeasibilityResult:
     keywords = _extract_search_keywords(idea, user_id, target_language)
     trend = get_trend_interest(keywords, hl=trends_hl(target_language))  # has its own internal retry + graceful fallback
     news = _safe_signal(
@@ -124,6 +124,7 @@ def score_feasibility(idea: str, *, user_id: str | None = None, target_language:
         signals=fence({k: {kk: vv for kk, vv in v.items() if kk not in ("texts", "fetched_at")} for k, v in signals.items()},
                       "research_signals", max_len=4000),
         similar=similar_text,
+        memory=memory,
         score=composite,
         language=language_name(target_language),
     )

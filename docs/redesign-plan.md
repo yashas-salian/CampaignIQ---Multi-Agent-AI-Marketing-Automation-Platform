@@ -1,22 +1,22 @@
 # Frontend redesign plan ("Signal")
 
-An original design system for MarketingOS. It takes the *kind* of motion
+An original design system for CampaignIQ. It takes the *kind* of motion
 common to modern SaaS marketing sites (scroll reveals, hover lifts,
 marquees, sticky sections) but uses its own palette, type, layout and copy.
 
 ## 1. Design tokens (`frontend/src/index.css`)
 
-Names stay `--mos-*` so every app page picks the new look up for free.
+Names stay `--ciq-*` so every app page picks the new look up for free.
 
 | Token | Dark (default) | Light |
 |---|---|---|
-| `--mos-bg` | `#0c0e10` | `#f7f6f3` |
-| `--mos-bg-raised` | `#12151a` | `#efede8` |
-| `--mos-surface` | `#161a20` | `#ffffff` |
-| `--mos-surface-border` | `#242a33` | `#e2dfd8` |
-| `--mos-text` / `-muted` | `#edf1f5` / `#8d97a5` | `#111316` / `#5f6672` |
-| `--mos-accent` (signal orange) | `#ff6b3d` | `#e4521f` |
-| `--mos-success` / `--mos-danger` | `#3ecf8e` / `#ff5470` | `#16a36a` / `#e0364f` |
+| `--ciq-bg` | `#0c0e10` | `#f7f6f3` |
+| `--ciq-bg-raised` | `#12151a` | `#efede8` |
+| `--ciq-surface` | `#161a20` | `#ffffff` |
+| `--ciq-surface-border` | `#242a33` | `#e2dfd8` |
+| `--ciq-text` / `-muted` | `#edf1f5` / `#8d97a5` | `#111316` / `#5f6672` |
+| `--ciq-accent` (signal orange) | `#ff6b3d` | `#e4521f` |
+| `--ciq-success` / `--ciq-danger` | `#3ecf8e` / `#ff5470` | `#16a36a` / `#e0364f` |
 
 Type: Space Grotesk (display), Inter (body), JetBrains Mono (labels, data),
 loaded from Google Fonts. Radius 18px for cards, pills for buttons.

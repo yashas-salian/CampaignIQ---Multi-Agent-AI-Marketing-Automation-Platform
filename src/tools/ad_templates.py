@@ -560,12 +560,6 @@ def dashed_curve(ad: Ad, points, color, width=5, dash=18, gap=14) -> None:
             run, on, start = 0, True, b
 
 
-def arrow_head(ad: Ad, tip, angle_deg, color, size=26, width=6) -> None:
-    a = math.radians(angle_deg)
-    for side in (-0.5, 0.5):
-        ad.draw.line([tip, (tip[0] - size * math.cos(a + side), tip[1] - size * math.sin(a + side))], fill=color, width=width)
-
-
 def sparkle(ad: Ad, center, size, color, width=5) -> None:
     x, y = center
     for i in range(3):

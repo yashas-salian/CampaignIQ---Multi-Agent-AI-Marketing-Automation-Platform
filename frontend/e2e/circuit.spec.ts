@@ -32,7 +32,6 @@ async function signIn(page: Page, opts: { role?: string; campaign?: object; hold
   const campaign = opts.campaign ?? CAMPAIGN
   await page.route('**/rest/v1/**', async (route) => {
     const url = route.request().url()
-    const method = route.request().method()
     const single = (route.request().headers()['accept'] ?? '').includes('vnd.pgrst.object')
     let body: unknown = single ? null : []
     const rpc = url.match(/\/rpc\/(\w+)/)?.[1]

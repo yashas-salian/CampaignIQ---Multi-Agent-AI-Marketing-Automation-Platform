@@ -49,7 +49,7 @@ function Compare({ label, ours, base, baseLabel, note }: { label: string; ours?:
         {lift !== null && <span className={local.lift}>{lift >= 0 ? `+${lift}` : lift} pts</span>}
       </div>
       <div className={local.barRow}>
-        <span>MarketingOS</span>
+        <span>CampaignIQ</span>
         <span className={local.track}>
           <span className={local.fillOurs} style={{ '--w': `${(ours ?? 0) * 100}%` } as CSSProperties} />
         </span>

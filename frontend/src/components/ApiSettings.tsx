@@ -176,7 +176,7 @@ export default function ApiSettings() {
       <form className={local.team} onSubmit={addHook}>
         <label className={styles.field}>
           <span>{t('api.endpoint')}</span>
-          <input className={styles.input} type="url" required pattern="https://.*" value={hookUrl} onChange={(e) => setHookUrl(e.target.value)} placeholder="https://example.com/marketingos" />
+          <input className={styles.input} type="url" required pattern="https://.*" value={hookUrl} onChange={(e) => setHookUrl(e.target.value)} placeholder="https://example.com/campaigniq" />
         </label>
         <div className={local.inline} style={{ flexWrap: 'wrap' }}>
           {EVENT_PRESETS.map((ev) => (

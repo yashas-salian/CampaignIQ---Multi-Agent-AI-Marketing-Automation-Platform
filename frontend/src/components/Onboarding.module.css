@@ -1,13 +1,13 @@
-.card { display: grid; gap: 14px; border-color: color-mix(in srgb, var(--mos-accent) 35%, var(--mos-surface-border)); }
+.card { display: grid; gap: 14px; border-color: color-mix(in srgb, var(--ciq-accent) 35%, var(--ciq-surface-border)); }
 .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .head h2 { font-family: var(--font-display); font-size: 17px; font-weight: 600; }
-.dismiss { border: 0; background: none; padding: 0; font: inherit; font-size: 13px; color: var(--mos-text-muted); cursor: pointer; }
-.dismiss:hover { color: var(--mos-text); }
+.dismiss { border: 0; background: none; padding: 0; font: inherit; font-size: 13px; color: var(--ciq-text-muted); cursor: pointer; }
+.dismiss:hover { color: var(--ciq-text); }
 .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 16px; }
 .steps li { display: flex; align-items: center; gap: 10px; font-size: 14px; }
 .mark {
   width: 20px; height: 20px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700;
-  border: 1.5px solid var(--mos-surface-border); color: #111316;
+  border: 1.5px solid var(--ciq-surface-border); color: #111316;
 }
-.done .mark { background: var(--mos-accent); border-color: var(--mos-accent); }
-.done span:last-child { color: var(--mos-text-muted); text-decoration: line-through; }
+.done .mark { background: var(--ciq-accent); border-color: var(--ciq-accent); }
+.done span:last-child { color: var(--ciq-text-muted); text-decoration: line-through; }

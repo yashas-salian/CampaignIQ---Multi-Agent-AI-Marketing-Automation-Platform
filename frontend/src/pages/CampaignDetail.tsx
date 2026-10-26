@@ -19,25 +19,22 @@ import { toast } from '../lib/toast'
 import { toastFailure, toastLoadError } from '../lib/notify'
 import { usePageLoading } from '../lib/loading'
 import { supabase } from '../lib/supabaseClient'
-import type { Campaign, CampaignDecision, CampaignHold, CampaignStatus, CrashTestRow, Experiment, GateDecision, Iteration, Persona } from '../lib/types'
+import type { Campaign, CampaignDecision, CampaignHold, CampaignStatus, CreativeIntervention, CrashTestRow, Experiment, FatigueAlert, FatigueReport, GateDecision, Iteration, Persona } from '../lib/types'
+import CreativeFatigue from '../components/CreativeFatigue'
 import ProofOfImpact from '../components/ProofOfImpact'
 import { PausedPanel, SafetyControls } from '../components/CircuitBreaker'
 import CrashTestReport from '../components/CrashTestReport'
 import DecisionCard from '../components/DecisionCard'
+import EmailAudience from '../components/EmailAudience'
 import styles from '../styles/app.module.css'
 import local from './CampaignDetail.module.css'
 import Select from '../components/Select'
+import { DOMAINS } from '../lib/domains'
 
 const GATE_NUMBER_BY_STATUS: Partial<Record<CampaignStatus, 1 | 2>> = {
   awaiting_gate_1: 1,
   awaiting_gate_2: 2,
 }
-
-// Must match DomainCategory in src/capabilities/idea_intake.py (and the domain_corrections check in supabase/migrations).
-const DOMAINS = [
-  'fitness_wellness', 'b2b_saas', 'ecommerce_retail', 'food_beverage', 'finance_fintech', 'education',
-  'consumer_electronics', 'travel_hospitality', 'real_estate', 'healthcare', 'entertainment_media', 'other',
-] as const
 
 const STEPS = ['s_intake', 's_feasibility', 's_audience', 's_gate1', 's_creative', 's_preflight', 's_gate2', 's_distribute', 's_measure'] as const
 
@@ -233,12 +230,15 @@ export default function CampaignDetail() {
   const [holds, setHolds] = useState<CampaignHold[]>([])
   // The proof-of-impact experiment, if one was declared.
   const [experiment, setExperiment] = useState<Experiment | null>(null)
+  // Creative fatigue: the latest analysis, its alerts and the refreshes tried.
+  const [fatigue, setFatigue] = useState<{ report: FatigueReport | null; alerts: FatigueAlert[]; interventions: CreativeIntervention[] }>(
+    { report: null, alerts: [], interventions: [] })
 
   usePageLoading(!campaign && !missing)
 
   const load = useCallback(async () => {
     if (!id) return
-    const [{ data: campaignData, error: campaignError }, { data: personaData }, { data: iterationData }, { data: decisionData }, { data: crashData }, { data: holdData }, { data: experimentData }] = await Promise.all([
+    const [{ data: campaignData, error: campaignError }, { data: personaData }, { data: iterationData }, { data: decisionData }, { data: crashData }, { data: holdData }, { data: experimentData }, { data: fatigueReport }, { data: fatigueAlerts }, { data: fatigueRefreshes }] = await Promise.all([
       supabase.from('campaigns').select('*').eq('id', id).maybeSingle(),
       supabase.from('personas').select('*').eq('campaign_id', id),
       supabase.from('iterations').select('*').eq('campaign_id', id).order('round_number').order('preflight_attempt'),
@@ -246,6 +246,9 @@ export default function CampaignDetail() {
       supabase.from('crash_tests').select('id,round_number,trigger,risk,revised_risk,report,applied_at,created_at').eq('campaign_id', id).order('created_at', { ascending: false }),
       supabase.from('campaign_holds').select('*').eq('campaign_id', id).order('created_at', { ascending: false }),
       supabase.from('experiments').select('*').eq('campaign_id', id).maybeSingle(),
+      supabase.from('creative_fatigue_reports').select('*').eq('campaign_id', id).maybeSingle(),
+      supabase.from('creative_fatigue_alerts').select('*').eq('campaign_id', id).order('created_at', { ascending: false }),
+      supabase.from('creative_interventions').select('*').eq('campaign_id', id).order('created_at', { ascending: false }),
     ])
     // A failed request isn't "not found": say so and offer a retry.
     if (toastLoadError(t, campaignError, () => load())) return
@@ -268,6 +271,8 @@ export default function CampaignDetail() {
     setCrashTests((crashData as CrashTestRow[]) ?? [])
     setHolds((holdData as CampaignHold[]) ?? [])
     setExperiment((experimentData as Experiment | null) ?? null)
+    setFatigue({ report: (fatigueReport as FatigueReport | null) ?? null, alerts: (fatigueAlerts as FatigueAlert[]) ?? [],
+                 interventions: (fatigueRefreshes as CreativeIntervention[]) ?? [] })
 
     const gateNumber = GATE_NUMBER_BY_STATUS[(campaignData as Campaign).status]
     if (gateNumber) {
@@ -313,6 +318,7 @@ export default function CampaignDetail() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'crash_tests', filter: `campaign_id=eq.${id}` }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_holds', filter: `campaign_id=eq.${id}` }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'experiments', filter: `campaign_id=eq.${id}` }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'creative_fatigue_alerts', filter: `campaign_id=eq.${id}` }, () => load())
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
@@ -558,6 +564,9 @@ export default function CampaignDetail() {
               </div>
             </div>
           )}
+          {pendingGate.gate_number === 2 && campaign.email_audience_frozen_at && (
+            <EmailAudience campaign={campaign} editable={false} gate2={canApprove || canCreate} />
+          )}
           {pendingGate.gate_number === 2 && <ComplianceRadar flags={rounds[0]?.guardrail_flags ?? null} alwaysShow />}
           {pendingGate.gate_number === 2 && rounds[0]?.focus_group && <FocusGroup result={rounds[0].focus_group} />}
           {pendingGate.gate_number === 2 && crashNow && (
@@ -582,6 +591,7 @@ export default function CampaignDetail() {
               <span>{t('decision.overrideHint')}</span>
             </div>
           )}
+          {pendingGate.gate_number === 1 && <EmailAudience campaign={campaign} editable={canCreate && !alreadyVoted} onChanged={load} />}
           {pendingGate.gate_number === 1 && (
             <label className={styles.field}>
               <span>{t('cd.categoryLabel')}</span>
@@ -673,6 +683,7 @@ export default function CampaignDetail() {
             )
           })}
         </ol>
+        {campaign.email_audience_frozen_at && <div className={local.audience}><EmailAudience campaign={campaign} editable={false} /></div>}
       </section>
 
       {/* Feasibility first (it's scored before personas), as one wide card. */}
@@ -844,6 +855,9 @@ export default function CampaignDetail() {
         emailSent={iterations.some((it) => !!it.email_id && !/^(DRY_RUN|skipped|failed:|dead:|held:)/.test(it.email_id))}
         onDone={load}
       />
+
+      <CreativeFatigue report={fatigue.report} alerts={fatigue.alerts} interventions={fatigue.interventions}
+        canEdit={isActive && (canCreate || canManage)} onDone={load} />
 
       {(isActive || holds.length > 0) && (
         <SafetyControls

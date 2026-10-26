@@ -20,7 +20,7 @@ def test_keys_are_shown_once_and_stored_hashed(db, org, act_as, as_admin):
     org_id, owner = org
     act_as(owner)
     raw = db.execute("select create_api_key(%s, 'CI', array['read','write'])", (org_id,)).fetchone()[0]
-    assert raw.startswith("mos_") and len(raw) == 52
+    assert raw.startswith("ciq_") and len(raw) == 52
     row = db.execute("select prefix, key_hash, scopes from api_keys where org_id = %s", (org_id,)).fetchone()
     as_admin()
     assert row[0] == raw[:12] and row[1] == hashlib.sha256(raw.encode()).hexdigest() and raw not in str(row)
@@ -36,7 +36,7 @@ def test_revoked_and_unknown_keys_resolve_to_nothing(db, org, act_as, as_admin):
     db.execute("select revoke_api_key(%s)", (key_id,))
     as_admin()
     assert db.execute("select count(*) from api_key_lookup(%s)", (raw,)).fetchone()[0] == 0
-    assert db.execute("select count(*) from api_key_lookup('mos_nope')").fetchone()[0] == 0
+    assert db.execute("select count(*) from api_key_lookup('ciq_nope')").fetchone()[0] == 0
 
 
 def test_rate_limit_per_minute(db, org, act_as, as_admin):
@@ -58,7 +58,7 @@ def test_only_managers_create_keys_and_users_cannot_resolve_them(db, org, new_us
         db.execute("select create_api_key(%s, 'x')", (org_id,))
     db.execute("rollback to savepoint s")
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
-        db.execute("select * from api_key_lookup('mos_x')")
+        db.execute("select * from api_key_lookup('ciq_x')")
 
 
 def test_events_fan_out_to_matching_webhooks_signed(db, org, act_as, as_admin):
@@ -79,7 +79,8 @@ def test_events_fan_out_to_matching_webhooks_signed(db, org, act_as, as_admin):
     assert queued[0] == url
     body = bytes(queued[2]).decode() if queued[2] is not None else ""
     expected = "sha256=" + hmac.new(secret.encode(), body.encode(), hashlib.sha256).hexdigest()
-    assert queued[1]["X-MarketingOS-Signature"] == expected and queued[1]["X-MarketingOS-Event"] == event
+    assert queued[1]["X-CampaignIQ-Signature"] == expected and queued[1]["X-CampaignIQ-Event"] == event
+    assert queued[1]["X-MarketingOS-Signature"] == expected and queued[1]["X-MarketingOS-Event"] == event  # old names, for now
 
 
 def test_webhook_urls_must_be_https(db, org, act_as):

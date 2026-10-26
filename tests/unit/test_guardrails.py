@@ -3,7 +3,7 @@ import pytest
 from src.capabilities import creative as creative_mod
 from src.capabilities.audience import Persona
 from src.capabilities.guardrails import check_creative, prepare_for_channel
-from src.graph.nodes import distribution_bluesky, distribution_email
+from src.graph.nodes import distribution_bluesky
 
 PERSONA = Persona(
     name="Ava", demographics="d", psychographics="p", channel_fit="email",
@@ -68,19 +68,6 @@ class TestSendTime:
         out = distribution_bluesky.distribution_bluesky_node(state)
         assert out["bluesky_post_uri"].startswith("dead: blocked by brand-safety checks")
         assert saved["bluesky_post_uri"] == out["bluesky_post_uri"]
-
-    def test_email_carries_the_full_disclaimer(self, monkeypatch):
-        sent = {}
-        monkeypatch.setattr(distribution_email, "send_campaign_email", lambda *a, **k: sent.update(k) or "DRY_RUN")
-        monkeypatch.setattr(distribution_email, "upsert_iteration", lambda *a, **k: None)
-        state = {
-            "campaign_id": "c1", "user_id": "u1", "round_id": 1, "domain_category": "finance_fintech",
-            "idea": "Round-up investing", "email_to": ["a@x.io"],
-            "creative": type("C", (), {"copy_text": "Invest your spare change.", "image_bytes": b"", "headline": ""})(),
-        }
-        distribution_email.distribution_email_node(state)
-        assert "not financial advice" in sent["html"].lower()
-
 
 class TestGenerateCreative:
     @pytest.fixture

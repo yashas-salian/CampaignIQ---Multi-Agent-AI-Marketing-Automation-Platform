@@ -58,7 +58,7 @@ test('a campaign needs a product photo, which is uploaded before the campaign st
   await start.click()
 
   await expect.poll(() => seen.created.length).toBe(1)
-  expect(seen.uploads[0]).toMatch(new RegExp(`^${USER.id}/[0-9a-f-]{36}\.jpg$`))
+  expect(seen.uploads[0]).toMatch(new RegExp(`^${USER.id}/[0-9a-f-]{36}\\.jpg$`))
   expect(seen.created[0]).toMatchObject({
     product_image_path: seen.uploads[0], tagline: 'Coffee that waits for you', cta_url: 'https://brewline.example/order',
   })

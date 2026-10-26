@@ -10,103 +10,133 @@ import styles from './Landing.module.css'
 
 const LOOP_STEPS = [
   {
-    title: 'Idea intake',
-    desc: 'Classifies the idea into a fixed domain (fitness, B2B SaaS, food & beverage…), the same tag the bandit later uses as context.',
+    title: 'Idea and product',
+    desc: 'You describe the product and who it’s for, and add a photo of it. The idea is classified into its market by a fine-tuned model.',
   },
   {
     title: 'Feasibility',
-    desc: "Google Trends, NewsAPI and Bluesky/Mastodon search, queried in the campaign's own language, combine into a transparent 0–100 score with a written rationale.",
+    desc: "Google Trends, news volume and Bluesky and Mastodon conversation, queried in the campaign's own language, become a 0–100 score with its evidence shown.",
   },
   {
-    title: 'Audience',
-    desc: 'Generates ideal-customer personas grounded in that research. One primary persona drives the round.',
+    title: 'Personas',
+    desc: 'Ideal-customer personas grounded in that research, and a suggested email audience from your own subscribers.',
+  },
+  {
+    title: 'Decide',
+    desc: 'The decision engine recommends launch, test small, wait or kill, and blocks prohibited products and broken links outright.',
   },
   {
     title: 'Gate 1: the idea',
-    desc: 'You approve, edit or reject before a single word of creative is written.',
+    desc: 'You approve, correct or reject before a word of creative is written, and choose who gets the email.',
   },
   {
     title: 'Creative',
-    desc: 'A contextual bandit picks the style and tone archetype from real past engagement; copy and image are generated to match, novelty-checked against your own history.',
+    desc: 'A contextual bandit picks the style and tone. Your real product photo is set into one of 34 layouts, and the copy is written to match.',
   },
   {
-    title: 'Pre-flight',
-    desc: 'A simulated persona panel reacts before anything real goes out, retrying up to three times and keeping the best attempt.',
+    title: 'Crash test',
+    desc: 'Rule checks for invented testimonials and false urgency, a simulated persona panel, and eight hostile scenarios, with a fixed version ready.',
   },
   {
-    title: 'Gate 2: the creative',
-    desc: 'A final approval before real posts and real sends.',
+    title: 'Gate 2: the ad',
+    desc: 'You see the finished ad and every warning, edit the copy if you like, and approve what goes out.',
   },
   {
-    title: 'Distribute',
-    desc: "Real posts to Bluesky and real email via Resend, with clicks tracked through our own redirect rather than a third party's word for it.",
+    title: 'Launch',
+    desc: 'Posts to Bluesky, Mastodon and Reddit, and email to the next batch of your own subscribers, from your own address.',
   },
   {
-    title: 'Measure & learn',
-    desc: "Engagement becomes the bandit's reward. The next round is rewritten from what actually happened, up to your tier's round cap.",
+    title: 'Measure and learn',
+    desc: 'Clicks and conversions feed the bandit, a holdout proves real impact, fatigue and safety are watched, and the next round improves.',
   },
 ]
 
-const MARQUEE_TOP = ['Bluesky', 'Resend email', 'Google Trends', 'NewsAPI', 'Mastodon', 'Pollinations', 'OpenAI (BYOK)', 'Groq']
-const MARQUEE_BOTTOM = ['LangGraph', 'Supabase', 'Postgres RLS', 'pgvector', 'LinUCB bandit', 'GitHub Actions', 'Edge Functions', 'LangSmith']
+const MARQUEE_TOP = ['Bluesky', 'Mastodon', 'Email from your own domain', 'Google Trends', 'NewsAPI', 'FLUX', 'Groq', 'Gemini', 'Stripe']
+const MARQUEE_BOTTOM = ['LangGraph', 'Supabase', 'Postgres RLS', 'Vault', 'pgvector', 'LinUCB bandit', 'Qwen2.5 + LoRA', 'GitHub Actions', 'MCP']
 
 const STATS = [
-  { value: 20, suffix: '', label: 'creative arms competing on real reward' },
-  { value: 15, suffix: '', label: 'campaign languages, chosen per campaign' },
+  { value: 96, suffix: '%', label: 'agreement with hand-labelled launch decisions' },
+  { value: 34, suffix: '', label: 'ad layouts, from a study of 128 real ads' },
   { value: 2, suffix: '', label: 'human gates before anything goes live' },
-  { value: 10, suffix: '', label: 'rounds per campaign on paid and BYOK tiers' },
+  { value: 86, suffix: '%', label: 'of ads follow your brand’s lessons with memory on' },
 ]
 
 const DIFFERENTIATORS = [
   {
-    kicker: '01 · Signal',
-    title: 'Real signal, not vibes',
-    body: 'Feasibility is a weighted composite of live Trends, News and community search. Every input is shown next to the score, so nothing is a black-box number an LLM made up.',
+    kicker: '01 · Decide',
+    title: 'It decides before it spends',
+    body: 'Every campaign starts with a recommendation: launch, test small, wait or kill. Each piece of evidence shows its source and how fresh it is, and a prohibited product never gets an ad.',
   },
   {
-    kicker: '02 · Learning',
-    title: 'Learns which arm wins',
-    body: 'A LinUCB contextual bandit chooses among 20 style × tone archetypes using real engagement. It shares what works within a domain without blindly copying across unrelated ones.',
+    kicker: '02 · Prove',
+    title: 'It proves what it caused',
+    body: 'A randomized holdout gets nothing, so the lift you see is the lift the campaign caused, with a 95% interval. When the evidence is thin, it says so instead of guessing.',
   },
   {
-    kicker: '03 · Control',
-    title: 'You approve the risky parts',
-    body: 'Two human gates sit inside the state machine itself: one before creative starts, one before anything is sent. Edit or reject at either.',
+    kicker: '03 · Protect',
+    title: 'Safe by construction',
+    body: 'Two human gates, a crash test before launch, a circuit breaker after it, and email only to people who opted in. Policy beats the model every time.',
   },
 ]
 
 // One photo per differentiator, in the same order: signal, learning, control.
 const DIFFERENTIATOR_ART = [PHOTOS.signal, PHOTOS.strategy, PHOTOS.review]
 
+// Every capability, each linking to how it works in the docs. The first is the spotlight (spans two columns).
+const FEATURES = [
+  { id: 'decision', kicker: 'Decision engine', title: 'Launch, test small, wait or kill',
+    body: 'Demand, momentum, purchase intent, competition, reach and track record, weighed with their sources shown. It agrees with hand-labelled scenarios 96% of the time and never launches a blocked idea.' },
+  { id: 'creative', kicker: 'Product-first ads', title: 'Your real product, never repainted',
+    body: 'Your photo is cut out and set into one of 34 layouts drawn from real ads.' },
+  { id: 'crash-test', kicker: 'Crash test', title: 'Find the failure before launch',
+    body: 'Invented testimonials, false urgency and claims you never made are caught, with a fix to approve.' },
+  { id: 'loop', kicker: 'Learning loop', title: 'Every round leans on what worked',
+    body: 'A contextual bandit over 20 styles and tones, rewarded by real clicks.' },
+  { id: 'email', kicker: 'Email engine', title: 'Your customers, legally',
+    body: 'Your own Resend account, opted-in contacts, a sign-up form, one email per person, unsubscribe built in.' },
+  { id: 'impact', kicker: 'Proof of impact', title: 'Caused, not just correlated',
+    body: 'A randomized holdout measures the lift your campaign really caused.' },
+  { id: 'memory', kicker: 'Brand memory', title: 'It remembers why you decided',
+    body: 'Reasons behind your edits become lessons the next campaign follows.' },
+  { id: 'competitors', kicker: 'Competitor intelligence', title: 'Their moves, with sources',
+    body: 'Offers, launches and messaging from approved public sources, with a response to weigh.' },
+  { id: 'fatigue', kicker: 'Creative fatigue', title: 'Know when an ad wears out',
+    body: 'A sustained drop is caught, and a refresh is proposed and measured.' },
+  { id: 'safety', kicker: 'Circuit breaker', title: 'Pauses itself when unsafe',
+    body: 'An ended offer, a dead link or bad news stops every send at once.' },
+  { id: 'teams', kicker: 'Teams', title: 'Approvals that reach the right people',
+    body: 'Roles, multi-approver gates and notifications in the app, by email and on Slack.' },
+]
+
 const PROOF = [
-  { kicker: 'Bluesky', text: 'Real posts to a real account. No mock client.', wide: true },
-  { kicker: 'Email', text: 'Real sends via Resend, click-through tracked through our own redirect.' },
-  { kicker: 'Security', text: "Row-level security, verified by trying to read another tenant's row." },
-  { kicker: 'Memory', text: 'Cross-lingual retrieval: an English query matched a Spanish memory at 0.9 cosine.' },
-  { kicker: 'Autonomy', text: 'Checkpointed in Postgres, so it survives across GitHub Actions runs that share nothing else.', wide: true },
-  { kicker: 'Evals', text: 'An LLM-as-judge harness over an 18-idea golden set runs in CI on every push.' },
+  { kicker: 'Channels', text: 'Real posts to Bluesky and Mastodon, and real email through each brand’s own Resend account.', wide: true },
+  { kicker: 'Security', text: 'Row-level security on every table, and API keys kept in Supabase Vault.' },
+  { kicker: 'Privacy', text: 'The AI never sees a contact’s address or name: only group names and counts.' },
+  { kicker: 'Autonomy', text: 'Checkpointed in Postgres, so a campaign survives across GitHub Actions runs that share nothing else.', wide: true },
+  { kicker: 'Evals', text: 'A golden set, an LLM judge and fixed benchmarks for every engine run in CI.' },
+  { kicker: 'Learning', text: 'A contextual bandit learns from real clicks, and a fine-tuned classifier retrains weekly on your corrections.', wide: true },
 ]
 
 const TIERS = [
   {
     tier: 'Free',
     name: 'Runs on us',
-    desc: 'Our own free-tier keys. The full loop at no cost to you.',
-    feats: ['3 rounds per campaign', 'Every capability', 'Real distribution & metrics'],
+    desc: 'The full loop on our free-tier models, at no cost.',
+    feats: ['3 rounds per campaign', '3 campaigns a day, 5 team members', '1,000 contacts for email'],
     cta: 'Start free',
   },
   {
-    tier: 'Subscribed',
-    name: 'We front the cost',
-    desc: 'Our paid-tier models, on your behalf.',
-    feats: ['10 rounds per campaign', 'Sharper models throughout', 'Same real distribution & metrics'],
-    cta: 'Subscribe',
+    tier: 'Pro',
+    name: 'Room to grow',
+    desc: 'Sharper paid models and higher limits, billed through Stripe.',
+    feats: ['10 rounds per campaign', '50 campaigns a day, 50 members', 'Unlimited contacts'],
+    cta: 'Go Pro',
     featured: true,
   },
   {
     tier: 'Bring your own key',
     name: 'Your key, our loop',
-    desc: 'Encrypted server-side, never stored in plain text.',
+    desc: 'Use your own model provider; the key is kept in Supabase Vault.',
     feats: ['10 rounds per campaign', 'Spend stays on your own account', 'No subscription needed'],
     cta: 'Connect a key',
   },
@@ -115,31 +145,31 @@ const TIERS = [
 const FAQS = [
   {
     q: 'Does it really post and send?',
-    a: 'Yes. Campaigns post to Bluesky and send email through Resend. The operator can switch on a dry-run mode that logs what would have been sent instead.',
+    a: 'Yes. Campaigns post to Bluesky and Mastodon and send email. A dry-run mode logs what would have gone out instead, and nothing is sent before you approve Gate 2.',
   },
   {
-    q: 'What does the free tier include?',
-    a: 'The entire loop (feasibility, personas, creative, both gates, distribution and metrics) for up to 3 rounds per campaign, running on the platform’s free-tier models.',
+    q: 'Who does the email go to?',
+    a: 'Only your own customers and subscribers who opted in: people you import with a consent record, or who confirm through your sign-up form. It goes from your own Resend account and address. CampaignIQ never finds, scrapes or buys addresses.',
   },
   {
-    q: 'How is my own API key stored?',
-    a: 'It is encrypted with AES-256-GCM inside a server-side function before it touches the database. The app only ever shows its last four characters.',
+    q: 'What does the AI see of my contacts?',
+    a: 'Never an address or a name. To suggest who should get an email, it sees only group names and counts, such as "coffee: 180 people".',
   },
   {
-    q: 'Does the bandit share my campaigns with other users?',
-    a: 'No. It shares only abstract archetype statistics keyed by domain, never your content. Your memory of past campaigns is private to you, enforced by Postgres row-level security.',
+    q: 'How are my keys stored?',
+    a: 'Model-provider keys and your Resend key are kept in Supabase Vault and only the background workers can read them. For Resend, your full-access key is used once to set things up and then thrown away; only a sending-only key is kept.',
   },
   {
-    q: 'Is billing real?',
-    a: 'Not yet. Subscriptions are a stub toggled by the operator, so the three-tier model can be demonstrated without real payments.',
+    q: 'What does the free plan include?',
+    a: 'Everything: decision, personas, creative, crash test, both gates, distribution, email and measurement, for up to 3 rounds per campaign, 3 campaigns a day and 1,000 contacts.',
   },
   {
-    q: 'Why isn’t Reddit a channel?',
-    a: 'Reddit is on hold until API access is available. The code is in place behind a feature flag.',
+    q: 'Why isn’t Reddit on by default?',
+    a: 'Reddit’s API access is restricted. The code is in place behind a switch for when access is available.',
   },
 ]
 
-const HERO_LINES = [['One', 'idea', 'in.'], ['A', 'campaign', 'that'], ['keeps', 'getting', 'better.']]
+const HERO_LINES = [['One', 'idea', 'in.'], ['A', 'campaign', 'that'], ['proves', 'it', 'worked.']]
 
 const ArrowIcon = () => (
   <svg className={styles.arrow} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -304,7 +334,7 @@ export default function Landing() {
                 <span className={styles.heroLine} key={li}>
                   {line.map((word) => {
                     const i = wordIndex++
-                    const accent = word === 'better.'
+                    const accent = word === 'worked.'
                     return (
                       <span className={styles.wordMask} key={word}>
                         <span className={`${styles.word} ${accent ? styles.wordAccent : ''}`} style={{ '--i': i } as CSSProperties}>
@@ -317,8 +347,8 @@ export default function Landing() {
               ))}
             </h1>
             <p className={`${styles.heroSub} ${heroIn ? styles.in : ''} ${styles.fadeUp}`} style={{ '--d': '0.55s' } as CSSProperties}>
-              MarketingOS turns one line of text into a live ad campaign: scored against real market signals, written in
-              your audience’s language, launched to real channels, and rewritten every round from what actually worked.
+              CampaignIQ decides whether a campaign should run, builds the ad around your real product, stress-tests it,
+              launches it to social and to your own subscribers, and proves what it caused. You approve every step that matters.
             </p>
             <div className={`${styles.heroCtas} ${heroIn ? styles.in : ''} ${styles.fadeUp}`} style={{ '--d': '0.7s' } as CSSProperties}>
               <Link className={`${styles.btn} ${styles.btnPrimary}`} to={signupTo}>
@@ -341,7 +371,7 @@ export default function Landing() {
                   src="/media/demo-loop.webp"
                   width={1280}
                   height={720}
-                  alt="Simulation of a MarketingOS campaign: an idea is scored for feasibility, personas are generated, the creative is approved at Gate 2, published to Bluesky and email, and reward climbs across rounds"
+                  alt="Simulation of a CampaignIQ campaign: an idea is scored for feasibility, personas are generated, the creative is approved at Gate 2, published to Bluesky and email, and reward climbs across rounds"
                   decoding="async"
                 />
               </picture>
@@ -386,10 +416,10 @@ export default function Landing() {
           <div className={`${styles.wrap} ${styles.loopGrid}`}>
             <div className={styles.loopSticky}>
               <span className={styles.eyebrow}>How it actually runs</span>
-              <h2 className={styles.sectionTitle}>Nine steps. One state machine.</h2>
+              <h2 className={styles.sectionTitle}>Ten steps. Two of them are yours.</h2>
               <p className={styles.sectionSub}>
-                Every campaign is a real LangGraph state machine, checkpointed in Postgres so it survives across
-                short-lived runs.
+                Every campaign is a LangGraph state machine, checkpointed in Postgres, that pauses at each human gate and
+                resumes the moment you decide.
               </p>
               <div className={styles.loopCounter} aria-live="polite">
                 <span className={styles.loopNum}>{String(activeStep + 1).padStart(2, '0')}</span>
@@ -418,12 +448,42 @@ export default function Landing() {
           </div>
         </section>
 
+        {/* Every capability */}
+        <section className={styles.featureSection} id="features">
+          <div className={styles.wrap}>
+            <div className={`${styles.sectionHead} ${styles.reveal}`} data-reveal>
+              <span className={styles.eyebrow}>What’s inside</span>
+              <h2 className={styles.sectionTitle}>Everything a campaign needs, in one loop.</h2>
+            </div>
+            <div className={styles.featureGrid}>
+              {FEATURES.map((f, i) => (
+                <Link
+                  key={f.id}
+                  to={`/docs#${f.id}`}
+                  data-spot
+                  data-reveal
+                  className={`${styles.featureTile} ${i === 0 ? styles.featureSpotlight : ''} ${styles.reveal}`}
+                  style={{ '--i': i % 6 } as CSSProperties}
+                >
+                  <span className={styles.featureKicker}>{f.kicker}</span>
+                  <h3>{f.title}</h3>
+                  <p>{f.body}</p>
+                  <span className={styles.featureMore}>
+                    How it works
+                    <ArrowIcon />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Stacking differentiators */}
         <section className={styles.stackSection} id="why">
           <div className={styles.wrap}>
             <div className={`${styles.sectionHead} ${styles.reveal}`} data-reveal>
               <span className={styles.eyebrow}>Why it isn’t a wrapper</span>
-              <h2 className={styles.sectionTitle}>Three things most “AI marketing” tools skip.</h2>
+              <h2 className={styles.sectionTitle}>Three things most AI marketing tools skip.</h2>
             </div>
             <div className={styles.stack}>
               {DIFFERENTIATORS.map((d, i) => (
@@ -449,7 +509,7 @@ export default function Landing() {
           <div className={styles.wrap}>
             <div className={`${styles.sectionHead} ${styles.reveal}`} data-reveal>
               <span className={styles.eyebrow}>Not simulated</span>
-              <h2 className={styles.sectionTitle}>Everything here has actually posted, sent or run.</h2>
+              <h2 className={styles.sectionTitle}>Real channels, real data, real safeguards.</h2>
             </div>
             <div className={styles.bento}>
               {PROOF.map((p, i) => (
@@ -473,9 +533,9 @@ export default function Landing() {
           <div className={styles.wrap}>
             <div className={`${styles.sectionHead} ${styles.center} ${styles.reveal}`} data-reveal>
               <span className={styles.eyebrow}>Pricing</span>
-              <h2 className={styles.sectionTitle}>Three ways to pay for intelligence.</h2>
+              <h2 className={styles.sectionTitle}>Start free. Grow when it pays off.</h2>
               <p className={styles.sectionSub}>
-                The loop is identical on every tier. They differ only in total rounds and whose API key does the work.
+                Every plan runs the same loop with every capability. Plans differ in rounds, limits and whose model key does the work.
               </p>
             </div>
             <div className={styles.pricingGrid}>
@@ -487,7 +547,7 @@ export default function Landing() {
                   className={`${styles.priceCard} ${t.featured ? styles.priceFeatured : ''} ${styles.reveal}`}
                   style={{ '--i': i } as CSSProperties}
                 >
-                  {t.featured && <span className={styles.priceFlag}>Most rounds per dollar</span>}
+                  {t.featured && <span className={styles.priceFlag}>For teams</span>}
                   <span className={styles.priceTier}>{t.tier}</span>
                   <div className={styles.priceName}>{t.name}</div>
                   <p className={styles.priceDesc}>{t.desc}</p>
@@ -544,8 +604,8 @@ export default function Landing() {
           <div className={`${styles.wrap}`}>
             <div className={`${styles.ctaCard} ${styles.reveal}`} data-reveal>
               <div className={styles.ctaGlow} aria-hidden="true" />
-              <h2>Ready to stop babysitting a campaign?</h2>
-              <p>Type one idea. Approve two gates. Watch it learn.</p>
+              <h2>Ready for a campaign that proves itself?</h2>
+              <p>Describe one product. Approve two gates. See what it caused.</p>
               <Link className={`${styles.btn} ${styles.btnPrimary}`} to={signupTo}>
                 Start a campaign
                 <ArrowIcon />

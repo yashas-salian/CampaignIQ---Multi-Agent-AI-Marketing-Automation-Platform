@@ -52,8 +52,8 @@ export default function RewardChart({ points, ariaLabel, showXLabels = false }: 
       >
         <defs>
           <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="var(--mos-accent)" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="var(--mos-accent)" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--ciq-accent)" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="var(--ciq-accent)" stopOpacity="0" />
           </linearGradient>
         </defs>
         {[0, 0.5, 1].map((v) => (
@@ -68,7 +68,7 @@ export default function RewardChart({ points, ariaLabel, showXLabels = false }: 
         <path
           d={line}
           fill="none"
-          stroke="var(--mos-accent)"
+          stroke="var(--ciq-accent)"
           strokeWidth="2"
           strokeLinejoin="round"
           strokeLinecap="round"

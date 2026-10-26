@@ -1,0 +1,28 @@
+/* The top bar's notifications. */
+.wrap { position: relative; display: flex; }
+.bell { position: relative; }
+.bell svg { width: 20px; height: 20px; }
+.badge { position: absolute; top: 8px; right: 8px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; box-sizing: border-box;
+  background: var(--ciq-accent); color: #111316; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+.panel { position: absolute; top: calc(100% + 8px); right: 0; width: min(360px, calc(100vw - 32px)); max-height: min(70vh, 520px);
+  display: flex; flex-direction: column; border-radius: 14px; background: var(--ciq-surface); color: var(--ciq-text);
+  border: 1px solid var(--ciq-surface-border); box-shadow: 0 18px 48px -18px rgba(0, 0, 0, 0.45); z-index: 60; overflow: hidden; }
+.head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; font-size: 14px;
+  border-bottom: 1px solid var(--ciq-surface-border); }
+.link { padding: 0; border: 0; background: none; font: inherit; font-size: 12.5px; color: var(--ciq-text); text-decoration: underline; cursor: pointer; }
+.list { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+.list li a { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; color: inherit; text-decoration: none;
+  border-bottom: 1px solid var(--ciq-surface-border); }
+.list li a:hover, .list li a:focus-visible { background: var(--ciq-bg-raised); outline: none; }
+.unread a { background: color-mix(in srgb, var(--ciq-accent) 8%, transparent); }
+.title { font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
+.body { font-size: 12.5px; color: var(--ciq-text-muted); line-height: 1.45; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.when { font-size: 11.5px; color: var(--ciq-text-muted); }
+.empty { margin: 0; padding: 18px 14px; font-size: 13px; color: var(--ciq-text-muted); }
+.email { display: flex; gap: 8px; align-items: center; padding: 10px 14px; font-size: 12.5px; border-top: 1px solid var(--ciq-surface-border); }
+
+/* Tablets and phones: pinned under the top bar, across the screen, so it never runs off the side. */
+@media (max-width: 900px) {
+  .panel { position: fixed; top: 68px; left: 16px; right: 16px; width: auto; }
+}

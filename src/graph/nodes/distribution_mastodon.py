@@ -1,5 +1,6 @@
 from src.capabilities.brand import brand_kit_for_campaign, with_required_phrase
 from src.capabilities.distribution import post_mastodon
+from src.capabilities.email_engine import signup_line, with_signup_line
 from src.capabilities.guardrails import MASTODON_MAX_CHARS, prepare_for_channel
 from src.db.supabase_client import upsert_iteration
 from src.graph.state import CampaignState
@@ -16,6 +17,7 @@ def distribution_mastodon_node(state: CampaignState) -> CampaignState:
     if blocked:
         url = f"dead: {blocked}"
     else:
+        text = with_signup_line(text, signup_line(state["campaign_id"]), max_len=MASTODON_MAX_CHARS)
         url = post_mastodon(
             state["campaign_id"], state["round_id"], text, image_bytes=creative.image_bytes,
             image_alt=creative.headline or creative.image_prompt, user_id=state["user_id"],

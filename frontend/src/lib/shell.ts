@@ -22,7 +22,7 @@ interface Shell {
 // and never the sidebar). Every <ProtectedRoute> in App.tsx must start with one of these:
 // e2e/app.spec.ts checks it.
 export const APP_PREFIXES = [
-  '/dashboard', '/calendar', '/campaigns', '/tools', '/settings', '/admin', '/models', '/playbooks', '/competitors', '/invite',
+  '/dashboard', '/calendar', '/campaigns', '/tools', '/settings', '/admin', '/models', '/playbooks', '/competitors', '/memory', '/contacts', '/invite',
 ]
 
 let state: Shell = { drawerOpen: false, settings: null }

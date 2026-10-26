@@ -22,7 +22,7 @@ export default function PrivacySettings() {
       return
     }
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
-    const a = Object.assign(document.createElement('a'), { href: url, download: `marketingos-data-${new Date().toISOString().slice(0, 10)}.json` })
+    const a = Object.assign(document.createElement('a'), { href: url, download: `campaigniq-data-${new Date().toISOString().slice(0, 10)}.json` })
     a.click()
     URL.revokeObjectURL(url)
     toast.success(t('toast.exportStarted'))

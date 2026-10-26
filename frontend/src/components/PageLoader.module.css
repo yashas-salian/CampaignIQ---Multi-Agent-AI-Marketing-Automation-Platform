@@ -1,13 +1,13 @@
 /* Frosted page cover: the half-loaded page is blurred out, the mascot works above it. */
 .overlay {
   position: fixed; inset: 0; z-index: 70; display: grid; place-items: center;
-  background: color-mix(in srgb, var(--mos-bg) 78%, transparent); /* enough to hide the page even where blur isn't supported */
+  background: color-mix(in srgb, var(--ciq-bg) 78%, transparent); /* enough to hide the page even where blur isn't supported */
   backdrop-filter: blur(18px) saturate(115%);
   opacity: 0; visibility: hidden; pointer-events: none;
   transition: opacity 0.3s ease, visibility 0s linear 0.3s;
 }
 .shown { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 0.25s ease, visibility 0s; }
-.card { display: flex; flex-direction: column; align-items: center; gap: 10px; animation: lift 0.5s var(--mos-ease) both; }
+.card { display: flex; flex-direction: column; align-items: center; gap: 10px; animation: lift 0.5s var(--ciq-ease) both; }
 @keyframes lift { from { opacity: 0; transform: translateY(10px) scale(0.96); } }
 
 /* ---------- The mascot: one 2.4s loop, every part on the same beat ---------- */
@@ -38,27 +38,27 @@
 }
 
 /* Bar chart grows bar by bar, holds, then resets: growth, loading. */
-.bar { transform-box: fill-box; transform-origin: bottom; animation: rise 2.4s var(--mos-ease) infinite; }
+.bar { transform-box: fill-box; transform-origin: bottom; animation: rise 2.4s var(--ciq-ease) infinite; }
 .bar1 { animation-delay: 0s; }
 .bar2 { animation-delay: 0.18s; }
 .bar3 { animation-delay: 0.36s; }
 @keyframes rise { 0% { transform: scaleY(0.15); } 30%, 80% { transform: scaleY(1); } 100% { transform: scaleY(0.15); } }
 
 /* Growth swoosh draws itself round the robot, then the arrowhead pops. */
-.swoosh, .swooshBack { stroke-dasharray: 320; animation: draw 2.4s var(--mos-ease) infinite; }
+.swoosh, .swooshBack { stroke-dasharray: 320; animation: draw 2.4s var(--ciq-ease) infinite; }
 .swooshBack { stroke-dasharray: 160; animation-name: drawBack; }
 @keyframes draw { 0% { stroke-dashoffset: 320; } 45%, 85% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -320; } }
 @keyframes drawBack { 0%, 20% { stroke-dashoffset: 160; } 55%, 85% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -160; } }
-.arrow { transform-box: fill-box; transform-origin: center; animation: pop 2.4s var(--mos-ease) infinite; }
+.arrow { transform-box: fill-box; transform-origin: center; animation: pop 2.4s var(--ciq-ease) infinite; }
 @keyframes pop { 0%, 40% { transform: scale(0); } 52% { transform: scale(1.25); } 60%, 85% { transform: scale(1); } 100% { transform: scale(0); } }
 
-/* ---------- Caption: what MarketingOS does, one step at a time ---------- */
+/* ---------- Caption: what CampaignIQ does, one step at a time ---------- */
 .caption {
   height: 18px; overflow: hidden; display: grid; place-items: center;
   font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--mos-text-muted);
+  color: var(--ciq-text-muted);
 }
-.step { animation: stepIn 1.4s var(--mos-ease) both; }
+.step { animation: stepIn 1.4s var(--ciq-ease) both; }
 @keyframes stepIn {
   0% { opacity: 0; transform: translateY(10px); }
   18%, 82% { opacity: 1; transform: none; }

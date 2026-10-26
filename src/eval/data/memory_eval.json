@@ -1,0 +1,1257 @@
+{
+ "generated_at": "2026-10-26T10:32:51.943352+00:00",
+ "tasks": [
+  {
+   "idea": "An affordable order-ahead coffee subscription for metro commuters, half the price of a cafe latte.",
+   "age": "25-34",
+   "recalled": [
+    "cheap",
+    "humor",
+    "queue"
+   ],
+   "without": {
+    "text": "Skip the line, sip the savings. Your morning coffee arrives ahead of you, half the price, all the speed. Half‑price coffee, ready on time Get Started",
+    "tone": "humorous",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": false
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": false
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": false
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   },
+   "with": {
+    "text": "Skip the morning line and have a fresh latte waiting at your metro stop. Our subscription delivers good‑value coffee ready when you are, so you can save time every morning. Skip the Queue, Save Time Start Subscription",
+    "tone": "direct_factual",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": false
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": true
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": true
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   }
+  },
+  {
+   "idea": "A budget-friendly monthly coffee pass for students that costs less than one cafe drink a week.",
+   "age": "18-24",
+   "recalled": [
+    "cheap",
+    "humor",
+    "queue"
+   ],
+   "without": {
+    "text": "Skip the daily coffee line and sip unlimited brew for less than a weekly café treat. Your mornings just got a lot smoother, and your wallet is smiling. Unlimited Coffee, Minimal Cost Get Your Pass",
+    "tone": "humorous",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": false
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": false
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": false
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   },
+   "with": {
+    "text": "Enjoy a good‑value monthly coffee pass that lets you skip the queue each morning. Save time and stay within budget without sacrificing quality. Skip the queue, save time Get Pass Now",
+    "tone": "direct_factual",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": false
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": true
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": true
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   }
+  },
+  {
+   "idea": "Order-ahead coffee for retirees who walk to the market every morning.",
+   "age": "55+",
+   "recalled": [
+    "cheap",
+    "queue",
+    "humor",
+    "plain"
+   ],
+   "without": {
+    "text": "Order your coffee ahead and pick it up on your morning walk to the market. Skip the line and enjoy a fresh brew without waiting. Fresh Coffee, No Wait Order Now",
+    "tone": "direct_factual",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": false
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": false
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": true
+     },
+     {
+      "lesson": "plain",
+      "check": "avoids “vibes”",
+      "ok": true
+     },
+     {
+      "lesson": "plain",
+      "check": "avoids “lit”",
+      "ok": true
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   },
+   "with": {
+    "text": "Order your coffee ahead and pick it up on your walk to the market. Skip the queue and enjoy a fresh cup at good value. Order ahead, skip the line Order now",
+    "tone": "direct_factual",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": true
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": true
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": true
+     },
+     {
+      "lesson": "plain",
+      "check": "avoids “vibes”",
+      "ok": true
+     },
+     {
+      "lesson": "plain",
+      "check": "avoids “lit”",
+      "ok": true
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   }
+  },
+  {
+   "idea": "A morning coffee app that has your flat white ready when your train arrives.",
+   "age": "35-44",
+   "recalled": [
+    "cheap",
+    "queue",
+    "humor"
+   ],
+   "without": {
+    "text": "Skip the line and the morning rush – your flat white will be waiting the moment you step off the train. Let the coffee do the timing so you can own the day, hassle‑free. Flat white ready on arrival Get your coffee",
+    "tone": "humorous",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": false
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": false
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": false
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   },
+   "with": {
+    "text": "Skip the coffee queue. Your flat white will be waiting as your train pulls in, delivering good value coffee right on time. Start your morning without a stop. Flat White Ready On Arrival Get Started",
+    "tone": "direct_factual",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": true
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": false
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": true
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   }
+  },
+  {
+   "idea": "Weekend coffee delivery for families, priced lower than the supermarket brands.",
+   "age": "45-54",
+   "recalled": [
+    "cheap",
+    "humor",
+    "queue"
+   ],
+   "without": {
+    "text": "Why waste the weekend hunting for coffee when it can be delivered straight to your door? Let the family enjoy fresh coffee faster than you can finish your inbox, and still save a buck compared to the supermarket. Weekend Coffee Delivered Fast Order Coffee",
+    "tone": "humorous",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": false
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": false
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": false
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   },
+   "with": {
+    "text": "Enjoy good value coffee delivered to your home each weekend, so your family can skip the store line. Save time every morning with fresh beans ready when you need them. Skip the coffee line Order Now",
+    "tone": "direct_factual",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": true
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": false
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": true
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   }
+  },
+  {
+   "idea": "A loyalty card that makes every tenth coffee free for daily commuters.",
+   "age": "25-34",
+   "recalled": [
+    "cheap",
+    "queue",
+    "humor"
+   ],
+   "without": {
+    "text": "Earn a free coffee on your tenth commute. The loyalty card tracks your daily rides so you never waste a minute. Start your mornings with a guaranteed reward. Free Coffee Every Tenth Ride Get Card",
+    "tone": "direct_factual",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": false
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": false
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": true
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": false
+     }
+    ]
+   },
+   "with": {
+    "text": "Collect stamps with each coffee and receive a free cup, letting you skip the line each morning. The commuter loyalty card delivers good value and saves you time on your way to work. Free Coffee, No Queue Get Your Card",
+    "tone": "direct_factual",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": true
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": false
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": true
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   }
+  },
+  {
+   "idea": "Quiet morning coffee for people over sixty, with large print menus and table service.",
+   "age": "55+",
+   "recalled": [
+    "cheap",
+    "humor",
+    "queue",
+    "plain"
+   ],
+   "without": {
+    "text": "Skip the rush and enjoy a quiet, perfectly brewed coffee—served right to your table with a large‑print menu that's easier on the eyes than your morning headlines. At sixty‑plus, your espresso should be the only thing that wakes up fast. Morning Coffee, No Rush Order Your Coffee",
+    "tone": "humorous",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": false
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": false
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": false
+     },
+     {
+      "lesson": "plain",
+      "check": "avoids “vibes”",
+      "ok": true
+     },
+     {
+      "lesson": "plain",
+      "check": "avoids “lit”",
+      "ok": true
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   },
+   "with": {
+    "text": "Enjoy a quiet morning coffee without waiting. Large‑print menus and table service let you relax and start your day on time. Good value, ready when you are. Skip the queue, sip coffee Reserve a table",
+    "tone": "direct_factual",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": true
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": true
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": true
+     },
+     {
+      "lesson": "plain",
+      "check": "avoids “vibes”",
+      "ok": true
+     },
+     {
+      "lesson": "plain",
+      "check": "avoids “lit”",
+      "ok": true
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   }
+  },
+  {
+   "idea": "Cheap and quick iced coffee for office workers in summer.",
+   "age": "25-34",
+   "recalled": [
+    "cheap",
+    "humor",
+    "queue"
+   ],
+   "without": {
+    "text": "Beat the heat and the rush with an ice‑cold coffee ready in seconds. Your desk just got a splash of summer—grab it before the clock ticks! Instant Iced Coffee Boost Grab Yours Now",
+    "tone": "humorous",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": false
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": false
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": false
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   },
+   "with": {
+    "text": "Skip the queue and enjoy a refreshing iced coffee that's ready when you are. Good value, quick and convenient for busy mornings. Skip the Queue, Stay Refreshed Order Now",
+    "tone": "direct_factual",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": true
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": true
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": true
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   }
+  },
+  {
+   "idea": "A decaf range for evening commuters heading home.",
+   "age": "45-54",
+   "recalled": [
+    "cheap",
+    "queue",
+    "humor"
+   ],
+   "without": {
+    "text": "Unwind after the rush with a smooth, caffeine‑free brew that lets you savor the quiet moments of your evening commute. Let the gentle aroma be the bridge between a busy day and a peaceful night. Calm Your Evening Commute Sip Now",
+    "tone": "aspirational_emotional",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": false
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": false
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": true
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   },
+   "with": {
+    "text": "Skip the queue and unwind with our smooth decaf, the perfect evening companion for your commute home. Enjoy the calm of a good‑value brew that lets you arrive refreshed without the rush. Skip the Queue, Sip Calmly Order Now",
+    "tone": "aspirational_emotional",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": false
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": true
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": true
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   }
+  },
+  {
+   "idea": "Pre-order coffee at the station kiosk before your 8:05 train.",
+   "age": "35-44",
+   "recalled": [
+    "cheap",
+    "queue",
+    "humor"
+   ],
+   "without": {
+    "text": "Beat the morning rush—order your coffee at the kiosk before the 8:05 train and have it waiting when you board. Save seconds, sip happiness. Coffee Ready When You Are Pre‑order Now",
+    "tone": "humorous",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": false
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": false
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": false
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   },
+   "with": {
+    "text": "Pre‑order your coffee at the station kiosk before the 8:05 train and skip the queue. Enjoy good value coffee ready when you arrive, saving you time each morning. Skip the queue, get coffee Pre‑order now",
+    "tone": "direct_factual",
+    "guardrails_ok": true,
+    "compliance": [
+     {
+      "lesson": "cheap",
+      "check": "avoids “cheap”",
+      "ok": true
+     },
+     {
+      "lesson": "cheap",
+      "check": "says “good value”",
+      "ok": true
+     },
+     {
+      "lesson": "queue",
+      "check": "says “skip the queue”",
+      "ok": true
+     },
+     {
+      "lesson": "humor",
+      "check": "not a humorous tone",
+      "ok": true
+     }
+    ],
+    "leakage": [
+     {
+      "lesson": "pumpkin",
+      "check": "no “pumpkin spice”",
+      "ok": true
+     },
+     {
+      "lesson": "trial",
+      "check": "no “free trial class”",
+      "ok": true
+     },
+     {
+      "lesson": "oat",
+      "check": "no “oat milk”",
+      "ok": true
+     },
+     {
+      "lesson": "artisan",
+      "check": "no “artisan roasted”",
+      "ok": true
+     }
+    ],
+    "policy": [
+     {
+      "lesson": "guarantee",
+      "check": "no “guaranteed”",
+      "ok": true
+     }
+    ]
+   }
+  }
+ ]
+}

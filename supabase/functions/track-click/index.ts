@@ -15,6 +15,9 @@ Deno.serve(async (req) => {
   const roundId = params.get("round_id");
   const channel = params.get("channel") ?? "email";
   const token = params.get("t");
+  // A campaign email to a brand's contact: their own click token marks them engaged
+  // (the 24-month sunset). It never goes on to the brand's site.
+  const contactToken = params.get("k");
 
   if (!destinationUrl || !campaignId || !roundId) {
     return new Response("Missing required query params: url, campaign_id, round_id", { status: 400 });
@@ -31,6 +34,11 @@ Deno.serve(async (req) => {
     channel,
     destination_url: destinationUrl,
   });
+
+  if (contactToken && TOKEN.test(contactToken)) {
+    const { error } = await supabase.rpc("touch_contact_click", { p_token: contactToken });
+    if (error) console.warn("touch_contact_click failed:", error.message);
+  }
 
   let target = destinationUrl;
   if (token && TOKEN.test(token)) {

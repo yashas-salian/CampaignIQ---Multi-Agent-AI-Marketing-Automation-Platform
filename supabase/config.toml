@@ -436,7 +436,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.api]
-# Authenticated with organisation API keys (Authorization: Bearer mos_...), not user JWTs.
+# Authenticated with organisation API keys (Authorization: Bearer ciq_...), not user JWTs.
 verify_jwt = false
 
 [functions.billing]
@@ -447,4 +447,22 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.persona-chat]
+verify_jwt = true
+
+[functions.email-setup]
+verify_jwt = true
+
+[functions.unsubscribe]
+# Opened from email links and Gmail's one-click unsubscribe: authenticated by the per-person token, not a JWT.
+verify_jwt = false
+
+[functions.resend-webhook]
+# Called by Resend: authenticated by the Svix signature (the organisation's signing secret), not a JWT.
+verify_jwt = false
+
+[functions.join]
+# The public sign-up form and its confirmation links: the people signing up aren't users.
+verify_jwt = false
+
+[functions.email-test]
 verify_jwt = true

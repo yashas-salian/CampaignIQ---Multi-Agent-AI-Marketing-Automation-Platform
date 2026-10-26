@@ -2,7 +2,8 @@ import type { ReactNode } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import { ThemeContext, type ThemeMode } from './useTheme'
 
-const THEME_KEY = 'mos_theme'
+const THEME_KEY = 'ciq_theme'
+const OLD_THEME_KEY = 'mos_theme' // the app's earlier name: a choice saved under it still counts
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<ThemeMode>(null)
@@ -10,7 +11,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let saved: string | null = null
     try {
-      saved = localStorage.getItem(THEME_KEY)
+      saved = localStorage.getItem(THEME_KEY) ?? localStorage.getItem(OLD_THEME_KEY)
     } catch {
       // ignore
     }

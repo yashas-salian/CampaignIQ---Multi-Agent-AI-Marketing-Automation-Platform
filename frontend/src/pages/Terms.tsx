@@ -8,7 +8,7 @@ const SECTIONS: LegalSection[] = [
     title: 'The service',
     body: (
       <p>
-        MarketingOS helps you research, create, publish and measure ad campaigns. It is offered as a portfolio
+        CampaignIQ helps you research, create, publish and measure ad campaigns. It is offered as a portfolio
         project, as is, without guarantees of availability or results.
       </p>
     ),
@@ -52,12 +52,26 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
+    id: 'email',
+    title: 'Emailing your customers',
+    body: (
+      <p>
+        You may only add people to your contacts who agreed to receive marketing email from your organisation, and you're
+        responsible for that consent and for the postal address and privacy link your emails show. Never import bought,
+        rented or scraped lists. Campaign emails go through your own Resend account under its terms. Sending pauses
+        automatically when bounces or spam complaints near Resend's limits, and we may suspend email for an organisation
+        that misuses it.
+      </p>
+    ),
+  },
+  {
     id: 'billing',
     title: 'Plans and billing',
     body: (
       <p>
-        The Free, Subscribed and Bring-your-own-key tiers demonstrate the product model. <strong>Billing is
-        stubbed:</strong> no payments are taken, and subscription status is set manually by the operator.
+        There are three plans: Free, Pro and Bring your own key. Pro is billed through Stripe Checkout, and cards and
+        invoices are managed in Stripe's customer portal. <strong>As a portfolio project, the service runs Stripe in test
+        mode:</strong> no real payments are taken.
       </p>
     ),
   },
@@ -89,8 +103,8 @@ export default function Terms() {
     <LegalPage
       eyebrow="Terms"
       title="Terms of use"
-      updated="20 October 2026"
-      intro={<>MarketingOS is a portfolio project. These terms are written in plain language and are not legal advice.</>}
+      updated="27 October 2026"
+      intro={<>CampaignIQ is a portfolio project. These terms are written in plain language and are not legal advice.</>}
       sections={SECTIONS}
     />
   )

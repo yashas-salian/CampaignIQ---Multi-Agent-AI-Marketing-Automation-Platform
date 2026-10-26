@@ -2,7 +2,7 @@
 /* The logo as it appears on ads: on a white rounded chip. */
 .chip {
   display: grid; place-items: center; min-width: 120px; height: 64px; padding: 10px 16px; border-radius: 14px;
-  background: #fff; border: 1px solid var(--mos-surface-border);
+  background: #fff; border: 1px solid var(--ciq-surface-border);
 }
 .chip img { display: block; max-width: 200px; max-height: 44px; object-fit: contain; }
 .chip span { font-size: 13px; }

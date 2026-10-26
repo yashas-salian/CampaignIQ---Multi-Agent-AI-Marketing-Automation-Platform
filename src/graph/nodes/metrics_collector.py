@@ -11,6 +11,12 @@ def metrics_collector_node(state: CampaignState) -> CampaignState:
     result = collect_metrics(state["campaign_id"], state["user_id"], state["round_id"], email_to=state.get("email_to"))
     out: CampaignState = {"metrics_result": result}
 
+    # Is a repeated concept wearing out? Raises an alert (and proposes a refresh
+    # for the next round) only on a sustained, significant, creative-specific drop.
+    from src.capabilities.fatigue import run as check_fatigue
+
+    check_fatigue(state["campaign_id"])
+
     # Bayesian early stop: once one email variant is clearly better, stop
     # splitting the list and send everyone the winner's style from now on.
     bayes = (result.raw.get("email_b", {}).get("ab_test") or {}).get("bayes") or {}

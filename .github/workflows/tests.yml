@@ -41,8 +41,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run lint
-      - name: Edge Function helper tests (Stripe signatures; Node runs TypeScript natively)
-        run: node --test ../supabase/functions/_shared/stripe.test.ts
+      - name: Edge Function helper tests (Stripe signatures, email engine; Node runs TypeScript natively)
+        run: node --test ../supabase/functions/_shared/*.test.ts
       - name: Dropdowns use the themed Select (native <select> popups ignore the site theme)
         run: |
           if grep -rn "<select" src --include=*.tsx | grep -v "components/Select.tsx"; then

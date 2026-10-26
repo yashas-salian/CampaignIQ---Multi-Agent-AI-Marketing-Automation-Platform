@@ -15,19 +15,23 @@ const SECTIONS: LegalSection[] = [
           Supabase Auth. Passwords are stored only as hashes.
         </li>
         <li>
-          <strong>Campaigns:</strong> the ideas you enter, the target language, generated personas, copy and image
-          prompts, your gate decisions and comments, and any email recipients you provide.
+          <strong>Campaigns:</strong> the ideas and product photos you enter, the target language, generated personas,
+          ads and copy, your gate decisions and comments.
         </li>
         <li>
           <strong>Results:</strong> engagement counts for each round (likes, reposts, replies, link clicks) and the
           reward computed from them.
         </li>
         <li>
-          <strong>Your API keys (optional):</strong> encrypted with AES-256-GCM before they are stored. Only the last
-          four characters are ever shown back to you.
+          <strong>Your keys (optional):</strong> model-provider keys and your Resend sending key are kept in Supabase
+          Vault, readable only by the background workers. Only the last four characters are ever shown back to you.
         </li>
         <li>
           <strong>Templates (optional):</strong> an ad image or email layout you upload.
+        </li>
+        <li>
+          <strong>Your contacts:</strong> the customers and subscribers your organisation adds for email (see{' '}
+          <a href="#contacts">your customers' data</a>).
         </li>
       </ul>
     ),
@@ -57,11 +61,14 @@ const SECTIONS: LegalSection[] = [
           <strong>Supabase</strong> stores the database and handles sign-in.
         </li>
         <li>
-          <strong>Groq, or OpenAI</strong> (when you or the platform use a paid key) receives idea text and prompts to
-          generate scores, personas and copy.
+          <strong>Groq</strong> (with Cerebras, OpenRouter or Gemini as fallbacks), or <strong>OpenAI</strong> when you
+          or the platform use a paid key, receives idea text and prompts to generate scores, personas and copy. None of
+          them receives your contacts' addresses or names.
         </li>
         <li>
-          <strong>Pollinations or OpenAI</strong> receives image prompts.
+          <strong>Cloudflare or Hugging Face</strong> (FLUX), with <strong>Gemini</strong> or <strong>Pollinations</strong>{' '}
+          as fallbacks, receives prompts for ad backgrounds; your product photo is cut out on our own workers and never sent
+          to them.
         </li>
         <li>
           <strong>Google Trends, NewsAPI, Bluesky and Mastodon search</strong> receive short keyword phrases to measure
@@ -69,13 +76,41 @@ const SECTIONS: LegalSection[] = [
         </li>
         <li>
           <strong>Bluesky</strong> and, where the operator has switched it on, <strong>Mastodon</strong> publish approved
-          posts from a shared platform account, and <strong>Resend</strong>{' '}
-          delivers approved emails.
+          posts from a shared platform account. <strong>Resend</strong> delivers campaign emails through your own
+          organisation's Resend account, and the app's notification emails through ours.
         </li>
         <li>
           <strong>GitHub Actions</strong> runs the background workers that process your campaigns.
         </li>
+        <li>
+          <strong>Stripe</strong> handles payment for paid plans; we never see your card details.
+        </li>
       </ul>
+    ),
+  },
+  {
+    id: 'contacts',
+    title: 'Your customers’ data',
+    body: (
+      <>
+        <p>
+          When your organisation emails its own customers, it decides who they are and why it may email them; CampaignIQ
+          stores and sends on its behalf. For each contact we keep their email address, name and language if given, the tags
+          and purchase details your organisation adds, and a <strong>consent record</strong>: where and when they agreed,
+          and the exact wording. Every change is logged.
+        </p>
+        <p>
+          Only your organisation's owners, admins and marketers can see contacts' addresses, and no other organisation can
+          see them at all. The AI never receives a contact's address or name: to suggest an audience it sees only group
+          names and counts.
+        </p>
+        <p>
+          Every campaign email has an unsubscribe link. From it, a person can also delete their details. Owners and admins
+          can export everyone or erase a person. After an unsubscribe, bounce, spam complaint or erasure, only a one-way hash
+          of the address is kept, so the person is never added or emailed again. Links in campaign emails are tracked per
+          person so the brand knows what interests them, and each email says so.
+        </p>
+      </>
     ),
   },
   {
@@ -105,7 +140,8 @@ const SECTIONS: LegalSection[] = [
           <strong>How long we keep things:</strong> your data stays while your account exists. Some operational data is
           pruned automatically: Tools results after 90 days, per-request AI usage after 180 days, the recipient list and
           content of delivered emails after 30 days, and raw click events after a year. A security audit log of account
-          and team actions is kept; it refers to people only by an internal id.
+          and team actions is kept; it refers to people only by an internal id. Contacts are kept until your organisation
+          or the person removes them; a contact with no click or purchase for 24 months is no longer emailed.
         </p>
       </>
     ),
@@ -139,10 +175,10 @@ export default function Privacy() {
     <LegalPage
       eyebrow="Privacy"
       title="Privacy policy"
-      updated="20 October 2026"
+      updated="27 October 2026"
       intro={
         <>
-          MarketingOS is a portfolio project. This page explains plainly what the app stores and where it goes. It is
+          CampaignIQ is a portfolio project. This page explains plainly what the app stores and where it goes. It is
           not legal advice.
         </>
       }

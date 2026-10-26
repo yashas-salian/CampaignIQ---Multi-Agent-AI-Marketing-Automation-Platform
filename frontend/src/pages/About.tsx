@@ -8,53 +8,54 @@ import local from './About.module.css'
 
 const PILLARS = [
   {
-    kicker: 'Score',
+    kicker: 'Decide',
     title: 'Know before you spend',
-    body: 'Every idea gets a 0–100 feasibility score built from live Google Trends, news volume and community search, with each signal shown next to the number.',
+    body: 'A feasibility score from live search, news and social signals, then a recommendation (launch, test small, wait or kill) with every piece of evidence shown.',
   },
   {
     kicker: 'Create',
-    title: 'Creative with a reason',
-    body: 'Personas grounded in that research, copy and imagery generated in your audience’s language, and a simulated panel that reacts before anything real goes out.',
+    title: 'Ads you can defend',
+    body: 'Personas grounded in that research, ads built around your real product, a crash test before launch, and two human gates before anything goes out.',
   },
   {
-    kicker: 'Learn',
-    title: 'Better every round',
-    body: 'Real engagement from real posts and emails becomes the reward for a contextual bandit, so the next round leans toward what actually worked.',
+    kicker: 'Prove',
+    title: 'Learn what really worked',
+    body: 'Real clicks and conversions teach the next round, and a randomized holdout measures the lift the campaign actually caused.',
   },
 ]
 
 const PRINCIPLES = [
-  { title: 'Real data or nothing', body: 'No mocked clients and no invented metrics. If a signal is unavailable, the system says so and degrades to neutral instead of guessing.' },
-  { title: 'People approve the risky parts', body: 'Two human gates sit inside the state machine itself. Nothing is written before the first, and nothing is sent before the second.' },
-  { title: 'Your data stays yours', body: 'Postgres row-level security isolates every tenant. Your own API keys are encrypted server-side and only ever shown as their last four characters.' },
-  { title: 'Free by default', body: 'The whole loop runs on free-tier infrastructure. Paid models are an upgrade, never a requirement.' },
+  { title: 'Real data or nothing', body: 'No mocked clients and no invented metrics. When a signal is unavailable the system says so; when the evidence is thin it answers "not enough evidence" instead of guessing.' },
+  { title: 'People approve the risky parts', body: 'Two human gates sit inside the state machine. A campaign that turns unsafe after launch pauses itself, and only a person resumes it.' },
+  { title: 'Consent first', body: 'Email goes only to people who opted in to hear from the brand, from the brand’s own account, with unsubscribe in every message. Nobody is scraped or bought.' },
+  { title: 'Your data stays yours', body: 'Row-level security isolates every organisation, keys live in Supabase Vault, and the AI never sees a contact’s address or name.' },
 ]
 
-const MILESTONES = [
-  { tag: 'M1', title: 'Provider layer & capabilities', body: 'Free/paid provider registry, real integrations for Trends, news, Bluesky, Mastodon, Resend and image generation.' },
-  { tag: 'M2', title: 'Evaluation harness', body: 'An 18-idea golden set with an LLM judge, running in CI so quality regressions fail the build.' },
-  { tag: 'M3', title: 'Human gates & pre-flight', body: 'Checkpointed approval gates and a synthetic persona panel between creative and launch.' },
-  { tag: 'M4', title: 'Multi-tenancy & BYOK', body: 'Supabase Auth, row-level security on every table, and encrypted bring-your-own-key support.' },
-  { tag: 'M5', title: 'The autonomous loop', body: 'Metrics collection, feedback, tier round caps and GitHub Actions workers that resume from Postgres checkpoints.' },
-  { tag: 'M6', title: 'Learning & memory', body: 'A LinUCB contextual bandit over 20 creative arms, per-user pgvector memory, and a metrics view.' },
+const LAYERS = [
+  { title: 'Agents', body: 'A LangGraph state machine runs intake, feasibility, personas, the decision engine, creative, crash test and feedback, each a plain capability that the API and MCP server reuse.' },
+  { title: 'Learning', body: 'A LinUCB contextual bandit over 20 creative arms, multilingual pgvector memory, brand memory, and a fine-tuned Qwen2.5 classifier retrained weekly on human corrections.' },
+  { title: 'Workers', body: 'GitHub Actions runs every campaign and an hourly sweep, resuming from Postgres checkpoints, so nothing depends on a server staying up.' },
+  { title: 'Data', body: 'Supabase Postgres with row-level security on every table, Vault for secrets, an append-only audit log with a hash chain, and Edge Functions for the browser and the public API.' },
+  { title: 'Safety', body: 'Brand-safety guardrails, prompt-injection fencing, a crash test, a circuit breaker that blocks sends in the database, and per-recipient email suppression.' },
+  { title: 'Evidence', body: 'A golden-set eval with an LLM judge, and fixed benchmarks for the decision engine, proof of impact, creative fatigue and brand memory, all run in CI.' },
 ]
 
-const STACK = ['Python 3.12', 'LangGraph', 'Pydantic', 'Groq', 'OpenAI (BYOK)', 'Supabase', 'Postgres RLS', 'pgvector', 'Edge Functions', 'GitHub Actions', 'React 19', 'Vite', 'TypeScript', 'LangSmith']
+const STACK = ['Python 3.12', 'LangGraph', 'Pydantic', 'Groq', 'Gemini', 'FLUX', 'Qwen2.5 + LoRA', 'Supabase', 'Postgres RLS', 'pgvector', 'Vault',
+  'Edge Functions', 'GitHub Actions', 'Resend', 'Stripe', 'React 19', 'Vite', 'TypeScript', 'Playwright']
 
 export default function About() {
   const { signupTo } = useAuthTargets()
   return (
     <PublicLayout>
       <section className={styles.enter}>
-        <span className={styles.eyebrow}>About MarketingOS</span>
+        <span className={styles.eyebrow}>About CampaignIQ</span>
         <h1 className={styles.pageTitle}>
-          A marketing loop that <em>learns</em> from what really happens.
+          A marketing loop that <em>proves</em> what it did.
         </h1>
         <p className={styles.lead}>
-          Most AI marketing tools write copy and stop there. MarketingOS takes one line of text through the whole
-          campaign (research, audience, creative, launch and measurement), then uses real engagement to decide what to
-          try next.
+          Most AI marketing tools write copy and stop there. CampaignIQ takes one product through the whole campaign:
+          whether to run it at all, who it's for, an ad built around the real product, a launch to social and to your own
+          subscribers, and a measurement of what it actually caused. Then it uses what happened to do better next round.
         </p>
       </section>
 
@@ -69,7 +70,7 @@ export default function About() {
           decoding="async"
         />
         <figcaption>
-          The work MarketingOS automates: planning, testing and rewriting campaigns. Photo by{' '}
+          The work CampaignIQ automates: planning, testing and rewriting campaigns. Photo by{' '}
           <a href="https://unsplash.com/@walls_io" target="_blank" rel="noopener noreferrer">
             Walls.io
           </a>{' '}
@@ -86,7 +87,7 @@ export default function About() {
 
       <section className={styles.section}>
         <span className={styles.eyebrow}>What it does</span>
-        <h2 className={styles.sectionTitle}>Three jobs, one closed loop.</h2>
+        <h2 className={styles.sectionTitle}>Decide, create, prove. One closed loop.</h2>
         <div className={`${styles.grid3} ${local.gapTop}`}>
           {PILLARS.map((p) => (
             <article className={styles.card} key={p.title}>
@@ -115,13 +116,13 @@ export default function About() {
       </section>
 
       <section className={styles.section}>
-        <span className={styles.eyebrow}>How it was built</span>
-        <h2 className={styles.sectionTitle}>Six milestones, shipped in order.</h2>
-        <p className={styles.sectionLead}>Each milestone was verified live against real services before the next one started.</p>
+        <span className={styles.eyebrow}>How it's built</span>
+        <h2 className={styles.sectionTitle}>Six layers, each doing one job.</h2>
+        <p className={styles.sectionLead}>Built to run on free tiers without cutting corners on safety or evidence.</p>
         <ol className={local.timeline}>
-          {MILESTONES.map((m) => (
-            <li key={m.tag}>
-              <span className={local.tag}>{m.tag}</span>
+          {LAYERS.map((m, i) => (
+            <li key={m.title}>
+              <span className={local.tag}>{String(i + 1).padStart(2, '0')}</span>
               <div>
                 <h3>{m.title}</h3>
                 <p>{m.body}</p>
@@ -132,19 +133,13 @@ export default function About() {
       </section>
 
       <section className={`${styles.section} ${local.builder}`}>
-        <div className={`${styles.placeholder} ${local.portrait}`}>
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          <span className={styles.placeholderLabel}>Portrait (placeholder)</span>
-        </div>
         <div>
           <span className={styles.eyebrow}>The builder</span>
           <h2 className={styles.sectionTitle}>Built end to end by Yashas Salian.</h2>
           <p className={styles.sectionLead}>
-            MarketingOS is a portfolio project exploring what an agentic system looks like when it has to meet real
-            APIs, real users and real engagement, not a demo script. The full source and design notes are public.
+            CampaignIQ is a portfolio project exploring what an agentic system looks like when it has to meet real APIs,
+            real customers' inboxes and real engagement, not a demo script. The full source, design notes and benchmarks are
+            public.
           </p>
           <div className={local.stack}>
             {STACK.map((s) => (

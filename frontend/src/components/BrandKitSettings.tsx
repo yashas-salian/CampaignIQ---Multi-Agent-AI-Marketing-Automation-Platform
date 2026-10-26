@@ -16,9 +16,11 @@ interface Kit {
   required_phrase: string | null
   brand_color: string | null
   logo_path: string | null
+  postal_address: string | null
+  privacy_url: string | null
 }
 
-const EMPTY: Kit = { voice: '', preferred_words: [], forbidden_words: [], required_phrase: null, brand_color: null, logo_path: null }
+const EMPTY: Kit = { voice: '', preferred_words: [], forbidden_words: [], required_phrase: null, brand_color: null, logo_path: null, postal_address: null, privacy_url: null }
 const toList = (s: string) => s.split(',').map((w) => w.trim()).filter(Boolean)
 
 /** How campaigns in this organisation should sound. Owners/admins edit; everyone else reads. */
@@ -34,7 +36,7 @@ export default function BrandKitSettings() {
     if (!active) return
     supabase
       .from('brand_kits')
-      .select('voice,preferred_words,forbidden_words,required_phrase,brand_color,logo_path')
+      .select('voice,preferred_words,forbidden_words,required_phrase,brand_color,logo_path,postal_address,privacy_url')
       .eq('org_id', active.id)
       .maybeSingle()
       .then(({ data, error }) => {
@@ -56,6 +58,8 @@ export default function BrandKitSettings() {
       forbidden_words: toList(forbidden),
       required_phrase: kit.required_phrase?.trim() || null,
       brand_color: kit.brand_color || null,
+      postal_address: kit.postal_address?.trim() || null,
+      privacy_url: kit.privacy_url?.trim() || null,
       updated_at: new Date().toISOString(),
     })
     if (!toastFailure(t, error)) toast.success(t('brand.savedToast'))
@@ -107,6 +111,33 @@ export default function BrandKitSettings() {
           />
         </label>
       </div>
+      <div className={local.policyGrid}>
+        <label className={styles.field}>
+          <span>{t('brand.postal')}</span>
+          <textarea
+            className={styles.textarea}
+            rows={2}
+            maxLength={300}
+            disabled={!editable}
+            value={kit.postal_address ?? ''}
+            onChange={(e) => setKit({ ...kit, postal_address: e.target.value })}
+            placeholder={t('brand.postalPlaceholder')}
+          />
+        </label>
+        <label className={styles.field}>
+          <span>{t('brand.privacy')}</span>
+          <input
+            className={styles.input}
+            type="url"
+            maxLength={500}
+            disabled={!editable}
+            value={kit.privacy_url ?? ''}
+            onChange={(e) => setKit({ ...kit, privacy_url: e.target.value })}
+            placeholder="https://yourbrand.com/privacy"
+          />
+        </label>
+      </div>
+      <p className={styles.muted}>{t('brand.postalWhy')}</p>
       {active && (
         <BrandLogo orgId={active.id} path={kit.logo_path} editable={editable} onChange={(logo_path) => setKit((k) => ({ ...k, logo_path }))} />
       )}

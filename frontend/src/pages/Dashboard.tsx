@@ -145,7 +145,7 @@ function Sparkline({ values }: { values: number[] }) {
   const pts = values.map((v, i) => `${(i / (values.length - 1)) * w},${h - 3 - v * (h - 6)}`).join(' ')
   return (
     <svg className={styles.spark} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
-      <polyline points={pts} fill="none" stroke="var(--mos-accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points={pts} fill="none" stroke="var(--ciq-accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   )
 }
@@ -316,7 +316,7 @@ export default function Dashboard() {
         .gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString())
         .order('created_at', { ascending: false })
         .limit(5),
-      // The shared learning loop's size (every campaign on MarketingOS feeds it).
+      // The shared learning loop's size (every campaign on CampaignIQ feeds it).
       supabase.from('bandit_arms').select('pulls'),
       supabase.rpc('org_usage', { p_org: orgId }),
       // The decision engine's latest call per campaign (newest first; RLS-scoped).
@@ -717,7 +717,7 @@ export default function Dashboard() {
               />
             </label>
             <label className={styles.langPick} title={t('ab.hint')}>
-              <input type="checkbox" checked={abTest} onChange={(e) => setAbTest(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--mos-accent)' }} />
+              <input type="checkbox" checked={abTest} onChange={(e) => setAbTest(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--ciq-accent)' }} />
               <span>{t('ab.toggle')}</span>
             </label>
             <button type="button" className={styles.primaryBtn} onClick={createCampaign} disabled={creating || !idea.trim() || !productPhoto || !isWebLink(ctaLink) || !canCreate} title={!canCreate ? t('org.cantCreate') : !productPhoto ? t('product.photoNeeded') : undefined}>

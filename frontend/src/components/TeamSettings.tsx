@@ -267,6 +267,20 @@ interface Policy {
 function ApprovalPolicy({ orgId }: { orgId: string }) {
   const { t } = useTranslation()
   const [policy, setPolicy] = useState<Policy>({ required_approvals: 1, forbid_self_approval: false, approval_sla_hours: null, slack_webhook_url: null })
+  // Who hears about approvals: chosen approvers, or (none chosen) everyone who can approve.
+  const [approvers, setApprovers] = useState<{ user_id: string; email: string; username: string | null; role: string }[]>([])
+  const [notify, setNotify] = useState<string[]>([])
+  // Saved ids of people who have since left or can no longer approve are dropped.
+  const notifyNow = notify.filter((id) => approvers.some((a) => a.user_id === id))
+
+  useEffect(() => {
+    supabase.rpc('org_members', { p_org: orgId }).then(({ data }) => {
+      setApprovers(((data as { user_id: string; email: string; username: string | null; role: string }[]) ?? [])
+        .filter((m) => ['owner', 'admin', 'approver'].includes(m.role)))
+    })
+    supabase.from('org_settings').select('notify_user_ids').eq('org_id', orgId).maybeSingle()
+      .then(({ data }) => setNotify((data as { notify_user_ids: string[] } | null)?.notify_user_ids ?? []))
+  }, [orgId])
 
   useEffect(() => {
     supabase
@@ -285,7 +299,9 @@ function ApprovalPolicy({ orgId }: { orgId: string }) {
     const { error } = await supabase
       .from('org_settings')
       .upsert({ org_id: orgId, ...policy, slack_webhook_url: policy.slack_webhook_url?.trim() || null, updated_at: new Date().toISOString() })
-    if (!toastFailure(t, error)) toast.success(t('approvals.savedToast'))
+    if (toastFailure(t, error)) return
+    const people = await supabase.rpc('set_notification_people', { p_org: orgId, p_users: notifyNow })
+    if (!toastFailure(t, people.error)) toast.success(t('approvals.savedToast'))
   }
 
   return (
@@ -318,6 +334,17 @@ function ApprovalPolicy({ orgId }: { orgId: string }) {
         <input type="checkbox" checked={policy.forbid_self_approval} onChange={(e) => setPolicy({ ...policy, forbid_self_approval: e.target.checked })} />
         <span>{t('approvals.forbidSelf')}</span>
       </label>
+      <fieldset className={local.notify} data-testid="notify-people">
+        <legend>{t('approvals.notifyWho')}</legend>
+        {approvers.map((m) => (
+          <label key={m.user_id} className={local.check}>
+            <input type="checkbox" checked={notify.includes(m.user_id)}
+              onChange={(e) => setNotify((ids) => (e.target.checked ? [...ids, m.user_id] : ids.filter((x) => x !== m.user_id)))} />
+            <span>{m.username || m.email} · {t(`org.role_${m.role}`)}</span>
+          </label>
+        ))}
+        <small className={local.hint}>{notifyNow.length ? t('approvals.notifyChosen') : t('approvals.notifyAll')}</small>
+      </fieldset>
       <label className={styles.field}>
         <span>{t('approvals.slack')}</span>
         <input

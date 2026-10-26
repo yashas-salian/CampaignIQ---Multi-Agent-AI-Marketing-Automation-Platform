@@ -22,7 +22,7 @@ approved sources ──▶ fetch (robots.txt, identified, rate-limited) ──�
 
 | Source | What's read | Rules |
 |---|---|---|
-| **Page** | a page they publish that someone names (pricing, home) | **robots.txt honoured** (RFC 9309): no robots file → allowed; robots unreachable → not fetched. **Identified user agent** (`MarketingOS-CompetitorWatch/1.0`). **At most once a day.** Only the URL given, never crawled. **Public addresses only**: every redirect hop is checked and private, loopback and metadata addresses are refused. 1.5 MB cap. Only short excerpts are stored (headline, description, headings, prices, offer sentences), never the page itself. |
+| **Page** | a page they publish that someone names (pricing, home) | **robots.txt honoured** (RFC 9309): no robots file → allowed; robots unreachable → not fetched. **Identified user agent** (`CampaignIQ-CompetitorWatch/1.0`). **At most once a day.** Only the URL given, never crawled. **Public addresses only**: every redirect hop is checked and private, loopback and metadata addresses are refused. 1.5 MB cap. Only short excerpts are stored (headline, description, headings, prices, offer sentences), never the page itself. |
 | **Feed** | their blog or press RSS/Atom feed | robots.txt honoured, every 6 hours |
 | **News** | NewsAPI coverage under the names they go by | the existing NewsAPI key, every 12 hours, the last 7 days |
 | **Bluesky** | their public posts | the AT Protocol's public API, every 6 hours |

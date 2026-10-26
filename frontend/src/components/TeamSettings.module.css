@@ -6,7 +6,7 @@
 .members { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .member {
   display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px;
-  border: 1px solid var(--mos-surface-border); background: var(--mos-bg-raised);
+  border: 1px solid var(--ciq-surface-border); background: var(--ciq-bg-raised);
 }
 .who { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .who strong { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -20,10 +20,14 @@
   .member { flex-wrap: wrap; }
 }
 .link { display: grid; gap: 8px; }
-.subhead { font-size: 13px; font-weight: 600; color: var(--mos-text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px !important; }
-.error { color: var(--mos-danger); font-size: 13.5px; }
-.policy { display: grid; gap: 12px; padding-top: 16px; border-top: 1px solid var(--mos-surface-border); }
+.subhead { font-size: 13px; font-weight: 600; color: var(--ciq-text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px !important; }
+.error { color: var(--ciq-danger); font-size: 13.5px; }
+.policy { display: grid; gap: 12px; padding-top: 16px; border-top: 1px solid var(--ciq-surface-border); }
 .policyGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 640px) { .policyGrid { grid-template-columns: minmax(0, 1fr); } }
 .check { display: flex; gap: 10px; align-items: center; font-size: 14px; }
-.check input { width: 18px; height: 18px; accent-color: var(--mos-accent); }
+.check input { width: 18px; height: 18px; accent-color: var(--ciq-accent); }
+.notify { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.notify legend { font-size: 13px; font-weight: 500; color: var(--ciq-text-muted); margin-bottom: 4px; padding: 0; }
+.notify span { overflow-wrap: anywhere; }
+.hint { font-size: 12.5px; color: var(--ciq-text-muted); line-height: 1.5; }

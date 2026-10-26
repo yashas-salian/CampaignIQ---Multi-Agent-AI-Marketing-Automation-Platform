@@ -1,12 +1,12 @@
 openapi: 3.1.0
 info:
-  title: MarketingOS API
+  title: CampaignIQ API
   version: 1.0.0
   description: |
     Read and start campaigns for one organisation. Create a key in
     Settings → API & webhooks (owners/admins); it's shown once.
 
-    Authenticate every request with `Authorization: Bearer mos_...`.
+    Authenticate every request with `Authorization: Bearer ciq_...` (keys issued earlier as `mos_...` still work).
     Limits: 60 requests per minute per key (429 + `Retry-After`), and the
     organisation's plan limits for new campaigns (429 with the reason).
 servers:
@@ -21,7 +21,7 @@ components:
     apiKey:
       type: http
       scheme: bearer
-      bearerFormat: mos_<48 hex>
+      bearerFormat: ciq_<48 hex>
   schemas:
     Impact:
       type: object
@@ -190,7 +190,14 @@ paths:
               properties:
                 idea: { type: string, minLength: 5, maxLength: 2000 }
                 target_language: { type: string, default: en }
-                email_to: { type: array, items: { type: string, format: email }, maxItems: 500 }
+                email_to:
+                  type: array
+                  items: { type: string, format: email }
+                  maxItems: 500
+                  description: |
+                    Only for organisations without email connected (it goes to the test inbox). An organisation
+                    that connected its Resend account emails its own contacts instead: 422 here; use POST
+                    /v1/contacts and PUT /v1/campaigns/{id}/email-audience.
                 ab_test: { type: boolean, default: false }
       responses:
         "202": { description: Accepted }
@@ -331,16 +338,211 @@ paths:
                 campaign_id: { type: string, format: uuid, description: Instead of experiment_id }
                 event_id: { type: string, maxLength: 200, description: Your id for this conversion }
                 token: { type: string, pattern: "^[0-9a-f]{32}$", description: The ciq_t link parameter }
-                email: { type: string, format: email, description: Instead of token }
+                email: { type: string, format: email, description: "Instead of token. A buyer on your contact list also gets this purchase in their history (last purchase, orders, products, lifetime value), with or without an experiment" }
+                product: { type: string, description: What they bought (or `products`, a list) }
+                products: { type: array, items: { type: string }, maxItems: 20 }
                 qualified: { type: boolean, default: false }
                 value: { type: number, minimum: 0 }
                 currency: { type: string, pattern: "^[A-Z]{3}$" }
                 occurred_at: { type: string, format: date-time, description: Defaults to now; not in the future }
       responses:
-        "202": { description: "{ matched, duplicate, counted }" }
+        "202": { description: "{ contact (updated | duplicate | unknown, when email was sent), matched, duplicate, counted }" }
         "400": { description: Invalid body }
-        "404": { description: Experiment not found in this organisation }
+        "404": { description: Experiment not found in this organisation (and no contact updated) }
         "409": { description: The experiment hasn't started yet }
+  /v1/contacts:
+    post:
+      summary: Add or update contacts (scope `write`)
+      description: |
+        The organisation's own customers and subscribers, for campaign email.
+        Only people who opted in: every call says how (`consent`). New people
+        are subscribed; known people get their details merged (their status
+        never changes); anyone who unsubscribed, bounced, complained or was
+        erased is skipped, never added back. Counts against the plan's contact
+        limit. The key's creator must be an owner, admin or marketer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contacts, consent]
+              properties:
+                contacts:
+                  type: array
+                  minItems: 1
+                  maxItems: 1000
+                  items:
+                    type: object
+                    required: [email]
+                    properties:
+                      email: { type: string, format: email }
+                      first_name: { type: string, maxLength: 80 }
+                      name: { type: string, maxLength: 160 }
+                      language: { type: string, pattern: "^[a-z]{2}$" }
+                      tags: { type: array, items: { type: string, maxLength: 40 }, maxItems: 50 }
+                      attributes: { type: object, description: "e.g. last_purchase_at (YYYY-MM-DD), orders, products, lifetime_value, country" }
+                      consent_at: { type: string, format: date-time, description: When they opted in (defaults to now) }
+                consent:
+                  type: object
+                  required: [source, text]
+                  properties:
+                    source: { type: string, enum: [checkout, signup_form, in_store, event, api, manual, other] }
+                    text: { type: string, minLength: 10, maxLength: 1000, description: The opt-in wording they agreed to }
+                    note: { type: string, maxLength: 200, description: "e.g. which form or which year" }
+      responses:
+        "200": { description: "{ added, updated, skipped: [{ email, reason: invalid | duplicate | suppressed | plan_limit }] }" }
+        "400": { description: Invalid body or consent }
+        "403": { description: The key's creator can't add contacts }
+  /v1/contacts/counts:
+    get:
+      summary: Contacts by status (no addresses)
+      responses:
+        "200": { description: "{ total, subscribed, pending, unsubscribed, bounced, complained, inactive, cap }" }
+  /v1/contacts/{email}:
+    delete:
+      summary: Erase a person (scope `write`)
+      description: |
+        For a data request. Deletes the contact and their history; only a
+        one-way hash stays, so they're never added or emailed again. Works for
+        addresses that aren't contacts too. Owners' and admins' keys only.
+      parameters:
+        - { name: email, in: path, required: true, schema: { type: string, format: email } }
+      responses:
+        "200": { description: "{ erased (was a contact), suppressed: true }" }
+        "403": { description: Not an owner's or admin's key }
+  /v1/segments:
+    get:
+      summary: Saved segments, each with how many people it reaches now
+      parameters:
+        - { name: language, in: query, schema: { type: string, default: en }, description: The campaign language segments match by default }
+      responses:
+        "200": { description: "[{ id, name, filter, created_at, people }]" }
+  /v1/campaigns/{id}/email-audience:
+    put:
+      summary: Choose who the campaign emails (scope `write`)
+      description: |
+        A saved segment (or null for no campaign email). Fixed once Gate 1 is
+        approved; each round then emails the next batch, one email per person
+        per campaign. The key's creator must be an owner, admin or marketer.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                segment_id: { type: string, format: uuid, nullable: true }
+      responses:
+        "200": { description: "{ campaign_id, segment_id }" }
+        "404": { description: Campaign not found in this organisation }
+        "409": { description: The audience is already fixed (Gate 1 approved) }
+  /v1/brand-memory/lessons:
+    get:
+      summary: The organisation's brand-memory lessons
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [active, proposed, rejected, superseded, expired], default: active } }
+      responses:
+        "200": { description: "Lessons with type, scope, conditions, directives, evidence (provenance), confidence, review_at, expires_at, policy_conflict, use_count" }
+    post:
+      summary: Record a lesson (scope `write`)
+      description: |
+        Active straight away, with a review date (90 days; 180 for a brand-wide
+        rule) and audited. The key's creator must be an owner, admin or
+        marketer; scope "brand" needs an owner or admin. A lesson that conflicts
+        with a current policy is stored but never used. See docs/BRAND_MEMORY.md.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, lesson]
+              properties:
+                type: { type: string, enum: [BRAND_PREFERENCE, POLICY_DECISION, CAMPAIGN_LESSON, AUDIENCE_INSIGHT, FAILED_EXPERIMENT] }
+                lesson: { type: string, minLength: 10, maxLength: 500 }
+                scope: { type: string, enum: [brand, context], default: context }
+                conditions:
+                  type: object
+                  description: Where a context lesson applies; an absent key means any
+                  properties:
+                    domains: { type: array, items: { type: string } }
+                    channels: { type: array, items: { type: string } }
+                    languages: { type: array, items: { type: string } }
+                    age_brackets: { type: array, items: { type: string } }
+                    income_tiers: { type: array, items: { type: string } }
+                directives:
+                  type: object
+                  description: Can only make generation stricter
+                  properties:
+                    avoid_terms: { type: array, items: { type: string } }
+                    prefer_terms: { type: array, items: { type: string } }
+                    avoid_tones: { type: array, items: { type: string } }
+                    avoid_styles: { type: array, items: { type: string } }
+                evidence: { type: string, maxLength: 400, description: Why (kept as provenance) }
+                campaign_id: { type: string, format: uuid }
+                expires_at: { type: string, format: date-time }
+      responses:
+        "201": { description: The lesson }
+        "400": { description: Invalid body }
+        "403": { description: Key lacks the write scope, or its creator can't change brand memory / set a brand-wide rule }
+  /v1/campaigns/{id}/creative-fatigue:
+    get:
+      summary: Is the campaign's creative wearing out on its audience?
+      description: |
+        Per channel and audience segment (email variant A / B), the fatigue-v1
+        verdict with its evidence; near-duplicates (reported apart from
+        fatigue); open alerts; and refreshes tried with their measured outcome.
+        Channels without exposure counts (social) are never judged fatigued.
+        See docs/CREATIVE_FATIGUE.md.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Fatigue
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      analyzed_at: { type: [string, "null"], format: date-time }
+                      policy_version: { type: [string, "null"], examples: [fatigue-v1] }
+                      segments:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            channel: { type: string }
+                            segment: { type: string }
+                            status: { type: string, enum: [NO_FATIGUE, FATIGUE_SUSPECTED, FATIGUE_CONFIRMED, NOT_ATTRIBUTABLE, INSUFFICIENT_DATA, NOT_MEASURABLE] }
+                            reason: { type: string }
+                            recommendation: { type: string, enum: [KEEP, TEST_REFRESH, RETIRE] }
+                            periods: { type: array, description: "Per round: exposures (null = no denominator), successes, stale" }
+                            baseline: { type: [object, "null"], description: "{ rounds, rate, interval }" }
+                            recent: { type: [object, "null"] }
+                            relative_drop: { type: [number, "null"] }
+                            interval: { type: [array, "null"], description: 95% interval of the change in rate (recent - baseline) }
+                            similarity: { type: [object, "null"], description: "copy, visual, hook, offer, cta, total (0-1)" }
+                            comparator_drops: { type: object }
+                            suggested_strategy: { type: string, enum: [NEW_HOOK, NEW_VISUAL, NEW_ANGLE, NEW_OFFER_FRAMING] }
+                      duplicates: { type: array, items: { type: object } }
+                      alerts: { type: array, items: { type: object } }
+                      refreshes:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            strategy: { type: string }
+                            applied_round: { type: [integer, "null"] }
+                            outcome: { type: string, enum: [pending, IMPROVED, NO_CHANGE, WORSE, INCONCLUSIVE, CANCELLED] }
+                            outcome_detail: { type: [object, "null"], description: "rate_before, rate_after, change, interval, design: sequential" }
+                            proposed_by: { type: string, enum: [system, person] }
+        "404": { description: Campaign not found in this organisation }
   /v1/market-intelligence/competitors:
     get:
       summary: Tracked competitors and the health of their sources
@@ -450,8 +652,8 @@ webhooks:
       description: |
         Configure endpoints in Settings → API & webhooks, choosing events
         (`*`, an exact action like `gate.decided`, or a prefix like `delivery.*`).
-        Headers: `X-MarketingOS-Event`, `X-MarketingOS-Delivery` (unique id:
-        de-duplicate on it), `X-MarketingOS-Signature: sha256=<hex>` =
+        Headers: `X-CampaignIQ-Event`, `X-CampaignIQ-Delivery` (unique id:
+        de-duplicate on it), `X-CampaignIQ-Signature: sha256=<hex>` =
         HMAC-SHA256(your webhook secret, raw body). Failed deliveries are retried
         with backoff for about 10 hours (6 attempts).
       requestBody:

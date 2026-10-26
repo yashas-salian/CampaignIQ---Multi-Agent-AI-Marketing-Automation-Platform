@@ -37,11 +37,12 @@ test('a signed-out visitor sees only public links, on every public page', async 
     await page.goto(path)
     const header = page.getByRole('banner').first()
     await expect(header).toBeVisible({ timeout: 15_000 })
-    await expect(header.getByRole('link', { name: 'MarketingOS' })).toBeVisible()
+    await expect(header.getByRole('link', { name: 'CampaignIQ' })).toBeVisible()
     await expect(header.getByRole('link', { name: /get started/i })).toBeVisible()  // (log in is in the phone menu)
     await expect(page.getByRole('link', { name: /dashboard/i })).toHaveCount(0)
     await expect(page.getByRole('navigation', { name: /^main$/i })).toHaveCount(0)
-    for (const name of APP_LINKS) await expect(page.getByRole('link', { name })).toHaveCount(0)
+    // (in-page anchors such as the Docs "Tools" section don't count)
+    for (const name of APP_LINKS) await expect(page.getByRole('link', { name }).and(page.locator(':not([href^="#"])'))).toHaveCount(0)
   }
 })
 
@@ -62,9 +63,11 @@ test('the docs table of contents marks the section in view, and a picked one', a
   const toc = page.getByRole('navigation', { name: 'On this page' })
   const current = () => toc.locator('[aria-current="location"]')
   await expect(current()).toHaveText('Getting started', { timeout: 15_000 })
-  // Scrolling by hand moves the mark.
-  await page.locator('#ab').evaluate((el) => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 100))
-  await expect(current()).toHaveAttribute('href', '#ab')
+  // Scrolling by hand moves the mark (after the fonts settle, so the target doesn't move mid-scroll).
+  await page.evaluate(() => document.fonts.ready)
+  await page.locator('#email').evaluate((el) =>
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 100, behavior: 'instant' }))
+  await expect(current()).toHaveAttribute('href', '#email')
   // At the bottom, the last section is marked even if it can't reach the line.
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
   await expect(current()).toHaveAttribute('href', '#privacy')

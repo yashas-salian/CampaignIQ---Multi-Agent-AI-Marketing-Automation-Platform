@@ -7,108 +7,11 @@
   min-height: 100vh;
 }
 
-.muted { color: var(--mos-text-muted); }
-
 .link {
-  color: var(--mos-accent);
+  color: var(--ciq-accent);
   text-decoration: none;
 }
 .link:hover { text-decoration: underline; }
-
-.mono { font-family: var(--font-mono); }
-
-.divider { border-top: 1px solid var(--mos-surface-border); }
-
-.card {
-  background: var(--mos-surface);
-  border: 1px solid var(--mos-surface-border);
-  border-radius: var(--mos-radius);
-}
-
-.cardHover { transition: translate 0.4s var(--mos-ease), border-color 0.25s ease, box-shadow 0.4s var(--mos-ease); }
-.cardHover:hover {
-  translate: 0 -3px;
-  border-color: color-mix(in srgb, var(--mos-text) 24%, var(--mos-surface-border));
-  box-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.5);
-}
-
-.highlight {
-  border-color: color-mix(in srgb, var(--mos-accent) 55%, var(--mos-surface-border));
-  background: color-mix(in srgb, var(--mos-accent) 12%, var(--mos-surface));
-}
-
-.input, .textarea, .select {
-  width: 100%;
-  background: var(--mos-surface);
-  color: var(--mos-text);
-  border: 1px solid var(--mos-surface-border);
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: 14px;
-  font-family: inherit;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.input::placeholder, .textarea::placeholder { color: var(--mos-text-muted); }
-.input:focus, .textarea:focus, .select:focus {
-  outline: none;
-  border-color: var(--mos-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mos-accent) 22%, transparent);
-}
-.select { width: auto; }
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 9px 18px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: transform 0.35s var(--mos-ease), box-shadow 0.35s var(--mos-ease), opacity 0.15s ease;
-}
-.btn:disabled { opacity: 0.5; cursor: default; }
-.btn:hover:not(:disabled) { transform: translateY(-2px); }
-.btnPrimary:hover:not(:disabled) { box-shadow: 0 10px 26px -10px var(--mos-accent); }
-.btn:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: 2px; }
-
-.btnPrimary { background: var(--mos-accent); color: var(--mos-on-accent); }
-.btnGhost { background: transparent; border-color: color-mix(in srgb, var(--mos-text) 25%, transparent); color: var(--mos-text); }
-.btnGhost:hover:not(:disabled) { border-color: color-mix(in srgb, var(--mos-text) 45%, transparent); }
-.btnSuccess { background: var(--mos-success); color: var(--text-on-dark); }
-.btnDanger { background: var(--mos-danger); color: var(--text-on-dark); }
-.btnDangerOutline { background: transparent; border-color: color-mix(in srgb, var(--mos-danger) 55%, transparent); color: var(--mos-danger); }
-.btnDangerOutline:hover:not(:disabled) { background: color-mix(in srgb, var(--mos-danger) 12%, transparent); }
-.btnInfo { background: var(--mos-accent-strong); color: var(--mos-on-accent); }
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--mos-text) 10%, transparent);
-  color: var(--mos-text-muted);
-}
-.badgeAccent { color: var(--mos-accent); background: color-mix(in srgb, var(--mos-accent) 16%, transparent); }
-
-.codeBlock {
-  background: var(--mos-bg-raised);
-  border: 1px solid var(--mos-surface-border);
-  border-radius: 10px;
-  color: var(--mos-text);
-  font-family: var(--font-mono);
-}
-
-.table { width: 100%; border-collapse: collapse; }
-.table th { text-align: left; font-weight: 400; color: var(--mos-text-muted); }
-.table tr + tr td { border-top: 1px solid var(--mos-surface-border); }
 
 /* TopBar (App.tsx): segmented tile bar matching the Landing nav. The bar's
    own background shows through the 4px gaps as the tile dividers. */
@@ -148,11 +51,8 @@
   transition: background 0.3s ease;
 }
 .topbarCell:hover { background: color-mix(in srgb, var(--nav-text) 6%, var(--nav-tile)); }
-.topbarCell:focus-visible { outline: 2px solid var(--mos-accent); outline-offset: -2px; }
+.topbarCell:focus-visible { outline: 2px solid var(--ciq-accent); outline-offset: -2px; }
 .topbarCell :global(.link-wipe) { --wipe-base: var(--nav-text); }
-/* Current page: orange underline bar, text held in the wiped (orange) state. */
-.topbarActive { box-shadow: inset 0 -2px 0 var(--mos-accent); }
-.topbarActive :global(.link-wipe) { background-position: 0 0; }
 .topbarBrand {
   flex: 1;
   justify-content: flex-start;
@@ -163,7 +63,7 @@
   letter-spacing: -0.02em;
   text-transform: none;
 }
-.topbarLogo { width: 30px; height: 30px; border-radius: 22%; object-fit: cover; flex: none; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08); transition: transform 0.5s var(--mos-ease); }
+.topbarLogo { width: 30px; height: 30px; border-radius: 22%; object-fit: cover; flex: none; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08); transition: transform 0.5s var(--ciq-ease); }
 .topbarBrand:hover .topbarLogo { transform: rotate(-6deg) scale(1.06); }
 /* The language picker (components/Select, "tile" variant) fills its cell. */
 .topbarLang { padding: 0; }
@@ -175,16 +75,16 @@
 .avatar {
   width: 26px; height: 26px; border-radius: 50%; flex: none; display: grid; place-items: center;
   font-family: var(--font-display); font-size: 12px; font-weight: 700;
-  background: var(--mos-accent); color: #111316;
+  background: var(--ciq-accent); color: #111316;
 }
-.chevron { width: 14px; height: 14px; flex: none; transition: transform 0.3s var(--mos-ease); }
+.chevron { width: 14px; height: 14px; flex: none; transition: transform 0.3s var(--ciq-ease); }
 .menu {
   position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; min-width: 220px;
   display: flex; flex-direction: column; padding: 6px;
   background: var(--nav-tile); border: 1px solid var(--nav-gap); border-radius: 14px;
   box-shadow: 0 24px 48px -20px rgba(0, 0, 0, 0.7);
   opacity: 0; visibility: hidden; transform: translateY(-6px);
-  transition: opacity 0.2s ease, transform 0.25s var(--mos-ease), visibility 0s linear 0.25s;
+  transition: opacity 0.2s ease, transform 0.25s var(--ciq-ease), visibility 0s linear 0.25s;
 }
 /* Invisible bridge over the 8px gap so moving the pointer down doesn't close it. */
 .menu::before { content: ''; position: absolute; left: 0; right: 0; top: -10px; height: 10px; }
@@ -193,7 +93,7 @@
 }
 .account:hover .chevron, .account:focus-within .chevron, .accountOpen .chevron { transform: rotate(180deg); }
 .menuEmail {
-  margin: 0; padding: 8px 10px 10px; font-size: 12px; color: var(--mos-text-muted);
+  margin: 0; padding: 8px 10px 10px; font-size: 12px; color: var(--ciq-text-muted);
   border-bottom: 1px solid var(--nav-gap); margin-bottom: 4px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
@@ -203,12 +103,12 @@
   transition: background 0.2s ease, color 0.2s ease;
 }
 .menuItem:hover, .menuItem:focus-visible { background: color-mix(in srgb, var(--nav-text) 8%, var(--nav-tile)); outline: none; }
-.menuDanger { color: var(--mos-danger); }
-.menuDanger:hover, .menuDanger:focus-visible { background: color-mix(in srgb, var(--mos-danger) 14%, var(--nav-tile)); }
+.menuDanger { color: var(--ciq-danger); }
+.menuDanger:hover, .menuDanger:focus-visible { background: color-mix(in srgb, var(--ciq-danger) 14%, var(--nav-tile)); }
 
 .themeToggle { width: 60px; padding: 0; }
-.themeToggle svg { width: 17px; height: 17px; transition: transform 0.6s var(--mos-ease), color 0.3s ease; }
-.themeToggle:hover svg { transform: rotate(40deg); color: var(--mos-accent); }
+.themeToggle svg { width: 17px; height: 17px; transition: transform 0.6s var(--ciq-ease), color 0.3s ease; }
+.themeToggle:hover svg { transform: rotate(40deg); color: var(--ciq-accent); }
 
 /* The language picker inside the account menu is for phones only. */
 .menuLang { display: none; }
@@ -230,7 +130,7 @@
   .menuLang {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     padding: 8px 10px; margin-bottom: 4px; border-bottom: 1px solid var(--nav-gap);
-    font-size: 13px; color: var(--mos-text-muted);
+    font-size: 13px; color: var(--ciq-text-muted);
   }
   .menuLang > div { height: 36px; }
   .accountButton { max-width: 170px; padding: 0 12px; }
@@ -241,5 +141,5 @@
 
 /* Organisation switcher inside the account menu */
 .menuOrgs { display: grid; gap: 2px; padding: 4px 0; margin: 4px 0; border-top: 1px solid var(--nav-gap); border-bottom: 1px solid var(--nav-gap); }
-.menuItemActive { color: var(--mos-accent); font-weight: 600; }
+.menuItemActive { color: var(--ciq-accent); font-weight: 600; }
 .menuItemActive::before { content: '✓ '; }

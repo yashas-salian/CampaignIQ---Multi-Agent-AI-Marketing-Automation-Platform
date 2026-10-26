@@ -93,6 +93,12 @@ class TestBayesianAB:
 
 
 class TestEarlyStop:
+    @pytest.fixture(autouse=True)
+    def offline(self, monkeypatch):
+        # The node also checks creative fatigue and a running experiment: both read the database.
+        monkeypatch.setattr("src.capabilities.fatigue.run", lambda campaign_id: None)
+        monkeypatch.setattr(metrics_collector, "_fixed_horizon", lambda campaign_id: False)
+
     def test_a_decided_test_stops_the_split_and_promotes_the_winner(self, monkeypatch):
         bayes = {"decided": "b", "prob_b_beats_a": 0.97}
         monkeypatch.setattr(metrics_collector, "collect_metrics", lambda *a, **k: MetricsResult(

@@ -20,7 +20,7 @@ export default function Contact() {
   // No backend stores this: it hands a prefilled draft to the visitor's own mail app.
   function onSubmit(e: FormEvent) {
     e.preventDefault()
-    const subject = `[MarketingOS] ${topic}`
+    const subject = `[CampaignIQ] ${topic}`
     const body = `${message}\n\n— ${name}${email ? ` (${email})` : ''}`
     window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
     setOpened(true)

@@ -86,6 +86,68 @@ _PICTURE_KEYS = (
 )
 
 
+def write_copy(
+    idea: str,
+    persona: Persona,
+    *,
+    domain_category: str,
+    active_channels: list[str],
+    image_style: str,
+    copy_tone: str,
+    user_id: str | None = None,
+    revision_directive: str | None = None,
+    target_language: str = "en",
+    cta_url: str | None = None,
+    banned_terms: tuple[str, ...] | list[str] = (),
+    brand: BrandKit | None = None,
+    playbook: str = "",
+    memory: str = "",
+    product_cutout: bytes | None = None,
+    tagline: str = "",
+    template: str | None = None,
+) -> tuple[dict, GuardrailResult, list[str]]:
+    """The words of an ad (copy, headline, CTA, visual brief) for an arm, rewritten
+    until the guardrails pass (or the best attempt). No image is made here, so it
+    can be evaluated without spending image-model calls. Returns (parsed, checks,
+    forbidden words)."""
+    directive_text = (
+        f"\nRevision guidance from the previous round's performance:\n{fence(revision_directive, 'revision_directive')}\n"
+        if revision_directive
+        else ""
+    )
+    forbidden = [*banned_terms, *(brand.forbidden_words if brand else [])]
+    safety_text = ""
+    best: tuple[dict, GuardrailResult] | None = None
+    for _ in range(1 + MAX_GUARDRAIL_REWRITES):
+        prompt, system = PROMPTS["creative.generate"].render(
+            idea=fence(idea, "user_idea"),
+            persona=fence(persona.model_dump(), "persona"),
+            brand=brand.prompt_section() if brand else "",
+            playbook=playbook,
+            memory=memory,
+            image_style=image_style,
+            copy_tone=copy_tone,
+            directive=directive_text,
+            safety=safety_text,
+            language=language_name(target_language),
+            tagline=f"Product tagline (set on the ad as written):\n{fence(tagline, 'tagline')}\n" if tagline else "",
+            visual=_PRODUCT_VISUAL.format(style=image_style, menu=family_menu(image_style, only=template)) if product_cutout else _PICTURE_VISUAL,
+            keys=(_PRODUCT_KEYS.format(language=language_name(target_language)) if product_cutout else _PICTURE_KEYS) + ".",
+        )
+        parsed = generate_json(get_llm(user_id), prompt, system=system)
+        checks = check_creative(
+            str(parsed.get("copy", "")), domain_category=domain_category, channels=active_channels,
+            cta_url=cta_url, banned_terms=forbidden, language=target_language,
+        )
+        if best is None or len(checks.blocked) < len(best[1].blocked):
+            best = (parsed, checks)
+        if checks.ok:
+            break
+        safety_text = f"\n{rewrite_directive(checks)}\n"
+    parsed, checks = best
+    return parsed, checks, forbidden
+
+
 def generate_creative(
     idea: str,
     persona: Persona,
@@ -101,6 +163,7 @@ def generate_creative(
     brand: BrandKit | None = None,
     arm: tuple[int, str, str] | None = None,
     playbook: str = "",
+    memory: str = "",
     product_cutout: bytes | None = None,
     tagline: str = "",
     template: str | None = None,
@@ -108,42 +171,12 @@ def generate_creative(
     arm_index, image_style, copy_tone = arm or select_arm_for_campaign(
         persona.age_bracket, persona.income_tier, domain_category, active_channels
     )
-    directive_text = (
-        f"\nRevision guidance from the previous round's performance:\n{fence(revision_directive, 'revision_directive')}\n"
-        if revision_directive
-        else ""
+    parsed, checks, forbidden = write_copy(
+        idea, persona, domain_category=domain_category, active_channels=active_channels, user_id=user_id,
+        revision_directive=revision_directive, target_language=target_language, cta_url=cta_url, banned_terms=banned_terms,
+        brand=brand, playbook=playbook, memory=memory, image_style=image_style, copy_tone=copy_tone,
+        product_cutout=product_cutout, tagline=tagline, template=template,
     )
-    safety_text = ""
-    best: tuple[dict, GuardrailResult] | None = None
-    for _ in range(1 + MAX_GUARDRAIL_REWRITES):
-        prompt, system = PROMPTS["creative.generate"].render(
-            idea=fence(idea, "user_idea"),
-            persona=fence(persona.model_dump(), "persona"),
-            brand=brand.prompt_section() if brand else "",
-            playbook=playbook,
-            image_style=image_style,
-            copy_tone=copy_tone,
-            directive=directive_text,
-            safety=safety_text,
-            language=language_name(target_language),
-            tagline=f"Product tagline (set on the ad as written):\n{fence(tagline, 'tagline')}\n" if tagline else "",
-            visual=_PRODUCT_VISUAL.format(style=image_style, menu=family_menu(image_style, only=template)) if product_cutout else _PICTURE_VISUAL,
-            keys=(_PRODUCT_KEYS.format(language=language_name(target_language)) if product_cutout else _PICTURE_KEYS) + ".",
-        )
-        parsed = generate_json(get_llm(user_id), prompt, system=system)
-        checks = check_creative(
-            str(parsed.get("copy", "")), domain_category=domain_category, channels=active_channels,
-            cta_url=cta_url, banned_terms=[*banned_terms, *(brand.forbidden_words if brand else [])],
-            language=target_language,
-        )
-        if best is None or len(checks.blocked) < len(best[1].blocked):
-            best = (parsed, checks)
-        if checks.ok:
-            break
-        safety_text = f"\n{rewrite_directive(checks)}\n"
-    parsed, checks = best
-
-    forbidden = [*banned_terms, *(brand.forbidden_words if brand else [])]
     headline = _clean_line(parsed.get("headline"), forbidden)
     cta = _clean_line(parsed.get("cta"), forbidden)
 

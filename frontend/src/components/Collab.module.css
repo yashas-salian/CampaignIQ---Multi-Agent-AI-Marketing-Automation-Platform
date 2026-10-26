@@ -1,13 +1,18 @@
 .comments { display: grid; gap: 14px; }
 .comments ul, .history ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.comments li, .history li { padding: 10px 14px; border-radius: 12px; background: var(--mos-bg-raised); border: 1px solid var(--mos-surface-border); }
+.comments li, .history li { padding: 10px 14px; border-radius: 12px; background: var(--ciq-bg-raised); border: 1px solid var(--ciq-surface-border); }
 .comments li p, .history li p { margin: 6px 0 0; font-size: 14px; line-height: 1.55; white-space: pre-wrap; }
 .commentHead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }
-.commentHead time { color: var(--mos-text-muted); font-size: 12px; }
+.commentHead time { color: var(--ciq-text-muted); font-size: 12px; }
 .commentForm { display: grid; gap: 10px; }
 .commentActions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
-.linkBtn { margin-left: auto; border: 0; background: none; padding: 0; font: inherit; font-size: 12.5px; color: var(--mos-accent); cursor: pointer; }
+.linkBtn { margin-left: auto; border: 0; background: none; padding: 0; font: inherit; font-size: 12.5px; color: var(--ciq-accent); cursor: pointer; }
 .linkBtn:disabled { opacity: 0.5; cursor: progress; }
 .editor { display: grid; gap: 10px; }
-.history summary { cursor: pointer; font-size: 13px; color: var(--mos-text-muted); margin-bottom: 8px; }
-.error { color: var(--mos-danger); font-size: 13px; }
+.history summary { cursor: pointer; font-size: 13px; color: var(--ciq-text-muted); margin-bottom: 8px; }
+.error { color: var(--ciq-danger); font-size: 13px; }
+
+/* Gate 2: why a substantial edit was made (the database requires it). */
+.reasonBox { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
+.rememberRow { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ciq-text-muted); }
+.reasonNote { font-size: 12.5px; color: var(--ciq-text-muted); margin-top: 2px !important; }

@@ -165,7 +165,7 @@ def _alert_dead(channel: str, campaign_id: str, round_id: int, error: str) -> No
 
         send_email(
             [to],
-            f"[MarketingOS] {channel} delivery gave up (campaign {campaign_id}, round {round_id})",
+            f"[CampaignIQ] {channel} delivery gave up (campaign {campaign_id}, round {round_id})",
             f"<p>After {MAX_ATTEMPTS} attempts the {channel} send for campaign <code>{campaign_id}</code> "
             f"round {round_id} was moved to the dead-letter queue.</p><p>Last error: <code>{error}</code></p>",
         )

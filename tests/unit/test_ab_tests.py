@@ -4,7 +4,7 @@ from src.capabilities import metrics as metrics_mod
 from src.capabilities.audience import Persona
 from src.capabilities.creative import Creative
 from src.capabilities.experiments import split_recipients, two_proportion_test
-from src.graph.nodes import distribution_email, variant_b
+from src.graph.nodes import variant_b
 from src.tools import bandit
 
 PERSONA = Persona(name="Ava", demographics="d", psychographics="p", channel_fit="email", messaging_angle="m",
@@ -85,21 +85,6 @@ class TestVariantNode:
         assert saved["copy_text_b"] == "B copy" and saved["arm_index_b"] == 9
 
 
-def test_email_node_sends_each_half_its_variant(monkeypatch):
-    sends, saved = [], {}
-    monkeypatch.setattr(distribution_email, "brand_kit_for_campaign", lambda cid: None)
-    monkeypatch.setattr(distribution_email, "send_campaign_email",
-                        lambda cid, rid, to, **k: sends.append((tuple(to), k.get("channel", "email"), k["html"])) or f"id-{len(sends)}")
-    monkeypatch.setattr(distribution_email, "upsert_iteration", lambda *a, **k: saved.update(k))
-    state = {"campaign_id": "c1", "user_id": "u1", "round_id": 1, "domain_category": "other", "idea": "Meal kits",
-             "email_to": ["d@x.io", "c@x.io", "b@x.io", "a@x.io"], "creative": creative("Copy A"), "creative_b": creative("Copy B")}
-    distribution_email.distribution_email_node(state)
-    half_a, half_b = split_recipients(state["email_to"], salt="c1")  # the same split metrics use
-    assert [(s[0], s[1]) for s in sends] == [(tuple(half_a), "email"), (tuple(half_b), "email_b")]
-    assert "Copy A" in sends[0][2] and "Copy B" in sends[1][2]
-    assert saved == {"email_id": "id-1", "email_id_b": "id-2"}
-
-
 def test_metrics_compare_the_variants(monkeypatch):
     clicks = {"email": 5, "email_b": 40}
     rows = []
@@ -142,3 +127,15 @@ def test_a_failed_metrics_write_still_counts_the_reward(monkeypatch):
 
     monkeypatch.setattr("src.db.supabase_client.upsert_metric", db_down)
     assert metrics_mod.collect_metrics("c1", "u1", 1).channel_rewards == {"mastodon": 0.2}
+
+
+def test_a_batch_rounds_reward_counts_the_people_it_reached(monkeypatch):
+    """A brand's own contacts go out in batches: the click rate is over the
+    emails Resend delivered (or sent, before its webhook reports), not a typed list."""
+    monkeypatch.setattr("src.db.supabase_client.get_iteration", lambda cid, r: {"email_id": "40 emails (re_1)"})
+    monkeypatch.setattr("src.db.supabase_client.get_click_count", lambda cid, r, channel="email": 8)
+    monkeypatch.setattr("src.db.supabase_client.upsert_metric", lambda *a: None)
+    monkeypatch.setattr("src.db.supabase_client.get_email_send_counts", lambda cid, r: {"email": {"sent": 40, "delivered": 0}})
+    assert metrics_mod.collect_metrics("c1", "u1", 1, email_to=[]).channel_rewards == {"email": 0.2}
+    monkeypatch.setattr("src.db.supabase_client.get_email_send_counts", lambda cid, r: {"email": {"sent": 40, "delivered": 32}})
+    assert metrics_mod.collect_metrics("c1", "u1", 1, email_to=[]).channel_rewards == {"email": 0.25}

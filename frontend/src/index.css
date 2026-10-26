@@ -1,70 +1,70 @@
 @import "tailwindcss";
 
 /* "Signal" design tokens (see docs/redesign-plan.md). Pages only ever use the
-   --mos-* names, so swapping the palette here restyles the whole app. Fonts
+   --ciq-* names, so swapping the palette here restyles the whole app. Fonts
    are loaded in index.html. */
 :root {
   --text-on-dark: #edf1f5;
   --text-on-dark-muted: #8d97a5;
 
-  --mos-bg: #0c0e10;
-  --mos-bg-raised: #12151a;
-  --mos-surface: #161a20;
-  --mos-surface-border: #242a33;
-  --mos-text: #edf1f5;
-  --mos-text-muted: #8d97a5;
-  --mos-accent: #ff6b3d;
-  --mos-accent-strong: #ff8a63;
-  --mos-on-accent: #140a05;
-  --mos-danger: #ff5470;
-  --mos-success: #3ecf8e;
+  --ciq-bg: #0c0e10;
+  --ciq-bg-raised: #12151a;
+  --ciq-surface: #161a20;
+  --ciq-surface-border: #242a33;
+  --ciq-text: #edf1f5;
+  --ciq-text-muted: #8d97a5;
+  --ciq-accent: #ff6b3d;
+  --ciq-accent-strong: #ff8a63;
+  --ciq-on-accent: #140a05;
+  --ciq-danger: #ff5470;
+  --ciq-success: #3ecf8e;
 
   --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 
-  --mos-container: 1200px;
-  --mos-radius: 18px;
-  --mos-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ciq-container: 1200px;
+  --ciq-radius: 18px;
+  --ciq-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root:not([data-theme='light']) { color-scheme: dark; }
 
 :root[data-theme='light'] {
-  --mos-bg: #f7f6f3;
-  --mos-bg-raised: #efede8;
-  --mos-surface: #ffffff;
-  --mos-surface-border: #e2dfd8;
-  --mos-text: #111316;
-  --mos-text-muted: #5f6672;
-  --mos-accent: #e4521f;
-  --mos-accent-strong: #c2410c;
-  --mos-on-accent: #ffffff;
-  --mos-danger: #e0364f;
-  --mos-success: #16a36a;
+  --ciq-bg: #f7f6f3;
+  --ciq-bg-raised: #efede8;
+  --ciq-surface: #ffffff;
+  --ciq-surface-border: #e2dfd8;
+  --ciq-text: #111316;
+  --ciq-text-muted: #5f6672;
+  --ciq-accent: #e4521f;
+  --ciq-accent-strong: #c2410c;
+  --ciq-on-accent: #ffffff;
+  --ciq-danger: #e0364f;
+  --ciq-success: #16a36a;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme='dark']) {
-    --mos-bg: #f7f6f3;
-    --mos-bg-raised: #efede8;
-    --mos-surface: #ffffff;
-    --mos-surface-border: #e2dfd8;
-    --mos-text: #111316;
-    --mos-text-muted: #5f6672;
-    --mos-accent: #e4521f;
-    --mos-accent-strong: #c2410c;
-    --mos-on-accent: #ffffff;
-    --mos-danger: #e0364f;
-    --mos-success: #16a36a;
+    --ciq-bg: #f7f6f3;
+    --ciq-bg-raised: #efede8;
+    --ciq-surface: #ffffff;
+    --ciq-surface-border: #e2dfd8;
+    --ciq-text: #111316;
+    --ciq-text-muted: #5f6672;
+    --ciq-accent: #e4521f;
+    --ciq-accent-strong: #c2410c;
+    --ciq-on-accent: #ffffff;
+    --ciq-danger: #e0364f;
+    --ciq-success: #16a36a;
     color-scheme: light;
   }
 }
 
 html, body {
-  background: var(--mos-bg);
-  color: var(--mos-text);
+  background: var(--ciq-bg);
+  color: var(--ciq-text);
 }
 
 /* In-page links (#loop, #pricing…) glide instead of jumping. */
@@ -99,33 +99,33 @@ code { overflow-wrap: anywhere; }
    trigger it from anywhere inside that parent. --wipe-base is the resting
    text color. Icons inside follow the same color change. */
 .link-wipe {
-  --wipe-base: var(--mos-text-muted);
+  --wipe-base: var(--ciq-text-muted);
   position: relative;
   display: inline-block;
   text-decoration: none;
   color: transparent;
-  background-image: linear-gradient(90deg, var(--mos-accent) 0 50%, var(--wipe-base) 50% 100%);
+  background-image: linear-gradient(90deg, var(--ciq-accent) 0 50%, var(--wipe-base) 50% 100%);
   background-size: 200% 100%;
   background-position: 100% 0;
   -webkit-background-clip: text;
   background-clip: text;
-  transition: background-position 0.5s var(--mos-ease);
+  transition: background-position 0.5s var(--ciq-ease);
 }
 .link-wipe::after {
   content: '';
   position: absolute; left: 0; right: 0; bottom: -3px; height: 1.5px;
-  background: var(--mos-accent);
+  background: var(--ciq-accent);
   transform: scaleX(0); transform-origin: left;
-  transition: transform 0.5s var(--mos-ease);
+  transition: transform 0.5s var(--ciq-ease);
 }
-.link-wipe svg { color: var(--wipe-base); transition: color 0.5s var(--mos-ease); }
+.link-wipe svg { color: var(--wipe-base); transition: color 0.5s var(--ciq-ease); }
 .link-wipe:hover, .link-wipe:focus-visible,
 .wipe-host:hover .link-wipe, .wipe-host:focus-visible .link-wipe { background-position: 0 0; }
 .link-wipe:hover::after, .link-wipe:focus-visible::after,
 .wipe-host:hover .link-wipe::after, .wipe-host:focus-visible .link-wipe::after { transform: scaleX(1); }
-.link-wipe:hover svg, .wipe-host:hover .link-wipe svg { color: var(--mos-accent); }
+.link-wipe:hover svg, .wipe-host:hover .link-wipe svg { color: var(--ciq-accent); }
 
-::selection { background: var(--mos-accent); color: var(--mos-on-accent); }
+::selection { background: var(--ciq-accent); color: var(--ciq-on-accent); }
 
 /* iOS Safari zooms the page into any focused field whose text is under 16px.
    !important because page modules set smaller sizes with class selectors. */

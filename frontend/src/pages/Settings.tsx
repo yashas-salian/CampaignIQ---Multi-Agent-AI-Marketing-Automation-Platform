@@ -6,6 +6,7 @@ import ApiSettings from '../components/ApiSettings'
 import AuditLog from '../components/AuditLog'
 import BillingSettings from '../components/BillingSettings'
 import BrandKitSettings from '../components/BrandKitSettings'
+import EmailSendingSettings from '../components/EmailSendingSettings'
 import UsageStats from '../components/UsageStats'
 import PrivacySettings from '../components/PrivacySettings'
 import TeamSettings from '../components/TeamSettings'
@@ -216,6 +217,7 @@ export default function Settings() {
     { id: 'account', label: t('st.navAccount') },
     { id: 'team', label: t('org.team') },
     { id: 'brand', label: t('brand.title') },
+    { id: 'email', label: t('em.title') },
     { id: 'billing', label: t('billing.title') },
     ...(canManage ? [{ id: 'usage', label: t('obs.title') }, { id: 'api', label: t('api.title') }, { id: 'audit', label: t('audit.title') }] : []),
     { id: 'keys', label: t('st.navKeys') },
@@ -332,6 +334,16 @@ export default function Settings() {
               </div>
             </div>
             <BrandKitSettings />
+          </section>
+
+          <section id="email" className={`${styles.panel} ${local.section} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties}>
+            <div className={styles.panelHead}>
+              <div>
+                <h2>{t('em.title')}</h2>
+                <p className={styles.panelSub}>{t('em.sub')}</p>
+              </div>
+            </div>
+            <EmailSendingSettings />
           </section>
 
           <section id="billing" className={`${styles.panel} ${local.section} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties}>

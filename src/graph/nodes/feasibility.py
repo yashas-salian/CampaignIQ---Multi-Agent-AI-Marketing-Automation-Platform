@@ -1,3 +1,4 @@
+from src.capabilities.brand_memory import context_from_state, recall
 from src.capabilities.feasibility import score_feasibility
 from src.constants import max_duration_minutes_for, max_rounds_for_tier
 from src.db.supabase_client import create_campaign, update_campaign
@@ -7,7 +8,9 @@ from src.providers.registry import has_paid_tier_access
 
 def feasibility_node(state: CampaignState) -> CampaignState:
     target_language = state.get("target_language", "en")
-    result = score_feasibility(state["idea"], user_id=state.get("user_id"), target_language=target_language)
+    # Lessons inform the written rationale only; the score itself is computed from signals.
+    memory = recall(context_from_state(state)).section
+    result = score_feasibility(state["idea"], user_id=state.get("user_id"), target_language=target_language, memory=memory)
     max_rounds = max_rounds_for_tier(has_paid_tier_access(state.get("user_id")))
     create_campaign(
         state["campaign_id"],

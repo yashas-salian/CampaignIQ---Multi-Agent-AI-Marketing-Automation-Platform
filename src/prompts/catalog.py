@@ -30,12 +30,13 @@ _CATALOG = [
     ),
     Prompt(
         id="feasibility.rationale",
-        version="1.0.0",
+        version="1.1.0",  # 1.1.0: brand memory section (background only; the score is computed, not written)
         system="You are a marketing analyst writing terse, evidence-grounded feasibility rationales.",
         template=(
             "An ad campaign idea is:\n{idea}\n"
             "Research signals gathered:\n{signals}\n"
             "{similar}"
+            "{memory}"
             "The computed feasibility score (0-100) is {score}.\n"
             "Write a 2-3 sentence rationale explaining what these signals suggest "
             "about this campaign's real-world momentum and feasibility. Write it in {language}."
@@ -43,11 +44,12 @@ _CATALOG = [
     ),
     Prompt(
         id="audience.personas",
-        version="1.2.0",  # 1.1.0: archetype (picks the persona's 3D figure); 1.2.0: gender (matches the figure)
+        version="1.3.0",  # 1.1.0: archetype (picks the persona's 3D figure); 1.2.0: gender (matches the figure); 1.3.0: brand memory
         system=f"You are an audience research strategist. {_JSON_ONLY}",
         template=(
             "Ad campaign idea:\n{idea}\n"
             "Feasibility rationale:\n{rationale}\n\n"
+            "{memory}"
             "Generate exactly {n} distinct ideal-customer-profile personas for this campaign. "
             "Respond with ONLY a JSON array, no prose, where each element has exactly these keys: "
             '"name", "demographics", "psychographics", "channel_fit", "messaging_angle" (each a single '
@@ -63,8 +65,8 @@ _CATALOG = [
     Prompt(
         id="creative.generate",
         # 1.1.0: brand kit section; 1.2.0: playbook section; 1.3.0: headline, CTA, ad-style visual;
-        # 2.0.0: product-first templates (src/tools/ad_templates.py), tagline, no invented claims
-        version="2.0.0",
+        # 2.0.0: product-first templates (src/tools/ad_templates.py), tagline, no invented claims; 2.1.0: brand memory
+        version="2.1.0",
         system=f"You are an ad creative director. {_JSON_ONLY}",
         template=(
             "Ad campaign idea:\n{idea}\n"
@@ -72,6 +74,7 @@ _CATALOG = [
             "Target persona:\n{persona}\n"
             "{brand}"
             "{playbook}"
+            "{memory}"
             "Required image style archetype: {image_style}\n"
             "Required copy tone archetype: {copy_tone}\n"
             "{directive}{safety}\n"
@@ -215,6 +218,24 @@ _CATALOG = [
             'Respond with ONLY a JSON object with exactly these keys: "copy" (the post text, 2-3 sentences), "headline" '
             '(on-image headline, at most 7 words, no hashtags or emoji), "cta" (a 2-4 word button label) and "changes" '
             "(an array of short strings, one per change you made and why)."
+        ),
+    ),
+    Prompt(
+        id="email.audience",
+        version="1.0.0",
+        system=(
+            "You are an email marketer choosing which of a brand's own subscribers should get a campaign. You only use "
+            f"the groups listed; you never invent tags, products or places. {_JSON_ONLY}"
+        ),
+        template=(
+            "The campaign:\n{idea}\n"
+            "Who it is for (the campaign's personas):\n{personas}\n"
+            "The brand's subscribers, as groups with how many people are in each (the only names you may use):\n{catalog}\n\n"
+            "Pick the subscribers this campaign fits best. Prefer a focused group over everyone, but don't narrow it to a "
+            "handful of people. Respond with ONLY a JSON object with exactly two keys: \"filter\" (an object using only "
+            "these optional keys: \"tags_any\" and \"tags_none\" (lists of tag names from above), \"purchased_within_days\" "
+            "or \"not_purchased_within_days\" (a number of days), \"product_any\" (product names from above), "
+            "\"country_any\" (country names from above)) and \"reason\" (one sentence in {language} saying why this group)."
         ),
     ),
     Prompt(

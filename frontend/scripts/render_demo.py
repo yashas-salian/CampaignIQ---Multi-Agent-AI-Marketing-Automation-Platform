@@ -1,4 +1,4 @@
-"""Render a ~17 s looping product-flow simulation of MarketingOS as an animated WebP.
+"""Render a ~17 s looping product-flow simulation of CampaignIQ as an animated WebP.
 
 Scenes: idea typed -> feasibility scored -> personas -> Gate 2 approved ->
 published -> reward climbs. Drawn at 2x and downsampled for smooth edges.
@@ -110,10 +110,10 @@ def draw_chrome(c: Canvas):
     c.d.line(P(0, 52, W, 52), fill=BORDER, width=S)
     for i, col in enumerate([(255, 95, 86), (255, 189, 46), (39, 201, 63)]):
         c.d.ellipse(P(24 + i * 22, 20, 36 + i * 22, 32), fill=col)
-    c.text(110, 17, "marketingos.app / campaigns / new", "mono", MUTED)
+    c.text(110, 17, "campaigniq.app / campaigns / new", "mono", MUTED)
     # brand mark: the real logo (public/brand/logo-256.webp) as a small rounded tile
     c.img.paste(LOGO, (int((W - 200) * S), int(12 * S)), LOGO_MASK)
-    c.text(W - 166, 15, "MarketingOS", "small", TEXT)
+    c.text(W - 166, 15, "CampaignIQ", "small", TEXT)
 
 
 def draw_stepper(c: Canvas, step: int, local: float):

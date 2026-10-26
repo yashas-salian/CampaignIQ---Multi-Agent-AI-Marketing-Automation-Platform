@@ -158,7 +158,7 @@ test('the sidebar opens from the left on every app page and lists every feature'
     await expect.poll(async () => (await nav.boundingBox())?.width ?? 0).toBeLessThan(80)
   }
   await openNav(page, info.project.name)
-  for (const name of [/new campaign/i, /^dashboard$/i, /^calendar$/i, /^tools$/i, /run history/i, /^competitors$/i, /^playbooks$/i, /our ai model/i, /^settings$/i])
+  for (const name of [/new campaign/i, /^dashboard$/i, /^calendar$/i, /^tools$/i, /run history/i, /^contacts$/i, /^competitors$/i, /^brand memory$/i, /^playbooks$/i, /our ai model/i, /^settings$/i])
     await expect(nav.getByRole('link', { name })).toBeVisible()
   await expect(nav.getByRole('link', { name: /^dashboard$/i })).toHaveAttribute('aria-current', 'page')
 
@@ -186,13 +186,13 @@ test('logged-in pages have the top bar and sidebar; public pages have a navbar a
   await signIn(page)
   for (const path of ['/competitors', '/invite/expired-token']) {
     await page.goto(path)
-    await expect(page.getByRole('link', { name: 'MarketingOS' }).first()).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('link', { name: 'CampaignIQ' }).first()).toBeVisible({ timeout: 15_000 })
     if (info.project.name === 'phone') await expect(page.getByRole('button', { name: /menu/i })).toBeVisible()  // the sidebar is a drawer
     else await expect(page.getByRole('navigation', { name: /^main$/i })).toBeAttached()
   }
   for (const path of ['/docs', '/status']) {
     await page.goto(path)
-    await expect(page.getByRole('link', { name: /MarketingOS/ }).first()).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole('link', { name: /CampaignIQ/ }).first()).toBeVisible({ timeout: 15_000 })
     await expect(page.getByRole('navigation', { name: /^main$/i })).toHaveCount(0)
   }
 })

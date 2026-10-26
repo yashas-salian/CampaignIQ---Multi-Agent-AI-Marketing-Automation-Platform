@@ -134,11 +134,6 @@ def get_template(user_id: str, template_type: str) -> dict | None:
     return result.data if result else None
 
 
-def set_template(user_id: str, template_type: str, **fields) -> None:
-    row = {"user_id": user_id, "template_type": template_type, **fields}
-    get_client().table("templates").upsert(row, on_conflict="user_id,template_type").execute()
-
-
 def update_campaign(campaign_id: str, **fields) -> None:
     get_client().table("campaigns").update(fields).eq("id", campaign_id).execute()
 
@@ -175,6 +170,23 @@ def get_click_count(campaign_id: str, round_number: int, channel: str = "email")
         .execute()
     )
     return result.count or 0
+
+
+def get_email_send_counts(campaign_id: str, round_number: int) -> dict[str, dict[str, int]]:
+    """Per email channel of a round, from the per-recipient log: how many emails
+    went out ("sent", whatever happened after) and how many Resend confirmed
+    delivered. Empty when the round has no log (older rounds)."""
+    rows = (
+        get_client().table("email_sends").select("channel,status")
+        .eq("campaign_id", campaign_id).eq("round_number", round_number)
+        .in_("status", ["sent", "delivered", "bounced", "complained"]).execute().data or []
+    )
+    counts: dict[str, dict[str, int]] = {}
+    for r in rows:
+        c = counts.setdefault(r["channel"], {"sent": 0, "delivered": 0})
+        c["sent"] += 1
+        c["delivered"] += r["status"] == "delivered"
+    return counts
 
 
 def insert_feedback(campaign_id, user_id, round_number, *, overall_reward, stakeholder_comment, revision_directive, continued) -> None:

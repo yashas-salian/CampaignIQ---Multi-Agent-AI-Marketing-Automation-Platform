@@ -10,7 +10,7 @@ export function initMonitoring() {
   sentry = import('@sentry/react').then((Sentry) => {
     Sentry.init({
       dsn,
-      release: `marketingos@${__APP_VERSION__}`,
+      release: `campaigniq@${__APP_VERSION__}`,
       environment: import.meta.env.MODE,
       tracesSampleRate: 0,
     })

@@ -48,7 +48,7 @@ from urllib.robotparser import RobotFileParser
 logger = logging.getLogger("capabilities.competitors")
 
 POLICY_VERSION = "competitor-v1"
-USER_AGENT = "MarketingOS-CompetitorWatch/1.0 (+https://github.com/marketingos; respects robots.txt)"
+USER_AGENT = "CampaignIQ-CompetitorWatch/1.0 (+https://github.com/campaigniq; respects robots.txt)"
 FETCH_EVERY_HOURS = {"webpage": 24, "rss": 6, "news": 12, "bluesky": 6}
 STALE_AFTER_HOURS = 72          # a source with nothing fetched successfully for this long is stale
 MAX_BYTES = 1_500_000
@@ -67,10 +67,6 @@ says said""".split())
 # --- Safe fetching ---------------------------------------------------------------------------
 
 class FetchError(Exception):
-    pass
-
-
-class RobotsDisallowed(FetchError):
     pass
 
 

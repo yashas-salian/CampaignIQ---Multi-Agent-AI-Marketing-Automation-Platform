@@ -118,6 +118,10 @@ jobs:
             python -m src.scheduler.market_watch
             # Competitor intelligence: approved sources that are due (pages daily, feeds and posts 6-hourly), forecasts resolved.
             python -m src.capabilities.competitors
+            # Brand memory: retire lessons past their expiry (expired lessons are already never used).
+            python -m src.capabilities.brand_memory
+            # Email engine: tell managers when bounces or spam complaints paused their campaign email.
+            python -m src.capabilities.email_engine
             # Data retention (GDPR): prune old Tools results, usage rows, delivery payloads, click events.
             python -c "from dotenv import load_dotenv; load_dotenv(); from src.db.supabase_client import get_client; print('Retention:', get_client().rpc('apply_retention').execute().data)"
           fi

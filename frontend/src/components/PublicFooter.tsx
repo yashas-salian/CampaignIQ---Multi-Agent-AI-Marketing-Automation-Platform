@@ -43,10 +43,10 @@ export default function PublicFooter() {
           <div className={styles.footerBrand}>
             <Link to="/" className={styles.logo}>
               <LogoMark />
-              MarketingOS
+              CampaignIQ
             </Link>
             <p>
-              MarketingOS turns a single idea into a campaign that improves itself. It scores demand, writes and
+              CampaignIQ turns a single idea into a campaign that improves itself. It scores demand, writes and
               launches the creative, and learns from every round of real engagement, with you approving each step
               that matters.
             </p>
@@ -74,10 +74,10 @@ export default function PublicFooter() {
           ))}
         </div>
         <div className={styles.wordmark} aria-hidden="true">
-          MarketingOS
+          CampaignIQ
         </div>
         <div className={styles.footerBottom}>
-          <span>© 2026 MarketingOS. All rights reserved. · v{__APP_VERSION__}</span>
+          <span>© 2026 CampaignIQ. All rights reserved. · v{__APP_VERSION__}</span>
         </div>
       </div>
     </footer>

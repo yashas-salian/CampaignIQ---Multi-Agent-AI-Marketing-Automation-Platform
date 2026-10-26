@@ -47,7 +47,6 @@ MIN_BASELINE_SUCCESSES = 10  # relative lift needs a control rate that isn't a h
 STALE_OUTCOME_HOURS = 72     # running, conversions had been arriving, then nothing for this long
 CONVERSION_METRICS = ("qualified_signup_rate", "conversion_rate")
 ARMS = ("control", "treatment", "treatment_b")
-SEND_PACING_SECONDS = 0.6   # Resend allows 2 requests a second by default
 
 
 # --- Assignment -------------------------------------------------------------------------------
@@ -519,6 +518,10 @@ def run_analysis(experiment: dict, *, now: datetime | None = None) -> dict:
         result["bandit"] = feed_bandit(experiment, campaign, assignments, events, result)
     _client().rpc("save_impact", {"p_experiment": experiment["id"], "p_result": result, "p_status": result["status"],
                                   "p_final": result["final"], "p_ends_at": _iso(new_end)}).execute()
+    if result["final"]:  # a verdict worth remembering is proposed as a lesson (a person confirms it)
+        from src.capabilities.brand_memory import lesson_from_experiment
+
+        lesson_from_experiment(experiment, campaign, result)
     return result
 
 

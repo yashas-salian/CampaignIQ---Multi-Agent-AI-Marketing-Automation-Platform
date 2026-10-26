@@ -1,4 +1,4 @@
-"""M8: MarketingOS capabilities as an MCP server.
+"""M8: CampaignIQ capabilities as an MCP server.
 
 Wraps the same `capabilities/` functions the graph, the Tools page and CI use
 (one implementation per capability, no drift), so Claude Desktop or any other
@@ -27,15 +27,15 @@ import anyio
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP, Image
 from mcp.types import ToolAnnotations
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 # Explicit path: MCP clients launch the server from their own working directory.
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 mcp = FastMCP(
-    "marketingos",
+    "campaigniq",
     instructions=(
-        "MarketingOS ad-campaign capabilities: classify an idea, score its market feasibility from live "
+        "CampaignIQ ad-campaign capabilities: classify an idea, score its market feasibility from live "
         "signals, generate customer personas, write ad creative (copy + image) chosen by a contextual "
         "bandit, pre-test it on a synthetic persona panel, distribute it, and read campaign results. "
         "A typical flow is classify_idea -> score_feasibility -> generate_personas -> generate_creative "
@@ -163,6 +163,30 @@ async def measure_impact(
 
     return await _run(analyze_counts, control_units, control_conversions, treatment_units, treatment_conversions,
                       min_effect=min_effect, min_units_per_arm=min_units_per_arm)
+
+
+class FatigueRound(BaseModel):
+    people: Annotated[int | None, Field(ge=0, le=10_000_000, description="People reached that round (None if the channel has no exposure data)")]
+    clicks: Annotated[int | None, Field(ge=0, description="Unique people who clicked")] = None
+
+
+@mcp.tool(annotations=READ_ONLY)
+async def assess_creative_fatigue(
+    rounds: Annotated[list[FatigueRound], Field(min_length=1, max_length=52, description="Oldest first, one entry per round of the same creative concept")],
+    similarity: Annotated[float | None, Field(ge=0, le=1, description="How alike the recent creatives are to the first ones (0-1)")] = None,
+    comparison_drop: Annotated[float | None, Field(description="Relative drop of a comparable segment over the same rounds (e.g. your other emails)")] = None,
+) -> dict:
+    """Is an ad concept wearing out on its audience? Policy fatigue-v1: needs 3+
+    rounds of 100+ people, a sustained drop (every recent round below the fresh
+    baseline beyond its noise), 20%+ relative with a 95% interval below zero, and
+    a drop specific to the creative. Returns NO_FATIGUE, FATIGUE_SUSPECTED,
+    FATIGUE_CONFIRMED, NOT_ATTRIBUTABLE, INSUFFICIENT_DATA or NOT_MEASURABLE with
+    KEEP / TEST_REFRESH / RETIRE. Channels without exposure counts are never judged."""
+    from src.capabilities.fatigue import analyze_segment
+
+    periods = [{"round": i + 1, "exposures": r.people, "successes": None if r.people is None else min(r.clicks or 0, r.people),
+                "stale": False} for i, r in enumerate(rounds)]
+    return await _run(analyze_segment, periods, similarity_to_fresh=similarity, comparators=[comparison_drop])
 
 
 @mcp.tool(annotations=GENERATES)
@@ -302,7 +326,7 @@ async def send_campaign_email(
 ) -> str:
     """Email the campaign creative via Resend. A dry run unless the server runs with DRY_RUN=false.
     Sending the same campaign/round twice is skipped."""
-    from src.capabilities.distribution import send_campaign_email as send
+    from src.capabilities.email_engine import send_adhoc as send
 
     cid, rid = _send_ids(campaign_id, round_id)
     return await _run(send, cid, rid, to, subject, html, cta_url=cta_url)
@@ -368,7 +392,7 @@ def _preload() -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="MarketingOS MCP server")
+    parser = argparse.ArgumentParser(description="CampaignIQ MCP server")
     parser.add_argument("--http", type=int, metavar="PORT", help="serve streamable HTTP on 127.0.0.1:PORT instead of stdio")
     args = parser.parse_args()
     _preload()

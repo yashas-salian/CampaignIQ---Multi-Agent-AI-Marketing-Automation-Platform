@@ -3,7 +3,6 @@ import hashlib
 import html as html_lib
 import logging
 import os
-import time
 
 from src.capabilities.delivery import deliver
 from src.tools.bluesky_client import find_own_post, post_to_bluesky
@@ -72,45 +71,11 @@ def post_reddit(
     )
 
 
-def send_campaign_email(
-    campaign_id: str,
-    round_id: int,
-    to: list[str],
-    subject: str,
-    html: str,
-    *,
-    cta_url: str | None = None,
-    user_id: str | None = None,
-    channel: str = "email",  # "email_b" for an A/B test's variant B
-    image_bytes: bytes | None = None,
-    image_alt: str = "",
-) -> str:
-    """One email per recipient (nobody sees the other addresses), each with its
-    own idempotency key, under one ledger row per campaign/round/channel."""
-    link = None
-    if cta_url:
-        link = (
-            wrap_tracked_url(cta_url, campaign_id=campaign_id, round_id=round_id, channel=channel)
-            if os.environ.get("TRACK_CLICK_BASE_URL")
-            else cta_url
-        )
-        html = f'{html}<p><a href="{link}">Learn more</a></p>'
-    if image_bytes:
-        html = with_ad_image(html, image_alt, link)
-
-    recipients = [{"to": a, "unit_hash": recipient_key(a)} for a in dict.fromkeys(x.strip() for x in to if x and x.strip())]
-    payload = {"experiment_id": None, "per_recipient": recipients, "subject": subject, "html": html, "cta_url": None}
-    if image_bytes:
-        payload["image_base64"] = base64.b64encode(image_bytes).decode()
-    return deliver(
-        channel,
-        campaign_id,
-        round_id,
-        payload,
-        lambda: _send_each(campaign_id, round_id, channel, payload, image_bytes),
-        describe=f"would email {len(recipients)} recipient(s) one by one: {subject!r}",
-        user_id=user_id,
-    )
+def tracked_link(cta_url: str, *, campaign_id: str, round_id: int, channel: str) -> str:
+    """The CTA as a click-tracked link when tracking is configured, else as is."""
+    if os.environ.get("TRACK_CLICK_BASE_URL"):
+        return wrap_tracked_url(cta_url, campaign_id=campaign_id, round_id=round_id, channel=channel)
+    return cta_url
 
 
 def recipient_key(address: str) -> str:
@@ -122,67 +87,15 @@ def recipient_key(address: str) -> str:
 LINK_SLOT = "__CIQ_LINK__"
 
 
-def personal_link(cta_url: str, *, campaign_id: str, round_id: int, channel: str, token: str) -> str:
-    """The recipient's link: tracked (the click is credited to their unit) and,
-    either way, carrying their token to the brand's site for conversions."""
+def personal_link(cta_url: str, *, campaign_id: str, round_id: int, channel: str, token: str | None = None,
+                  contact_token: str | None = None) -> str:
+    """The recipient's link: tracked (the click is credited to their experiment
+    unit and marks the contact engaged) and, either way, carrying their
+    experiment token to the brand's site for conversions."""
     if os.environ.get("TRACK_CLICK_BASE_URL"):
-        return wrap_tracked_url(cta_url, campaign_id=campaign_id, round_id=round_id, channel=channel, token=token)
-    return with_token(cta_url, token)
-
-
-def send_experiment_email(
-    campaign_id: str,
-    round_id: int,
-    recipients: list[dict],
-    subject: str,
-    html: str,
-    *,
-    experiment_id: str,
-    cta_url: str | None = None,
-    user_id: str | None = None,
-    channel: str = "email",
-    image_bytes: bytes | None = None,
-    image_alt: str = "",
-) -> str:
-    """An experiment's emails: one per recipient (`recipients`: {to, token,
-    unit_hash}), like every campaign email, plus each link carries that
-    person's token. Same ledger row as a normal send (at most once per
-    campaign/round/channel); each email has its own idempotency key, so a retry
-    after a partial failure never emails anyone twice."""
-    if cta_url:
-        html = f'{html}<p><a href="{LINK_SLOT}">Learn more</a></p>'
-    if image_bytes:
-        html = with_ad_image(html, image_alt, LINK_SLOT if cta_url else None)
-    payload = {"experiment_id": experiment_id, "per_recipient": recipients, "subject": subject, "html": html, "cta_url": cta_url}
-    if image_bytes:
-        payload["image_base64"] = base64.b64encode(image_bytes).decode()
-    return deliver(
-        channel, campaign_id, round_id, payload,
-        lambda: _send_each(campaign_id, round_id, channel, payload, image_bytes),
-        describe=f"would email {len(recipients)} recipient(s) one by one: {subject!r}", user_id=user_id,
-    )
-
-
-def _send_each(campaign_id: str, round_id: int, channel: str, payload: dict, image_bytes: bytes | None) -> str:
-    from src.capabilities.impact import SEND_PACING_SECONDS, record_exposures
-
-    sent, first_id = [], None
-    try:
-        for i, r in enumerate(payload["per_recipient"]):
-            if i:
-                time.sleep(SEND_PACING_SECONDS)
-            body = payload["html"]
-            if payload.get("cta_url") and r.get("token"):
-                link = personal_link(payload["cta_url"], campaign_id=campaign_id, round_id=round_id, channel=channel, token=r["token"])
-                body = body.replace(LINK_SLOT, html_lib.escape(link, quote=True))
-            email_id = send_email([r["to"]], payload["subject"], body, image_bytes=image_bytes,
-                                  idempotency_key=f"{campaign_id}:{round_id}:{channel}:{r['unit_hash'][:32]}")
-            first_id = first_id or email_id
-            sent.append(r["unit_hash"])
-    finally:
-        if sent and payload.get("experiment_id"):  # whatever went out is an exposure, even if a later send failed
-            record_exposures(payload["experiment_id"], round_id, sent)
-    return f"{len(sent)} emails ({first_id})"
+        return wrap_tracked_url(cta_url, campaign_id=campaign_id, round_id=round_id, channel=channel, token=token,
+                                contact_token=contact_token)
+    return with_token(cta_url, token) if token else cta_url
 
 
 def with_ad_image(html: str, alt: str, link: str | None) -> str:
@@ -212,14 +125,16 @@ def resend_from_payload(channel: str, campaign_id: str, round_id: int, payload: 
     if channel == "reddit":
         return post_reddit(campaign_id, round_id, payload["subreddit"], payload["title"], payload["body"], user_id=user_id)
     if channel in ("email", "email_b") and payload.get("per_recipient"):
+        from src.capabilities.email_engine import send_payload
+
         image = base64.b64decode(payload["image_base64"]) if payload.get("image_base64") else None
         return deliver(
-            channel, campaign_id, round_id, payload, lambda: _send_each(campaign_id, round_id, channel, payload, image),
+            channel, campaign_id, round_id, payload, lambda: send_payload(campaign_id, round_id, channel, payload, image),
             describe=f"would email {len(payload['per_recipient'])} recipient(s) one by one", user_id=user_id,
         )
     if channel in ("email", "email_b"):
-        # The stored html already carries the (tracked) CTA link and the
-        # image tag; only the image bytes go back in as the attachment.
+        # A legacy single batched send: the stored html already carries the
+        # (tracked) CTA link and the image tag; the image goes back as the attachment.
         image = base64.b64decode(payload["image_base64"]) if payload.get("image_base64") else None
         return deliver(
             channel, campaign_id, round_id, payload,

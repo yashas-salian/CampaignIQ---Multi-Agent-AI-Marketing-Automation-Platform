@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to MarketingOS. The format follows
+All notable changes to CampaignIQ. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/). One version covers the Python
 backend and the frontend (`pyproject.toml` and `frontend/package.json` must
@@ -14,6 +14,89 @@ GitHub Release notes.
 ## [Unreleased]
 
 ### Added
+- **Notifications for the people who must act** (`src/notifications.py`, migration `20261028000100_notifications`):
+  - **Who:**
+    - **Gates waiting, market moments and re-evaluations** go to the organisation's **designated approvers**, chosen by managers in Settings → Team. If nobody is chosen, everyone who can approve is told.
+    - **Overdue approvals, critical holds and paused email** go to owners and admins.
+  - **How:**
+    - **in the app:** a bell in the top bar with an unread count; opening a notice marks it read and goes to the campaign;
+    - **by email:** one per person, from the brand's own connected Resend address, else from the app's when `NOTIFY_EMAIL=true`. Each person can switch emails off from the bell.
+    - **Slack:** as before.
+  - **Reliability:** each channel fails on its own and never stops a campaign run.
+- **Email engine** (`capabilities/email_engine.py`, `capabilities/email_copy.py`, migrations `20261027000100`–`20261027001200`, Edge Functions `email-setup`, `resend-webhook`, `unsubscribe`, `join`, `email-test`, prompt `email.audience` 1.0.0, [docs/EMAIL_ENGINE.md](docs/EMAIL_ENGINE.md)):
+  - **The legal model:** campaign email goes only to the brand's own opted-in customers and subscribers, never scraped or bought lists.
+  - **The brand's own Resend account:**
+    - Settings → Email sending; the full key is used once and a sending-only key for one domain is kept in Vault;
+    - our webhook is installed on the account;
+    - **sandbox mode** (no domain): each batch is one labelled email to the account owner.
+  - **Contacts page:**
+    - counts, search, tags;
+    - CSV import with column mapping and a consent attestation;
+    - per-person consent history;
+    - export and erase (owners and admins);
+    - segments with live counts.
+  - **Plan cap:** 1,000 contacts on the free plan.
+  - **Sign-up form** `/join/{slug}`: double opt-in, rate-limited, tagged `signed-up` and `from:<campaign>`. Campaign posts end with the sign-up link (per-campaign switch).
+  - **Audiences:**
+    - a segment chosen at Gate 1 (the AI can suggest one from names and counts only);
+    - fixed when Gate 1 is approved, with the proof-of-impact holdout taken from the whole audience;
+    - each round emails the next batch: one email per person per campaign, at least 20 people, re-checked before sending.
+  - **Every email:** a greeting, a footer (why you got it, unsubscribe, the brand's postal address, a tracking note), RFC 8058 one-click unsubscribe headers, and a per-person click token.
+  - **Limits:** each brand's sending window and daily limit (10% kept for confirmations). What doesn't fit waits and the hourly sweep sends it. Stopping a campaign cancels what's waiting.
+  - **Bounces and complaints** (Svix-verified webhook): hard bounces, three soft bounces in a row, and complaints suppress the address for good. The **safety pause** stops email at 0.06% complaints or 3% bounces (Resend's limits are 0.08% and 4%), managers are told, and an owner or admin resumes it.
+  - **Engagement:** clicks and reported purchases mark a contact engaged. **24 months** without either: inactive, not emailed.
+  - **Public pages** (no app chrome, in the person's language): unsubscribe (one click, resubscribe, "also delete my details"), confirm, and the sign-up form.
+  - **Gate 2:** the coming batch, why people left, each round's delivered, bounced and spam counts, and "Send me a test".
+  - **API:** `POST /v1/contacts`, `GET /v1/contacts/counts`, `DELETE /v1/contacts/{email}`, `GET /v1/segments`, `PUT /v1/campaigns/{id}/email-audience`. `POST /v1/conversions` with an email updates the buyer's contact. `email_to` is refused (422) once email is connected.
+  - **Supporting changes:**
+    - every email round goes through `email_engine.send_round()` with a per-recipient log (`email_sends`, by hash);
+    - the email reward counts delivered emails, not a typed list;
+    - organisations get a `slug`;
+    - the brand kit gets a postal address and a privacy link.
+- **Brand memory** (`capabilities/brand_memory.py`, migration `20261026000400_brand_memory`, prompts `creative.generate` 2.1.0, `audience.personas` 1.3.0, `feasibility.rationale` 1.1.0, [docs/BRAND_MEMORY.md](docs/BRAND_MEMORY.md)):
+  - **Lessons:** structured, separate from conversations and bandit state.
+    - Five types: brand preference, policy decision, campaign lesson, audience insight, failed experiment.
+    - A scope: a brand-wide rule (people only, owners and admins only), or a context lesson with conditions on industry, channel, language, age or income.
+    - Optional stricter-only directives: words to avoid or prefer, tones and styles to avoid.
+    - Provenance: evidence with excerpts and a campaign link, the author, and confidence.
+    - A review date, an optional expiry, and a status.
+  - **Sources:**
+    - people, on the new Brand memory page or via `POST /v1/brand-memory/lessons`;
+    - **a substantial Gate 2 edit, which now requires a reason** (trigram similarity < 0.5, enforced in the database and asked in the editor, with "remember this");
+    - gate reasons;
+    - proof-of-impact verdicts and measured creative refreshes, which are proposed and need a person's confirmation.
+  - **Use:**
+    - the feasibility rationale, personas and ad copy get the top lessons for the campaign's context as fenced, untrusted background;
+    - ranking: applicability, then relevance (multilingual embeddings), freshness and evidence; overdue reviews count less;
+    - directives only make generation stricter: more banned words, and avoided tones and styles steer the bandit;
+    - expired, superseded, rejected and unconfirmed lessons are never used, nor is another organisation's.
+  - **Policy always wins:** a lesson the guardrails would block or flag as an unproven claim is never recalled and is marked on the page. The hourly sweep re-screens lessons and retires expired ones.
+  - **Control:** people confirm, reject, mark still true, correct (a new version supersedes; history kept), expire or delete. Everything is audited and isolated per organisation (RLS, functions and recall).
+  - **Held-out evaluation** (`python -m src.eval.memory_benchmark`), using the real copy step with no images:
+    - lessons followed: 39% without memory, 86% with it;
+    - nothing that shouldn't apply leaked;
+    - a policy-conflicting lesson got through 0% of the time. The first run found it getting through 50%, which led to the policy screen.
+  - **Supporting change:** `creative.write_copy` is the copy step split out of `generate_creative`, with unchanged behaviour.
+- **Creative fatigue** (`capabilities/fatigue.py`, migration `20261026000300_creative_fatigue`, [docs/CREATIVE_FATIGUE.md](docs/CREATIVE_FATIGUE.md)):
+  - **When it runs:** after each round's metrics, every channel and audience segment (email variant A / B) is checked for a concept wearing out on the people who keep seeing it.
+  - **What it measures:** click rates with real denominators: unique people when the proof-of-impact experiment tracks them, else clicks over recipients.
+  - **Social channels** have no impressions, so they're shown but never called fatigued.
+  - **The rule (`fatigue-v1`), documented:**
+    - 3+ rounds of 100+ people;
+    - every recent round clearly below the fresh baseline, beyond its own noise (one bad round isn't a trend);
+    - a 20%+ drop whose 95% interval is below zero (80% for "suspected");
+    - specific to the creative: no fatigue verdict if the other variant or the organisation's other emails dropped as much, or if each round's ad was different.
+    
+    Verdicts: NO_FATIGUE, FATIGUE_SUSPECTED, FATIGUE_CONFIRMED, NOT_ATTRIBUTABLE, INSUFFICIENT_DATA, NOT_MEASURABLE.
+  - **Similarity:** copy meaning (multilingual embeddings), visual, opening line, offer and CTA explain the drop. Near-duplicates are reported apart from fatigue.
+  - **Recommendation:** KEEP, TEST_REFRESH or RETIRE. An alert proposes a refresh of the most repeated feature: a new hook, visual, angle or offer framing, never inventing claims.
+    - Owners, admins and marketers can change it or keep the creative.
+    - The refreshed ad goes through every check and Gate 2.
+  - **Outcomes:**
+    - each refresh's round is compared with the fatigued rounds, and is called IMPROVED only when the interval is above zero (a labelled before/after comparison);
+    - outcomes per organisation, channel and industry steer the next proposal.
+  - **Where it appears:** the campaign page panel (per-round rates with intervals against the baseline, evidence, the refresh choice, refresh history, near-duplicates), the API `GET /v1/campaigns/{id}/creative-fatigue` and the MCP tool `assess_creative_fatigue`. Translated into 5 languages.
+  - **Benchmark** (`python -m src.eval.fatigue_benchmark`): on synthetic campaigns without creative fatigue the engine alerts in 9.8% of cases against 42% for "latest round did worse". It catches 80% of worn-out concepts. Its weak spot (a bad round second-to-last, 17%) is documented.
 - **Competitor intelligence** (`capabilities/competitors.py`, migration `20261026000200_competitor_intelligence`, prompt `competitor.explain` 1.0.0, [docs/COMPETITOR_INTELLIGENCE.md](docs/COMPETITOR_INTELLIGENCE.md)):
   - **Watch list:** an organisation lists competitors and approves the public sources to watch: pages they publish, their feed, news coverage, public Bluesky posts. Nothing is fetched until a source is approved.
   - **Polite, safe fetching:** robots.txt honoured (RFC 9309), an identified user agent, at most daily for pages, public addresses only through every redirect, and short excerpts stored, never whole pages.
@@ -239,7 +322,7 @@ GitHub Release notes.
 - **Synthetic focus group before Gate 2** (`capabilities/focus_group.py`, prompt `focus_group.react` 1.0.0, `iterations.focus_group`):
   - **What it does:** all of a campaign's personas react to the final draft (would click / scroll past / object, with a click chance and a one-line quote). The approver sees this "Audience verdict" at Gate 2 and on each round.
   - **Safety:** advice only. A failure never blocks the gate.
-- **"Why this ad?" and "What MarketingOS has learned":**
+- **"Why this ad?" and "What CampaignIQ has learned":**
   - **Recorded reasoning:** the bandit records its reasoning when it picks an arm (`bandit.explain_choice`, `iterations.arm_explain`). That covers expected reward against the exploration bonus, explore vs exploit, the runners-up and how many rounds back it.
   - **Per round:** each round shows this as evidence/exploration bars.
   - **On the Dashboard:** the learned panel turns measured results into sentences per industry (for example, which copy tone or visual style beats the average), plus the size of the shared learning loop.
@@ -251,7 +334,7 @@ GitHub Release notes.
   - **Filters:** tool, status, language, and when (today, 7/30 days, a month, a year, or a custom range).
   - **Results:** grouped by month; a run opens back in Tools. The Tools input now clears after Run.
 - **Page loader** (`lib/loading.ts`, `components/PageLoader`, `LoaderMascot`):
-  - **Look:** a frosted, blurred cover while a page or its first data loads, so half-loaded pages never show. The MarketingOS robot is animated in SVG: the growth swoosh draws round, the bars rise, the megaphone broadcasts, and it bobs and blinks. The caption walks through the product (scoring, personas, creative, measuring).
+  - **Look:** a frosted, blurred cover while a page or its first data loads, so half-loaded pages never show. The CampaignIQ robot is animated in SVG: the growth swoosh draws round, the bars rise, the megaphone broadcasts, and it bobs and blinks. The caption walks through the product (scoring, personas, creative, measuring).
   - **Timing:** it appears only after 150 ms and stays at least 400 ms.
   - **Failures:** it steps aside on a failed load so the Retry toast can be used.
 - **Rotatable 3D persona figures** on the campaign page and in Tools → Personas:

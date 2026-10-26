@@ -95,7 +95,7 @@ function bodyFor(url: string): unknown {
       result: { score: 72, rationale: 'Strong demand. '.repeat(10), signals: { trends: { keyword: 'meal kit delivery subscription', mean_interest: 55 } } } },
     { id: 'r3', capability: 'image', status: 'failed', params: { idea: 'x' }, error: 'OpenAI 401 Incorrect API key provided: sk-test-************************************abcd', created_at: now, result: null },
   ]
-  if (url.includes('/api_keys')) return [{ id: 'k1', name: 'Production integration key for the CRM sync', prefix: 'mos_abcdef12', scopes: ['read', 'write'], created_at: now, last_used_at: now, revoked_at: null }]
+  if (url.includes('/api_keys')) return [{ id: 'k1', name: 'Production integration key for the CRM sync', prefix: 'ciq_abcdef12', scopes: ['read', 'write'], created_at: now, last_used_at: now, revoked_at: null }]
   if (url.includes('/webhook_deliveries')) return [{ id: 1, event: 'campaign.status_changed', status: 'delivered', attempts: 1, response_status: 200, created_at: now }]
   if (url.includes('/webhooks')) return [{ id: 'w1', url: 'https://hooks.example.com/services/T000000/B000000/XXXXXXXXXXXXXXXXXXXXXXXX', secret: 'whsec_abcdef', events: ['campaign.', 'gate.vote', 'delivery.'], active: true }]
   if (url.includes('/provider_keys_masked')) return [{ capability: 'llm', provider: 'openai', masked_key: 'sk-proj-****************************************abcd', created_at: now }]

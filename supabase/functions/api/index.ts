@@ -1,6 +1,6 @@
-// MarketingOS public REST API (see docs/openapi.yaml). Deployed with JWT
+// CampaignIQ public REST API (see docs/openapi.yaml). Deployed with JWT
 // verification OFF (supabase/config.toml): callers authenticate with an
-// organisation API key instead:  Authorization: Bearer mos_...
+// organisation API key instead:  Authorization: Bearer ciq_...
 //
 //   GET  /api/v1/campaigns               list (limit, status)            scope: read
 //   GET  /api/v1/campaigns/{id}          one campaign + rounds + metrics scope: read
@@ -16,7 +16,15 @@
 //   GET  /api/v1/campaigns/{id}/experiment           the proof-of-impact experiment and result scope: read
 //   GET  /api/v1/experiments/{id}/impact             the impact read-out                      scope: read
 //   POST /api/v1/conversions                         report a conversion (brand's site)       scope: write
+//   POST   /api/v1/contacts                          add/update contacts (with consent)        scope: write
+//   GET    /api/v1/contacts/counts                   contacts by status (no addresses)         scope: read
+//   DELETE /api/v1/contacts/{email}                  erase a person                            scope: write
+//   GET    /api/v1/segments                          saved segments with people now            scope: read
+//   PUT    /api/v1/campaigns/{id}/email-audience     choose the campaign's segment             scope: write
 //   GET  /api/v1/market-intelligence/competitors     tracked competitors and source health    scope: read
+//   GET  /api/v1/campaigns/{id}/creative-fatigue     fatigue verdicts, alerts and refreshes    scope: read
+//   GET  /api/v1/brand-memory/lessons                the organisation's lessons (status=...)  scope: read
+//   POST /api/v1/brand-memory/lessons                record a lesson                           scope: write
 //   GET  /api/v1/market-intelligence/competitors/{id}/signals   observed moves, insights, forecasts  scope: read
 //
 // Keys are resolved with api_key_lookup() (service role), which also counts
@@ -61,7 +69,8 @@ async function handle(req: Request): Promise<Response> {
   const path = url.pathname.replace(/^.*?\/api(?=\/|$)/, "").replace(/\/+$/, "") || "/";
   const auth = req.headers.get("Authorization") ?? "";
   const raw = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
-  if (!raw.startsWith("mos_")) return fail(401, "Send an API key: Authorization: Bearer mos_...");
+  // "ciq_" keys; "mos_" ones were issued under the app's earlier name and still work.
+  if (!raw.startsWith("ciq_") && !raw.startsWith("mos_")) return fail(401, "Send an API key: Authorization: Bearer ciq_...");
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const { data: keys, error: keyError } = await admin.rpc("api_key_lookup", { p_raw: raw, p_limit: RATE_LIMIT });
@@ -106,6 +115,13 @@ async function handle(req: Request): Promise<Response> {
     const idea = typeof body?.idea === "string" ? body.idea.trim() : "";
     if (idea.length < 5 || idea.length > 2000) return fail(400, "idea must be 5-2000 characters");
     const emailTo = Array.isArray(body?.email_to) ? body.email_to.filter((e: unknown) => typeof e === "string").slice(0, 500) : [];
+    if (emailTo.length) {
+      const { data: email } = await admin.rpc("email_status", { p_org: key.org_id });
+      if (email?.connected) {
+        return fail(422, "This organisation emails its own contacts: add people with POST /v1/contacts, then choose who gets the "
+          + "campaign with PUT /v1/campaigns/{id}/email-audience (email_to is only for organisations without email connected)");
+      }
+    }
     const { data: quotaError } = await admin.rpc("campaign_quota_reason", { p_org: key.org_id });
     if (quotaError) return fail(429, quotaError);
     if (!key.created_by) return fail(409, "The user who created this key no longer exists; create a new key");
@@ -129,6 +145,95 @@ async function handle(req: Request): Promise<Response> {
     );
     if (!dispatch.ok) return fail(502, `Could not start the run: ${await dispatch.text()}`);
     return json({ data: { accepted: true, note: "The campaign appears in GET /v1/campaigns within a minute or two." } }, 202);
+  }
+
+  // The organisation's own contacts (the email engine). Only people who opted in:
+  // every call carries the consent record, and nobody suppressed (unsubscribed,
+  // bounced, complained, erased) is ever added back.
+  const SOURCES = ["checkout", "signup_form", "in_store", "event", "api", "manual", "other"];
+  const creatorRole = async () =>
+    (await admin.from("memberships").select("role").eq("org_id", key.org_id).eq("user_id", key.created_by).maybeSingle()).data?.role ?? "";
+
+  // POST /v1/contacts: add or update up to 1000 contacts, with how they agreed
+  if (req.method === "POST" && path === "/v1/contacts") {
+    if (!can("write")) return fail(403, "This key lacks the write scope");
+    const body = await req.json().catch(() => null);
+    const contacts = Array.isArray(body?.contacts) ? body.contacts : null;
+    if (!contacts || contacts.length < 1 || contacts.length > 1000) return fail(400, "contacts must be a list of 1-1000 objects with an email");
+    const consent = body?.consent ?? {};
+    const source = typeof consent.source === "string" ? consent.source : "";
+    if (!SOURCES.includes(source)) return fail(400, `consent.source must be one of: ${SOURCES.join(", ")}`);
+    const text = typeof consent.text === "string" ? consent.text.trim() : "";
+    if (text.length < 10 || text.length > 1000) {
+      return fail(400, "consent.text is required: the opt-in wording these people agreed to (10-1000 characters)");
+    }
+    if (!["owner", "admin", "marketer"].includes(await creatorRole())) {
+      return fail(403, "The key's creator can't add contacts (owners, admins and marketers)");
+    }
+    const rows = contacts.filter((c: unknown) => c && typeof c === "object").map((c: Record<string, unknown>) => ({
+      email: typeof c.email === "string" ? c.email : "", first_name: c.first_name, name: c.name, language: c.language,
+      tags: Array.isArray(c.tags) ? c.tags.filter((t: unknown) => typeof t === "string") : [],
+      attributes: c.attributes && typeof c.attributes === "object" && !Array.isArray(c.attributes) ? c.attributes : {},
+      consent_at: typeof c.consent_at === "string" ? c.consent_at : undefined,
+    }));
+    const { data, error } = await admin.rpc("upsert_contacts", {
+      p_org: key.org_id, p_rows: rows, p_source: source, p_note: typeof consent.note === "string" ? consent.note.slice(0, 200) : null,
+      p_consent_text: text,
+    });
+    if (error) return fail(400, error.message);
+    return json({ data });
+  }
+
+  // GET /v1/contacts/counts: how many contacts in each state (no addresses)
+  if (req.method === "GET" && path === "/v1/contacts/counts") {
+    if (!can("read")) return fail(403, "This key lacks the read scope");
+    const { data, error } = await admin.rpc("contact_counts", { p_org: key.org_id });
+    if (error) return fail(500, error.message);
+    return json({ data });
+  }
+
+  // DELETE /v1/contacts/{email}: erase a person (a data request); they're never added or emailed again
+  const contactOf = path.match(/^\/v1\/contacts\/([^/]+)$/);
+  if (req.method === "DELETE" && contactOf) {
+    if (!can("write")) return fail(403, "This key lacks the write scope");
+    const email = decodeURIComponent(contactOf[1]).trim().toLowerCase();
+    if (!email.includes("@")) return fail(400, "Put the person's email address in the path");
+    if (!["owner", "admin"].includes(await creatorRole())) return fail(403, "Only owners' and admins' keys can erase contacts");
+    const { data, error } = await admin.rpc("erase_contact_by_email", { p_org: key.org_id, p_email: email });
+    if (error) return fail(500, error.message);
+    return json({ data: { erased: !!data, suppressed: true } });
+  }
+
+  // GET /v1/segments: the organisation's saved segments, each with how many people it reaches now
+  if (req.method === "GET" && path === "/v1/segments") {
+    if (!can("read")) return fail(403, "This key lacks the read scope");
+    const { data: segments, error } = await admin.from("segments").select("id,name,filter,created_at").eq("org_id", key.org_id).order("created_at");
+    if (error) return fail(500, error.message);
+    const language = url.searchParams.get("language") ?? "en";
+    const counted = await Promise.all((segments ?? []).map(async (s) => ({
+      ...s, people: (await admin.rpc("segment_count", { p_org: key.org_id, p_filter: s.filter, p_language: language })).data ?? 0,
+    })));
+    return json({ data: counted });
+  }
+
+  // PUT /v1/campaigns/{id}/email-audience {segment_id | null}: who the campaign emails (until Gate 1 is approved)
+  const audienceOf = path.match(/^\/v1\/campaigns\/([0-9a-f-]{36})\/email-audience$/);
+  if (req.method === "PUT" && audienceOf) {
+    if (!can("write")) return fail(403, "This key lacks the write scope");
+    const body = await req.json().catch(() => null);
+    const segmentId = body?.segment_id ?? null;
+    if (segmentId !== null && (typeof segmentId !== "string" || !/^[0-9a-f-]{36}$/.test(segmentId))) return fail(400, "segment_id must be a segment id or null");
+    if (!["owner", "admin", "marketer"].includes(await creatorRole())) return fail(403, "The key's creator can't choose a campaign's audience");
+    const { data: campaign } = await admin.from("campaigns").select("id,email_audience_frozen_at").eq("id", audienceOf[1]).eq("org_id", key.org_id).maybeSingle();
+    if (!campaign) return fail(404, "Campaign not found in this organisation");
+    if (campaign.email_audience_frozen_at) return fail(409, "The email audience is fixed once Gate 1 is approved");
+    if (segmentId) {
+      const { data: seg } = await admin.from("segments").select("id").eq("id", segmentId).eq("org_id", key.org_id).maybeSingle();
+      if (!seg) return fail(400, "segment_id is not in this organisation");
+    }
+    const { error } = await admin.from("campaigns").update({ segment_id: segmentId, updated_at: new Date().toISOString() }).eq("id", campaign.id);
+    if (error) return fail(500, error.message);
+    return json({ data: { campaign_id: campaign.id, segment_id: segmentId } });
   }
 
   // GET /v1/campaigns/{id}/decision: latest recommendation first, then earlier ones (re-evaluations)
@@ -302,12 +407,32 @@ async function handle(req: Request): Promise<Response> {
     const currency = typeof body.currency === "string" ? body.currency.toUpperCase() : null;
     if (currency && !/^[A-Z]{3}$/.test(currency)) return fail(400, "currency must be a 3-letter code");
 
+    // A buyer on the brand's contact list: their purchase history and engagement
+    // (segments like "bought in the last 90 days", the 24-month sunset). Once per event_id.
+    let contact: string | null = null;
+    if (email) {
+      const products = Array.isArray(body.products) ? body.products.filter((x: unknown) => typeof x === "string").slice(0, 20)
+        : typeof body.product === "string" ? [body.product] : null;
+      const { data: outcome, error: purchaseError } = await admin.rpc("record_contact_purchase", {
+        p_org: key.org_id, p_email: email, p_event_id: eventId, p_value: value, p_currency: currency, p_products: products,
+        p_at: occurred.toISOString(),
+      });
+      if (purchaseError) return fail(500, purchaseError.message);
+      contact = outcome;
+    }
+    if (typeof body.experiment_id !== "string" && typeof body.campaign_id !== "string") {
+      if (contact) return json({ data: { contact, matched: false, duplicate: contact === "duplicate", counted: false } }, 202);
+      return fail(400, "Send experiment_id or campaign_id (or the buyer's email, to update their contact)");
+    }
+
     let experimentQuery = admin.from("experiments").select("id,status").eq("org_id", key.org_id);
     if (typeof body.experiment_id === "string") experimentQuery = experimentQuery.eq("id", body.experiment_id);
-    else if (typeof body.campaign_id === "string") experimentQuery = experimentQuery.eq("campaign_id", body.campaign_id);
-    else return fail(400, "Send experiment_id or campaign_id");
+    else experimentQuery = experimentQuery.eq("campaign_id", body.campaign_id);
     const { data: experiment } = await experimentQuery.maybeSingle();
-    if (!experiment) return fail(404, "Experiment not found in this organisation");
+    if (!experiment) {
+      if (contact) return json({ data: { contact, matched: false, duplicate: contact === "duplicate", counted: false } }, 202);
+      return fail(404, "Experiment not found in this organisation");
+    }
     if (experiment.status === "declared") return fail(409, "The experiment hasn't started yet");
 
     const unitHash = email ? await sha256Hex(`${experiment.id}:${email}`) : null;
@@ -317,7 +442,92 @@ async function handle(req: Request): Promise<Response> {
     });
     if (error) return fail(500, error.message);
     const row = data?.[0] ?? {};
-    return json({ data: { matched: !!row.matched, duplicate: !!row.duplicate, counted: !!row.matched && !row.duplicate } }, 202);
+    return json({ data: { contact, matched: !!row.matched, duplicate: !!row.duplicate, counted: !!row.matched && !row.duplicate } }, 202);
+  }
+
+  // GET /v1/campaigns/{id}/creative-fatigue: per channel and segment, the verdict and its evidence,
+  // near-duplicates (apart), open alerts and the refreshes tried with their measured outcome.
+  const fatigueOf = path.match(/^\/v1\/campaigns\/([0-9a-f-]{36})\/creative-fatigue$/);
+  if (req.method === "GET" && fatigueOf) {
+    if (!can("read")) return fail(403, "This key lacks the read scope");
+    const { data: campaign } = await admin.from("campaigns").select("id").eq("id", fatigueOf[1]).eq("org_id", key.org_id).maybeSingle();
+    if (!campaign) return fail(404, "Campaign not found");
+    const [{ data: report }, { data: alerts }, { data: refreshes }] = await Promise.all([
+      admin.from("creative_fatigue_reports").select("policy_version,result,analyzed_at").eq("campaign_id", campaign.id).maybeSingle(),
+      admin.from("creative_fatigue_alerts").select("id,channel,segment,status,recommendation,evidence,state,note,created_at,updated_at")
+        .eq("campaign_id", campaign.id).order("created_at", { ascending: false }),
+      admin.from("creative_interventions").select("id,channel,segment,strategy,applied_round,outcome,outcome_detail,requested_by,created_at,measured_at")
+        .eq("campaign_id", campaign.id).order("created_at", { ascending: false }),
+    ]);
+    return json({
+      data: {
+        analyzed_at: report?.analyzed_at ?? null, policy_version: report?.policy_version ?? null,
+        segments: report?.result?.segments ?? [], duplicates: report?.result?.duplicates ?? [],
+        alerts: alerts ?? [], refreshes: (refreshes ?? []).map((r) => ({ ...r, proposed_by: r.requested_by ? "person" : "system" })),
+      },
+    });
+  }
+
+  // Brand memory. Lessons are the organisation's own; a brand-wide rule needs the key's
+  // creator to be an owner or admin (the same rule as the app). See docs/BRAND_MEMORY.md.
+  if (path === "/v1/brand-memory/lessons" && req.method === "GET") {
+    if (!can("read")) return fail(403, "This key lacks the read scope");
+    const status = url.searchParams.get("status") ?? "active";
+    if (!["proposed", "active", "rejected", "superseded", "expired"].includes(status)) return fail(400, "Unknown status");
+    const { data, error } = await admin.from("brand_memories")
+      .select("id,type,lesson,scope,conditions,directives,evidence,source_campaign_id,confidence,status,author_kind,review_at,expires_at,supersedes,policy_conflict,use_count,last_used_at,created_at")
+      .eq("org_id", key.org_id).eq("status", status).order("created_at", { ascending: false }).limit(200);
+    return error ? fail(500, error.message) : json({ data });
+  }
+  if (path === "/v1/brand-memory/lessons" && req.method === "POST") {
+    if (!can("write")) return fail(403, "This key lacks the write scope");
+    if (!key.created_by) return fail(409, "The user who created this key no longer exists; create a new key");
+    const body = await req.json().catch(() => null);
+    const TYPES = ["BRAND_PREFERENCE", "POLICY_DECISION", "CAMPAIGN_LESSON", "AUDIENCE_INSIGHT", "FAILED_EXPERIMENT"];
+    if (!body || !TYPES.includes(body.type)) return fail(400, `type must be one of ${TYPES.join(", ")}`);
+    const lesson = typeof body.lesson === "string" ? body.lesson.trim() : "";
+    if (lesson.length < 10 || lesson.length > 500) return fail(400, "lesson must be 10-500 characters");
+    const scope = body.scope ?? "context";
+    if (!["brand", "context"].includes(scope)) return fail(400, "scope must be brand or context");
+    const strings = (v: unknown, max = 20) => Array.isArray(v) && v.length <= max && v.every((x) => typeof x === "string" && x.length <= 80);
+    const conditions: Record<string, string[]> = {};
+    for (const k of ["domains", "channels", "languages", "age_brackets", "income_tiers"]) {
+      if (body.conditions?.[k] === undefined) continue;
+      if (!strings(body.conditions[k])) return fail(400, `conditions.${k} must be a list of short strings`);
+      conditions[k] = body.conditions[k];
+    }
+    const directives: Record<string, string[]> = {};
+    for (const k of ["avoid_terms", "prefer_terms", "avoid_tones", "avoid_styles"]) {
+      if (body.directives?.[k] === undefined) continue;
+      if (!strings(body.directives[k])) return fail(400, `directives.${k} must be a list of short strings`);
+      directives[k] = body.directives[k];
+    }
+    let expires: string | null = null;
+    if (body.expires_at) {
+      const d = new Date(body.expires_at);
+      if (Number.isNaN(d.getTime()) || d.getTime() <= Date.now()) return fail(400, "expires_at must be a future ISO 8601 time");
+      expires = d.toISOString();
+    }
+    const { data: member } = await admin.from("memberships").select("role").eq("org_id", key.org_id).eq("user_id", key.created_by).maybeSingle();
+    const role = member?.role ?? "";
+    if (!["owner", "admin", "marketer"].includes(role)) return fail(403, "The key's creator can't change brand memory (owners, admins and marketers)");
+    if (scope === "brand" && !["owner", "admin"].includes(role)) return fail(403, "Only owners and admins can set a brand-wide rule");
+    if (body.campaign_id) {
+      const { data: c } = await admin.from("campaigns").select("id").eq("id", body.campaign_id).eq("org_id", key.org_id).maybeSingle();
+      if (!c) return fail(400, "campaign_id is not in this organisation");
+    }
+    const evidence = [{ kind: "api", excerpt: typeof body.evidence === "string" ? body.evidence.slice(0, 400) : `via API key ${key.name ?? ""}`.trim(),
+      at: new Date().toISOString() }];
+    const reviewDays = scope === "brand" ? 180 : 90;
+    const { data, error } = await admin.from("brand_memories").insert({
+      org_id: key.org_id, type: body.type, lesson, scope, conditions, directives, evidence, source_campaign_id: body.campaign_id ?? null,
+      confidence: scope === "brand" ? 0.9 : 0.7, status: "active", author_kind: "person", author_id: key.created_by,
+      review_at: new Date(Date.now() + reviewDays * 86_400_000).toISOString(), expires_at: expires,
+    }).select("id,type,lesson,scope,conditions,directives,status,review_at,expires_at,created_at").single();
+    if (error) return fail(500, error.message);
+    await admin.rpc("audit", { p_org: key.org_id, p_action: "memory.added", p_target_type: "brand_memory", p_target_id: data.id,
+      p_details: { type: body.type, scope, via: "api" } });
+    return json({ data }, 201);
   }
 
   // GET /v1/market-intelligence/competitors

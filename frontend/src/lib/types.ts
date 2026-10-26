@@ -40,6 +40,13 @@ export interface Campaign {
   offer_ends_at?: string | null
   /** Set while the circuit breaker holds the campaign (src/capabilities/circuit_breaker.py). */
   paused_at?: string | null
+  /** The saved segment this campaign emails, fixed (frozen) when Gate 1 is approved. */
+  segment_id?: string | null
+  email_audience_frozen_at?: string | null
+  /** Posts end with the brand's sign-up link while its email is connected (default on). */
+  signup_link?: boolean
+  /** The AI's suggested email audience (Gate 1): a filter over group names, why, and how many people it reached then. */
+  email_suggestion?: { filter: SegmentFilter; reason: string; people: number } | null
   created_at: string
   updated_at: string
 }
@@ -428,4 +435,198 @@ export interface CompetitorPrediction {
   inside_interval: boolean | null
   materialized: boolean | null
   resolve_after: string
+}
+
+/** Creative fatigue (src/capabilities/fatigue.py). */
+export type FatigueStatus = 'NO_FATIGUE' | 'FATIGUE_SUSPECTED' | 'FATIGUE_CONFIRMED' | 'NOT_ATTRIBUTABLE' | 'INSUFFICIENT_DATA' | 'NOT_MEASURABLE'
+export type FatigueStrategy = 'NEW_HOOK' | 'NEW_VISUAL' | 'NEW_ANGLE' | 'NEW_OFFER_FRAMING'
+
+export interface FatiguePeriod {
+  round: number
+  exposures: number | null
+  successes: number | null
+  unique?: boolean
+  stale: boolean
+  engagement?: number
+}
+
+export interface FatigueSegment {
+  channel: string
+  segment: string
+  status: FatigueStatus
+  reason: string
+  recommendation: 'KEEP' | 'TEST_REFRESH' | 'RETIRE'
+  periods: FatiguePeriod[]
+  baseline: { rounds: number[]; rate: number; interval: [number, number] } | null
+  recent: { rounds: number[]; rate: number; interval: [number, number] } | null
+  relative_drop: number | null
+  interval: [number, number] | null
+  sustained: boolean | null
+  similarity: Partial<Record<'copy' | 'visual' | 'hook' | 'offer' | 'cta' | 'total', number>> | null
+  comparator_drops?: { other_variant: number | null; organisation_email: number | null }
+  suggested_strategy?: FatigueStrategy
+  strategy_record?: Record<FatigueStrategy, { improved: number; tried: number; posterior_mean: number }>
+  min_exposures: number
+  min_periods: number
+}
+
+export interface FatigueReport {
+  campaign_id: string
+  policy_version: string
+  analyzed_at: string
+  result: {
+    segments: FatigueSegment[]
+    duplicates: { round: number; of_round: number; similarity: Record<string, number> }[]
+  }
+}
+
+export interface FatigueAlert {
+  id: string
+  channel: string
+  segment: string
+  status: 'FATIGUE_SUSPECTED' | 'FATIGUE_CONFIRMED'
+  recommendation: 'TEST_REFRESH' | 'RETIRE'
+  state: 'open' | 'refreshing' | 'dismissed' | 'closed'
+  note: string | null
+  created_at: string
+}
+
+export interface CreativeIntervention {
+  id: string
+  alert_id: string | null
+  channel: string
+  segment: string
+  strategy: FatigueStrategy
+  requested_by: string | null
+  applied_round: number | null
+  outcome: 'pending' | 'IMPROVED' | 'NO_CHANGE' | 'WORSE' | 'INCONCLUSIVE' | 'CANCELLED'
+  outcome_detail: { rate_before?: number; rate_after?: number; change?: number; interval?: [number, number]; design?: string; recovered_to_fresh?: boolean; reason?: string } | null
+  created_at: string
+}
+
+/** Brand memory (src/capabilities/brand_memory.py). */
+export type MemoryType = 'BRAND_PREFERENCE' | 'POLICY_DECISION' | 'CAMPAIGN_LESSON' | 'AUDIENCE_INSIGHT' | 'FAILED_EXPERIMENT'
+export type MemoryStatus = 'proposed' | 'active' | 'rejected' | 'superseded' | 'expired'
+
+export interface BrandMemory {
+  id: string
+  org_id: string
+  type: MemoryType
+  lesson: string
+  scope: 'brand' | 'context'
+  conditions: Partial<Record<'domains' | 'channels' | 'languages' | 'age_brackets' | 'income_tiers', string[]>>
+  directives: Partial<Record<'avoid_terms' | 'prefer_terms' | 'avoid_tones' | 'avoid_styles', string[]>>
+  evidence: { kind: string; excerpt?: string; campaign_id?: string; round?: number; before?: string; after?: string; at?: string; ref?: string }[]
+  source_campaign_id: string | null
+  confidence: number
+  status: MemoryStatus
+  author_kind: 'person' | 'system'
+  author_id: string | null
+  reviewed_at: string | null
+  review_at: string
+  expires_at: string | null
+  supersedes: string | null
+  policy_conflict: string | null
+  use_count: number
+  last_used_at: string | null
+  created_at: string
+}
+
+// --- Email engine: a brand's own contacts (docs/superpowers/specs/2026-10-26-email-engine-design.md) ---
+
+export type ContactStatus = 'pending' | 'subscribed' | 'unsubscribed' | 'bounced' | 'complained'
+export type ConsentSource = 'checkout' | 'signup_form' | 'in_store' | 'event' | 'api' | 'manual' | 'other'
+
+export interface Contact {
+  id: string
+  email: string
+  first_name: string | null
+  name: string | null
+  tags: string[]
+  status: ContactStatus
+  consent_source: ConsentSource
+  created_at: string
+  consent_at: string
+  last_engaged_at: string | null
+}
+
+export interface ContactCounts {
+  total: number
+  subscribed: number
+  pending: number
+  unsubscribed: number
+  bounced: number
+  complained: number
+  /** Subscribed, but no click or purchase in 24 months: not emailed until they engage. */
+  inactive?: number
+  cap: number | null
+}
+
+export interface ImportResult {
+  added: number
+  updated: number
+  skipped: { email: string; reason: 'invalid' | 'duplicate' | 'suppressed' | 'plan_limit' }[]
+}
+
+/** email_status(): what any member may know about the organisation's email sending. */
+export interface EmailStatus {
+  connected: boolean
+  mode: 'sandbox' | 'live' | null
+  domain: string | null
+  from_email: string | null
+  from_name: string | null
+  sandbox_to: string | null
+  webhook: boolean
+  webhook_ok_at: string | null
+  daily_limit: number | null
+  send_window_start: number | null
+  send_window_end: number | null
+  timezone: string | null
+  paused_reason: string | null
+  connected_at: string | null
+  postal_address: boolean
+  privacy_url: boolean
+  slug: string
+}
+
+export interface SegmentFilter {
+  tags_any?: string[]
+  tags_all?: string[]
+  tags_none?: string[]
+  purchased_within_days?: number
+  not_purchased_within_days?: number
+  product_any?: string[]
+  country_any?: string[]
+  match_campaign_language?: boolean
+}
+
+export interface Segment {
+  id: string
+  org_id: string
+  name: string
+  filter: SegmentFilter
+  created_at: string
+}
+
+export interface AudienceProgress {
+  total: number
+  emailed: number
+  waiting?: number
+  /** Why people left the fixed audience: unsubscribed, bounced, complained, inactive, suppressed. */
+  excluded_by?: Record<string, number>
+  remaining: number
+  holdout: number
+  excluded: number
+}
+
+/** email_round_stats(): one round's email (one variant), from the per-recipient log. */
+export interface EmailRoundStats {
+  round_number: number
+  channel: 'email' | 'email_b'
+  sent: number
+  delivered: number
+  bounced: number
+  complained: number
+  waiting: number
+  sandbox: boolean
 }

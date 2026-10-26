@@ -69,11 +69,11 @@ export default function PublicNav() {
     <header className={`${styles.nav} ${hidden && !menuOpen ? styles.navHidden : ''}`}>
       <div className={styles.navBar} ref={barRef}>
         {/* Named even on phones, where the wordmark is hidden. */}
-        <Link to="/" className={`${styles.navCell} ${styles.navBrand}`} aria-label="MarketingOS">
+        <Link to="/" className={`${styles.navCell} ${styles.navBrand}`} aria-label="CampaignIQ">
 
           <span className={styles.logo}>
             <LogoMark />
-            <span className={styles.brandText}>MarketingOS</span>
+            <span className={styles.brandText}>CampaignIQ</span>
           </span>
         </Link>
         <nav className={styles.navLinks}>
