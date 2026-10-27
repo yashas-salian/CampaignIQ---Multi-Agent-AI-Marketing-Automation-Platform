@@ -262,6 +262,11 @@ GitHub Release notes.
 - Pollinations' corner watermark is cropped off its pictures.
 
 ### Fixed
+- **A new campaign shows on the Dashboard the moment it's created** (migration `20261028000300_campaign_starts`, `create-campaign`, `run_campaign --new-campaign-id`). It used to appear only after the worker had started and scored it, about 3 minutes later.
+  - `create-campaign` now writes the row itself ("Starting up", "Researching the market…") before it starts the worker, which fills that row in at feasibility. The plan limits are enforced on that insert.
+  - A start that never gets going is shown as **Failed to start**, with the reason, instead of never appearing. That covers a dispatch that fails, a run that crashes before Gate 1, an exhausted AI budget, or no progress after 45 minutes (the hourly sweep's `fail_stale_campaign_starts()`). A failed start counts toward neither the daily nor the active-campaign limit.
+  - The audit log no longer records the placeholder category, or the worker filling it in as a "category corrected".
+- **Workers start faster; installing packages took about 2 minutes** (`campaign-loop.yml`, `capability-run.yml`): they install the CPU build of PyTorch (about 200 MB) instead of the 3 GB CUDA build these GPU-less runners can't use, and pip's downloads are cached between runs.
 - **Campaign emails no longer show every recipient's address.** Each recipient now gets their own email, instead of one message with the whole list in "To".
   - Each email has its own Resend idempotency key, so a retry after a partial failure never emails anyone twice.
   - Sends are paced to Resend's rate limit.

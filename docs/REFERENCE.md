@@ -141,8 +141,12 @@ Edge Functions below — you never run them yourself.
 
 - **Create a campaign**: Dashboard → fill in the idea + target language →
   "Create campaign". This calls the `create-campaign` Edge Function, which
-  dispatches `campaign-loop.yml` to run `run_campaign.py` for you. The
-  campaign appears in the Dashboard once feasibility scoring completes.
+  writes the campaign row ("Starting up") and dispatches `campaign-loop.yml`
+  to run `run_campaign.py` for you. The campaign appears in the Dashboard at
+  once; the worker fills in its score and personas a few minutes later. A
+  start that never gets going (the dispatch fails, the run crashes before
+  Gate 1, or nothing has happened after 45 minutes) is shown as **Failed to
+  start**, with the reason, and doesn't count against the plan's limits.
 - **Approve/reject a gate**: open the campaign, use the Approve / Approve
   with edits / Reject buttons. This writes the decision and immediately
   calls `resume-campaign`, which dispatches the same workflow to pick up
@@ -264,7 +268,7 @@ Each organisation has a plan. A personal organisation follows its owner's subscr
 | AI tokens per day | 150k | 3M | ∞ |
 
 - **Hard limits** are enforced by triggers on `campaigns`, `memberships` and `capability_runs`, with the error `usage limit: …`.
-- **Checked before spending anything:** `create-campaign` calls `campaign_quota_error()` before dispatching and returns 429, because the campaign row is only written after the first LLM calls.
+- **Checked before spending anything:** `create-campaign` writes the campaign row before dispatching the worker, so the quota trigger refuses an over-limit campaign there, with 429 and the reason. It also asks `campaign_quota_error()` first, for a plain message. A failed start counts toward neither limit.
 - **Token budget:** the gateway tags every LLM call with the run's organisation (`llm_usage.org_id`). Once the daily budget is spent, the worker skips that organisation's runs until the next day; the check fails open, so it can never block a run by mistake.
 - **Dashboard:** the plan card shows the active organisation's usage.
 

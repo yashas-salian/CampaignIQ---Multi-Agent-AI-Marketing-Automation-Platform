@@ -10,6 +10,8 @@ export type CampaignStatus =
   | 'rejected'
   /** Stopped by a hard block in the decision engine (src/capabilities/decision.py). */
   | 'blocked'
+  /** Never got past starting (the worker failed or never ran); start_error says why. */
+  | 'failed'
 
 export interface Campaign {
   id: string
@@ -19,6 +21,8 @@ export interface Campaign {
   feasibility_score: number | null
   feasibility_rationale: string | null
   status: CampaignStatus
+  /** Why a campaign failed to start (status 'failed'). */
+  start_error?: string | null
   current_round: number
   reddit_subreddit: string | null
   email_to: string[] | null

@@ -77,7 +77,7 @@
     "example2": "Appli de budget avec IA pour nouveaux freelances",
     "example3": "Kits de ménage écologiques rechargeables pour petits appartements",
     "chars": "{{count}} caractères",
-    "dispatched": "Campagne lancée. Elle apparaîtra ci-dessous une fois la faisabilité évaluée, en général en quelques minutes.",
+    "dispatched": "Campagne lancée. Elle est déjà sur le tableau de bord ; le score et les personas arrivent dans quelques minutes.",
     "dispatchFailed": "Impossible de lancer la campagne : {{message}}",
     "trendTitle": "Récompense dans le temps",
     "trendSub": "Récompense normalisée par tour mesuré, toutes campagnes",
@@ -148,7 +148,9 @@
     "activityCalendar": "Tout voir dans le calendrier",
     "helpModel": "Notre modèle d'IA",
     "helpModelSub": "Le classifieur que nous avons entraîné, sa précision, son apprentissage",
-    "st_blocked": "Bloquée"
+    "st_blocked": "Bloquée",
+    "st_failed": "Échec du démarrage",
+    "researching": "Étude du marché…"
   },
   "cd": {
     "back": "Toutes les campagnes",
@@ -200,7 +202,9 @@
     "stopRequested": "Arrêt en cours. La campagne s'arrête après l'étape en cours.",
     "adHeadline": "Titre",
     "adButton": "Bouton",
-    "adLayout": "Mise en page"
+    "adLayout": "Mise en page",
+    "startFailedTitle": "Cette campagne n’a pas démarré",
+    "startFailedBody": "Un problème est survenu au démarrage. Veuillez la recréer."
   },
   "mx": {
     "back": "Retour à la campagne",

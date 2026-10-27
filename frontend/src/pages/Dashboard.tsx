@@ -41,10 +41,11 @@ const STATUS_ORDER: CampaignStatus[] = [
   'completed',
   'rejected',
   'blocked',
+  'failed',
 ]
 const NEEDS_ACTION: CampaignStatus[] = ['awaiting_gate_1', 'awaiting_gate_2']
 const RUNNING: CampaignStatus[] = ['created', 'awaiting_metrics', 'awaiting_next_round']
-const DONE: CampaignStatus[] = ['completed', 'rejected', 'blocked']
+const DONE: CampaignStatus[] = ['completed', 'rejected', 'blocked', 'failed']
 const FILTER_STATUSES: Record<Filter, CampaignStatus[] | null> = {
   all: null,
   action: NEEDS_ACTION,
@@ -212,7 +213,7 @@ function StatusPill({ status, paused }: { status: CampaignStatus; paused?: boole
     ? styles.pillAction
     : status === 'completed'
       ? styles.pillDone
-      : status === 'rejected' || status === 'blocked'
+      : status === 'rejected' || status === 'blocked' || status === 'failed'
         ? styles.pillRejected
         : styles.pillRunning
   return (
@@ -404,6 +405,8 @@ export default function Dashboard() {
       return
     }
     toast.success(t('dash.dispatched'))
+    // The row exists already ("Starting up"): show it now, not on the next realtime tick.
+    load()
     setIdea('')
     setProductPhoto(null)
     setTagline('')
@@ -1013,7 +1016,8 @@ export default function Dashboard() {
                   <span role="cell" className={styles.cellIdea}>
                     <strong>{c.idea}</strong>
                     <small>
-                      {humanize(c.domain_category)}
+                      {/* Until feasibility runs, the category is only a placeholder. */}
+                      {c.feasibility_score === null && c.status === 'created' ? t('dash.researching') : humanize(c.domain_category)}
                       {lang ? ` · ${lang.label}` : ''}
                     </small>
                   </span>

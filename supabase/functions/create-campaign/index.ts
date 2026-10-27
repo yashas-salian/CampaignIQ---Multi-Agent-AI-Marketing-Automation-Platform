@@ -8,9 +8,11 @@
 //
 // Unlike resume-campaign (which resumes an existing checkpointed graph),
 // this dispatches campaign-loop.yml's "idea" input path, which runs
-// src.graph.run_campaign fresh -- there is no campaigns row yet at dispatch
-// time (domain_category is NOT NULL and only gets set once feasibility_node
-// runs inside the graph), so this never touches the campaigns table itself.
+// src.graph.run_campaign fresh. It first writes the campaigns row itself
+// (status 'created', "Starting up" in the app, no feasibility score yet), so the
+// campaign shows the moment the user clicks Create; the worker fills that row
+// in at feasibility (src/db/supabase_client.py create_campaign). The category
+// is a placeholder until then.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 async function handle(req: Request): Promise<Response> {
@@ -66,8 +68,8 @@ async function handle(req: Request): Promise<Response> {
       return new Response("You can't create campaigns in this organisation", { status: 403 });
     }
   }
-  // Plan limits, checked before dispatch: the campaign row (where the database
-  // enforces them too) is only written after the first LLM calls.
+  // Plan limits, checked before anything is written so the reason comes back
+  // plainly; the insert below is where the database enforces them.
   const orgForQuota = org_id || (await userClient.rpc("my_personal_org")).data;
   if (orgForQuota) {
     const { data: quotaError } = await userClient.rpc("campaign_quota_error", { p_org: orgForQuota });
@@ -78,6 +80,34 @@ async function handle(req: Request): Promise<Response> {
       });
     }
   }
+
+  // The row, written with the caller's JWT: row-level security checks the
+  // "create" permission and the quota trigger the plan limits.
+  const { data: created, error: insertError } = await userClient
+    .from("campaigns")
+    .insert({
+      idea,
+      user_id: userData.user.id,
+      ...(org_id ? { org_id } : {}),
+      domain_category: "other",
+      status: "created",
+      target_language: target_language || "en",
+      ab_test: ab_test === true,
+      product_image_path,
+      product_tagline: cleanTagline || null,
+      cta_url: cleanLink || null,
+    })
+    .select("id")
+    .single();
+  if (insertError || !created) {
+    const message = insertError?.message ?? "the campaign couldn't be saved";
+    const limited = message.includes("usage limit");
+    return new Response(JSON.stringify({ error: limited ? message.replace(/^usage limit:\s*/, "") : message }), {
+      status: limited ? 429 : 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const campaignId = created.id as string;
 
   const githubRepo = Deno.env.get("GITHUB_REPO")!;
   const githubToken = Deno.env.get("GITHUB_PAT")!;
@@ -95,6 +125,8 @@ async function handle(req: Request): Promise<Response> {
         ref: "main",
         inputs: {
           idea,
+          // With idea set, this is the row written above for the worker to fill in.
+          campaign_id: campaignId,
           // Derived from the verified JWT, never trusted from the request
           // body -- same pattern as ownership checks in resume-campaign.
           user_id: userData.user.id,
@@ -112,13 +144,18 @@ async function handle(req: Request): Promise<Response> {
 
   if (!dispatchResponse.ok) {
     const errText = await dispatchResponse.text();
+    // No worker is coming: say so on the row instead of leaving it "Starting up".
+    await userClient
+      .from("campaigns")
+      .update({ status: "failed", start_error: "The campaign couldn't be started. Please try again." })
+      .eq("id", campaignId);
     return new Response(JSON.stringify({ error: errText }), {
       status: 502,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  return new Response(JSON.stringify({ dispatched: true }), {
+  return new Response(JSON.stringify({ dispatched: true, campaign_id: campaignId }), {
     headers: { "Content-Type": "application/json" },
   });
 }

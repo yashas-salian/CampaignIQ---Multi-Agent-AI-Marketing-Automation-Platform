@@ -77,7 +77,7 @@
     "example2": "AI budgeting app for first-time freelancers",
     "example3": "Refillable eco cleaning kits for small apartments",
     "chars": "{{count}} characters",
-    "dispatched": "Campaign started. It appears below once feasibility scoring finishes, usually within a few minutes.",
+    "dispatched": "Campaign started. It's on the dashboard now; the score and personas arrive in a few minutes.",
     "dispatchFailed": "Couldn’t start the campaign: {{message}}",
     "trendTitle": "Reward over time",
     "trendSub": "Normalized reward per measured round, across all campaigns",
@@ -148,7 +148,9 @@
     "activityCalendar": "See everything in the calendar",
     "helpModel": "Our AI model",
     "helpModelSub": "The classifier we trained, its accuracy and how it learns",
-    "st_blocked": "Blocked"
+    "st_blocked": "Blocked",
+    "st_failed": "Failed to start",
+    "researching": "Researching the market…"
   },
   "cd": {
     "back": "All campaigns",
@@ -200,7 +202,9 @@
     "stopRequested": "Stopping. The campaign ends after its current step.",
     "adHeadline": "Headline",
     "adButton": "Button",
-    "adLayout": "Layout"
+    "adLayout": "Layout",
+    "startFailedTitle": "This campaign didn't start",
+    "startFailedBody": "Something went wrong while it was starting. Please create it again."
   },
   "mx": {
     "back": "Back to campaign",

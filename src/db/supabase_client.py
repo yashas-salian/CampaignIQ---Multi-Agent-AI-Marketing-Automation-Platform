@@ -52,9 +52,27 @@ def create_campaign(
         "product_tagline": product_tagline,
         "status": "created",
     }
+    # create-campaign usually wrote the row already ("Starting up", no score
+    # yet), so it shows the moment the user clicks Create: fill it in. Its
+    # owner, organisation and idea stay as written. Campaigns started another
+    # way (the API, the CLI) have no row yet and are inserted.
+    fill = {k: v for k, v in row.items() if k not in ("id", "user_id", "idea")}
+    updated = (
+        get_client().table("campaigns").update(fill)
+        .eq("id", campaign_id).eq("status", "created").is_("feasibility_score", "null").execute()
+    )
+    if updated.data:
+        return
     if org_id:
         row["org_id"] = org_id  # otherwise the DB puts it in the creator's personal organisation
     get_client().table("campaigns").insert(row).execute()
+
+
+def fail_campaign_start(campaign_id: str, reason: str) -> None:
+    """A campaign that never got past starting: shown as failed, with why."""
+    get_client().table("campaigns").update({"status": "failed", "start_error": reason[:500]}).eq("id", campaign_id).eq(
+        "status", "created"
+    ).execute()
 
 
 def get_campaign(campaign_id: str) -> dict:

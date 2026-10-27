@@ -22,9 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Downloaded packages are cached between runs (pip's cache, keyed on pyproject.toml).
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
       # M7: the fine-tuned domain model (llama.cpp, CPU wheel) + its ~940 MB GGUF,
       # cached between runs. Without the HF secrets below the app falls back to Groq.
       # Key the cache on the HF repo's current commit, so a model promoted by the
@@ -43,7 +46,11 @@ jobs:
         with:
           path: ~/.cache/huggingface/hub
           key: domain-model-${{ steps.domain-rev.outputs.rev }}
-      - run: pip install -e ".[local-model,observability,ads]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+      # The CPU build of PyTorch first: left to sentence-transformers, pip
+      # fetches the ~3 GB CUDA build these GPU-less runners can't use.
+      - run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[local-model,observability,ads]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
       - name: Cache product cut-out model
         uses: actions/cache@v4
         with:

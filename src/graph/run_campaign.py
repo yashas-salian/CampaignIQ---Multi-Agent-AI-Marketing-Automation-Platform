@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.types import Command
 
-from src.db.supabase_client import get_campaign, get_gate_decision
+from src.db.supabase_client import fail_campaign_start, get_campaign, get_gate_decision
 from src.graph.build_graph import build_graph
 from src.languages import SUPPORTED_LANGUAGES
 from src.usage import budget_exhausted, personal_org, use_org
@@ -26,6 +26,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Trigger or resume one campaign run.")
     parser.add_argument("idea", nargs="?", help="New campaign idea (omit when resuming --campaign-id)")
     parser.add_argument("--campaign-id", default=None, help="Resume an existing campaign instead of creating one")
+    parser.add_argument(
+        "--new-campaign-id", default=None,
+        help="Id of the row create-campaign already wrote for this new campaign (it shows as \"Starting up\")",
+    )
     parser.add_argument("--user-id", default=None, help="Owning user's Supabase Auth id (required for a new campaign)")
     parser.add_argument("--org-id", default=None, help="Organisation the campaign belongs to (default: the user's personal one)")
     parser.add_argument("--email-to", default="", help="Comma-separated recipient list")
@@ -68,11 +72,13 @@ def main() -> None:
                 parser.error("--user-id is required when creating a new campaign")
             org_id = args.org_id or personal_org(args.user_id)
             use_org(org_id)
+            campaign_id = args.new_campaign_id or str(uuid.uuid4())
             blocked = budget_exhausted(org_id)
             if blocked:
                 print(f"Not starting: {blocked}")
+                if args.new_campaign_id:
+                    fail_campaign_start(campaign_id, f"Not started: {blocked}")
                 return
-            campaign_id = str(uuid.uuid4())
             config = {"configurable": {"thread_id": campaign_id}}
             initial_state = {
                 "idea": args.idea, "campaign_id": campaign_id, "user_id": args.user_id, "round_id": 1,
@@ -84,7 +90,16 @@ def main() -> None:
                 "use_image_template": args.use_image_template, "use_email_template": args.use_email_template,
                 "target_language": args.target_language,
             }
-            app.invoke(initial_state, config=config)
+            try:
+                app.invoke(initial_state, config=config)
+            except Exception:
+                # Still "Starting up" (it never reached Gate 1): show it as failed
+                # rather than leave it spinning. The error goes to the logs as usual.
+                try:
+                    fail_campaign_start(campaign_id, "The campaign stopped while starting. Please create it again.")
+                except Exception as mark_error:
+                    print(f"Couldn't mark {campaign_id} as failed: {mark_error}")
+                raise
             print(f"New campaign created: {campaign_id}")
 
         print(f"Campaign {campaign_id} status: {get_campaign(campaign_id)['status']}")

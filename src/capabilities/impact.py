@@ -492,7 +492,7 @@ def record_exposures(experiment_id: str, round_number: int, unit_hashes: list[st
 
 # --- Analysis runs and the bandit ----------------------------------------------------------------
 
-FINISHED = ("completed", "rejected", "blocked")
+FINISHED = ("completed", "rejected", "blocked", "failed")
 
 
 def run_analysis(experiment: dict, *, now: datetime | None = None) -> dict:

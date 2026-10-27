@@ -20,8 +20,10 @@ def last_id(db):
 def test_campaign_lifecycle_is_recorded_with_the_actor(db, new_user, act_as, as_admin):
     user = new_user()
     act_as(user)
+    # Already scored, as at Gate 1, where people correct the category.
     cid = db.execute(
-        "insert into campaigns (idea, domain_category, user_id) values ('Spice kits', 'other', %s) returning id", (user,)
+        "insert into campaigns (idea, domain_category, user_id, feasibility_score) values ('Spice kits', 'other', %s, 60) returning id",
+        (user,),
     ).fetchone()[0]
     db.execute("update campaigns set domain_category = 'food_beverage', stop_requested = true where id = %s", (cid,))
     as_admin()

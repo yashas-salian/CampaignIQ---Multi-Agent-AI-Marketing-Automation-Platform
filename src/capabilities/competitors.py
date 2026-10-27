@@ -792,7 +792,7 @@ def scan_competitor(competitor: dict, *, now: datetime | None = None, force: boo
                 known_titles.append({"story_key": ob.story_key, "kind": ob.kind, "title": ob.title or ob.summary})
     if new_events:
         campaigns = (client.table("campaigns").select("id,idea,status").eq("org_id", competitor["org_id"])
-                     .not_.in_("status", ["completed", "rejected", "blocked"]).execute().data or [])
+                     .not_.in_("status", ["completed", "rejected", "blocked", "failed"]).execute().data or [])
         rel = relevance(competitor, campaigns)
         for ev in new_events:
             pick, options, confidence = recommend(ev, rel, history_context(ev, known))

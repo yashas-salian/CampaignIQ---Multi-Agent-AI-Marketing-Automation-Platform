@@ -77,7 +77,7 @@
     "example2": "App de orçamento com IA para freelancers iniciantes",
     "example3": "Kits de limpeza ecológicos recarregáveis para apartamentos pequenos",
     "chars": "{{count}} caracteres",
-    "dispatched": "Campanha iniciada. Ela aparece abaixo quando a avaliação de viabilidade terminar, geralmente em poucos minutos.",
+    "dispatched": "Campanha iniciada. Ela já está no painel; a pontuação e as personas chegam em alguns minutos.",
     "dispatchFailed": "Não foi possível iniciar a campanha: {{message}}",
     "trendTitle": "Recompensa ao longo do tempo",
     "trendSub": "Recompensa normalizada por rodada medida, em todas as campanhas",
@@ -148,7 +148,9 @@
     "activityCalendar": "Ver tudo no calendário",
     "helpModel": "Nosso modelo de IA",
     "helpModelSub": "O classificador que treinamos, sua precisão e como aprende",
-    "st_blocked": "Bloqueada"
+    "st_blocked": "Bloqueada",
+    "st_failed": "Falha ao iniciar",
+    "researching": "Pesquisando o mercado…"
   },
   "cd": {
     "back": "Todas as campanhas",
@@ -200,7 +202,9 @@
     "stopRequested": "Parando. A campanha termina após a etapa atual.",
     "adHeadline": "Título",
     "adButton": "Botão",
-    "adLayout": "Layout"
+    "adLayout": "Layout",
+    "startFailedTitle": "Esta campanha não começou",
+    "startFailedBody": "Algo deu errado ao iniciar. Crie-a novamente."
   },
   "mx": {
     "back": "Voltar à campanha",

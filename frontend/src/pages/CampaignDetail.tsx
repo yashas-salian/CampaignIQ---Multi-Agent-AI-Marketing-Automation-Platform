@@ -55,6 +55,7 @@ function currentStep(status: CampaignStatus): number {
       return STEPS.length
     case 'rejected':
     case 'blocked':
+    case 'failed':
       return -1
   }
 }
@@ -158,7 +159,7 @@ function StatusPill({ status, paused }: { status: CampaignStatus; paused?: boole
       ? styles.pillAction
       : status === 'completed'
         ? styles.pillDone
-        : status === 'rejected' || status === 'blocked'
+        : status === 'rejected' || status === 'blocked' || status === 'failed'
           ? styles.pillRejected
           : styles.pillRunning
   return (
@@ -457,7 +458,7 @@ export default function CampaignDetail() {
     )
   }
 
-  const isActive = !['completed', 'rejected', 'blocked'].includes(campaign.status)
+  const isActive = !['completed', 'rejected', 'blocked', 'failed'].includes(campaign.status)
   const latestDecision = decisions[0] ?? null
   // Approving against the engine's advice needs a reason (the database enforces it too).
   // The crash test of the round now at Gate 2; its risk is the revision's once that's applied.
@@ -498,7 +499,9 @@ export default function CampaignDetail() {
 
       <header className={`${styles.header} ${styles.enter}`} style={{ '--i': 1 } as CSSProperties}>
         <div>
-          <span className={styles.eyebrow}>{humanize(campaign.domain_category)}</span>
+          <span className={styles.eyebrow}>
+            {campaign.feasibility_score === null && campaign.status === 'created' ? t('dash.researching') : humanize(campaign.domain_category)}
+          </span>
           <h1 className={styles.title}>{campaign.idea}</h1>
           <div className={styles.meta}>
             <StatusPill status={campaign.status} paused={!!campaign.paused_at} />
@@ -660,11 +663,20 @@ export default function CampaignDetail() {
         </section>
       )}
 
+      {campaign.status === 'failed' && (
+        <section className={`${styles.panel} ${styles.enter}`} style={{ '--i': 2 } as CSSProperties} role="alert">
+          <div className={styles.panelHead}>
+            <h2>{t('cd.startFailedTitle')}</h2>
+          </div>
+          <p>{campaign.start_error || t('cd.startFailedBody')}</p>
+        </section>
+      )}
+
       <section className={`${styles.panel} ${styles.enter}`} style={{ '--i': 3 } as CSSProperties}>
         <div className={styles.panelHead}>
           <h2>{t('cd.progressTitle')}</h2>
         </div>
-        <ol className={`${local.stepper} ${campaign.status === 'rejected' || campaign.status === 'blocked' ? local.stepperRejected : ''}`}>
+        <ol className={`${local.stepper} ${['rejected', 'blocked', 'failed'].includes(campaign.status) ? local.stepperRejected : ''}`}>
           {STEPS.map((s, i) => {
             const state = step === -1 ? '' : i < step ? local.done : i === step ? local.current : ''
             return (

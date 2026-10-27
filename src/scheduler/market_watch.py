@@ -24,7 +24,7 @@ MAX_PER_SWEEP = 15  # Google Trends rate-limits hard: spread the checks out
 COOLDOWN_DAYS = 3  # one alert of a kind per campaign per few days
 TREND_RATIO, TREND_MIN = 1.5, 30  # interest index (0-100)
 NEWS_RATIO, NEWS_MIN = 2.0, 10  # matching articles
-DONE = ("completed", "rejected", "blocked")
+DONE = ("completed", "rejected", "blocked", "failed")
 
 
 def detect(baseline: dict, trend: dict | None, news: dict | None) -> list[dict]:

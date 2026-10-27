@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       campaign_id:
-        description: "Resume just this one campaign immediately (leave blank to sweep all)"
+        description: "Resume just this one campaign immediately (leave blank to sweep all). With idea: the row create-campaign already wrote for it"
         required: false
         type: string
       idea:
@@ -57,9 +57,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Downloaded packages are cached between runs (pip's cache, keyed on pyproject.toml).
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
       # M7: the fine-tuned domain model (llama.cpp, CPU wheel) + its ~940 MB GGUF,
       # cached between runs. Without the HF secrets below the app falls back to Groq.
       # Key the cache on the HF repo's current commit, so a model promoted by the
@@ -78,7 +81,12 @@ jobs:
         with:
           path: ~/.cache/huggingface/hub
           key: domain-model-${{ steps.domain-rev.outputs.rev }}
-      - run: pip install -e ".[local-model,observability,ads]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+      # The CPU build of PyTorch first (~200 MB, for the embeddings): left to
+      # sentence-transformers, pip fetches the ~3 GB CUDA build, which these
+      # GPU-less runners can't use and which made every start take minutes.
+      - run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[local-model,observability,ads]" --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
       # The product cut-out model (src/tools/product_cutout.py, ~180 MB),
       # downloaded by rembg on first use and kept between runs.
       - name: Cache product cut-out model
@@ -99,7 +107,8 @@ jobs:
               --email-to "$IN_EMAIL_TO" \
               --product-image "$IN_PRODUCT_IMAGE" \
               --tagline "$IN_TAGLINE" \
-              --cta-url "$IN_CTA_URL"
+              --cta-url "$IN_CTA_URL" \
+              ${IN_CAMPAIGN_ID:+--new-campaign-id "$IN_CAMPAIGN_ID"}
           elif [ -n "$IN_CAMPAIGN_ID" ]; then
             python -m src.scheduler.run_iteration --campaign-id "$IN_CAMPAIGN_ID"
           else

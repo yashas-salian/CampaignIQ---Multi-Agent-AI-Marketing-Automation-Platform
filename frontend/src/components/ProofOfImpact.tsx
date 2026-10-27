@@ -421,7 +421,7 @@ export default function ProofOfImpact({ campaign, experiment, canEdit, emailSent
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const hasAudience = (campaign.email_to?.length ?? 0) > 0
-  const finished = ['completed', 'rejected', 'blocked'].includes(campaign.status)
+  const finished = ['completed', 'rejected', 'blocked', 'failed'].includes(campaign.status)
   const canDeclare = canEdit && hasAudience && !emailSent && !finished
 
   if (!experiment && !canDeclare) return null

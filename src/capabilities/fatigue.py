@@ -456,7 +456,7 @@ def run(campaign_id: str, *, text_sim=text_similarity) -> dict | None:
             alert = client.table("creative_fatigue_alerts").insert({
                 "campaign_id": campaign_id, "org_id": campaign.get("org_id"), "channel": seg["channel"], "segment": seg["segment"],
                 "status": seg["status"], "recommendation": seg["recommendation"], "evidence": evidence}).execute().data[0]
-            if campaign.get("status") not in ("completed", "rejected", "blocked"):
+            if campaign.get("status") not in ("completed", "rejected", "blocked", "failed"):
                 pending = (client.table("creative_interventions").select("id").eq("campaign_id", campaign_id).eq("outcome", "pending")
                            .is_("applied_round", "null").execute().data or [])
                 if not pending:  # the system proposes the refresh; people can change or dismiss it before the next round

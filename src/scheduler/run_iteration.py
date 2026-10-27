@@ -80,6 +80,13 @@ def main() -> None:
             process_campaign(app, args.campaign_id)
             return
 
+        # Starts whose worker never reached feasibility stop showing "Starting up".
+        try:
+            stale = get_client().rpc("fail_stale_campaign_starts").execute().data
+            if stale:
+                print(f"Marked {stale} stalled campaign start(s) as failed.")
+        except Exception as exc:
+            print(f"Stalled-start check skipped: {exc}")
         result = get_client().table("campaigns").select("id, status").in_("status", ACTIVE_STATUSES).execute()
         if not result.data:
             print("No active campaigns due for processing.")
