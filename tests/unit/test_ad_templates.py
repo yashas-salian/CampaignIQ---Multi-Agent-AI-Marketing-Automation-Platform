@@ -282,6 +282,16 @@ class TestFrontendMirror:
         families = dict(re.findall(r"^\s+(\w+): \[([^\]]*)\]", ts, flags=re.M))
         assert {f: re.findall(r"'(\w+)'", ids) for f, ids in families.items()} == FAMILIES
 
+    def test_the_gallery_has_a_preview_and_the_right_ai_background_badge_for_every_template(self):
+        import re
+        from pathlib import Path
+
+        frontend = Path(__file__).resolve().parents[2] / "frontend"
+        assert {p.stem for p in (frontend / "public" / "templates").glob("*.webp")} == set(TEMPLATES)
+        ts = (frontend / "src" / "lib" / "adTemplates.ts").read_text(encoding="utf-8")
+        scenes = re.search(r"AD_SCENE_TEMPLATES = new Set\(\[([^\]]*)\]\)", ts).group(1)
+        assert set(re.findall(r"'(\w+)'", scenes)) == {t.id for t in TEMPLATES.values() if t.scene}
+
 
 class TestToolsImage:
     """The Tools page's ad image: the user's own product photo, set into a template."""

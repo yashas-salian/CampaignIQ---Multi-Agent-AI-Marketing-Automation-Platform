@@ -1905,5 +1905,78 @@
     "markAll": "Mark all read",
     "empty": "Nothing yet. You'll hear here when an approval needs you.",
     "email": "Also email me these"
+  },
+  "tg": {
+    "link": "Need help choosing a template?",
+    "back": "Back to the ad image",
+    "eyebrow": "Ad templates",
+    "title": "See every layout",
+    "subtitle": "All 34 templates, shown with the same sample product. Your ad uses your own photo, words and brand colour.",
+    "auto": "Let the AI pick",
+    "autoNote": "It chooses the template that best fits your product.",
+    "use": "Use this template",
+    "selected": "Selected",
+    "scene": "AI background",
+    "sceneNote": "Templates marked AI background get a scene painted behind your product. The previews show their plain version.",
+    "sample": "Sample product: Piyo Drinks, a fictional brand.",
+    "all": "All",
+    "family": {
+      "minimalist": {
+        "name": "Minimal",
+        "desc": "The product alone, with lots of calm space."
+      },
+      "lifestyle_aspirational": {
+        "name": "Lifestyle",
+        "desc": "The product in a mood, setting or scene."
+      },
+      "testimonial_social_proof": {
+        "name": "Proof & benefits",
+        "desc": "What it does, shown plainly. Never invented reviews."
+      },
+      "humor_meme": {
+        "name": "Playful",
+        "desc": "Bright, fun layouts for casual brands."
+      },
+      "urgency_scarcity": {
+        "name": "Bold promo",
+        "desc": "Loud launch and offer layouts. Offers only when you state one."
+      }
+    },
+    "suits": {
+      "centered_hero": "Any packaged product",
+      "icon_on_void": "Fragrance, watches, jewellery",
+      "podium_showcase": "Beauty, skincare, gadgets",
+      "giant_word_behind": "Sneakers, fashion, drinks",
+      "negative_space": "Premium, understated brands",
+      "type_manifesto": "Ingredient-honest brands",
+      "inset_frame": "Artisan, boutique, home",
+      "scene_still_life": "Premium beauty, home, food",
+      "lifestyle_inset": "Apparel, fitness, travel",
+      "split_story": "Fashion, furniture",
+      "water_ripple": "Drinks, water, skincare",
+      "flat_lay": "Accessories, watches, snacks",
+      "oversized_world": "Launches, statement products",
+      "ingredient_halo": "Natural foods, juices, skincare",
+      "dark_glow": "Tech, energy drinks, cola",
+      "feature_callouts": "Gadgets, skincare",
+      "benefit_checklist": "Health, personal care",
+      "numbered_steps": "Routines, kits, recipes",
+      "big_number": "A real number from your idea",
+      "tagline_quote": "Brands with a strong tagline",
+      "us_vs_them": "Products that replace a habit",
+      "phone_mockup": "Apps, online stores, services",
+      "script_flank": "Juices, sweets, desserts",
+      "doodle_pop": "Snacks, youth brands",
+      "blob_sticker": "D2C, kids, playful brands",
+      "paper_collage": "Handmade, craft, cafés",
+      "speech_bubble": "Apps, delivery, challenger brands",
+      "comic_scene": "Humour-led brands",
+      "starburst_badge": "Offers, launches, new flavours",
+      "diagonal_flash": "Drops, flash offers",
+      "type_sandwich": "Product launches",
+      "rings_orbit": "Tech and product launches",
+      "corner_ribbon": "New or improved products",
+      "event_title": "Events, pop-ups, workshops"
+    }
   }
 }

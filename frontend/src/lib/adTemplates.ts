@@ -9,3 +9,9 @@ export const AD_TEMPLATE_FAMILIES: Record<string, string[]> = {
 }
 
 export const AD_TEMPLATES: string[] = Object.values(AD_TEMPLATE_FAMILIES).flat()
+
+/** Templates whose background the image model paints (the rest are drawn in code). */
+export const AD_SCENE_TEMPLATES = new Set(['scene_still_life', 'lifestyle_inset', 'water_ripple', 'flat_lay', 'oversized_world', 'ingredient_halo', 'comic_scene'])
+
+/** The gallery's preview of a template (frontend/scripts/render_template_previews.py). */
+export const templatePreview = (id: string) => `/templates/${id}.webp`

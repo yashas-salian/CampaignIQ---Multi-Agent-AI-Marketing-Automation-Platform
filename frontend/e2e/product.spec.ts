@@ -104,3 +104,56 @@ test('the ad image tool also builds on a product photo, with an optional templat
   expect(body.capability).toBe('image')
   expect(body.params).toMatchObject({ prompt: 'Canvas sneakers for all-day comfort', tagline: 'Made to move', template: 'type_sandwich', product_image_path: seen.uploads[0] })
 })
+
+test('the template gallery shows every layout and hands the pick back to a form that kept its photo', async ({ page }) => {
+  const seen = await signIn(page)
+  await page.goto('/tools')
+  await page.getByRole('radio', { name: /ad image/i }).click()
+  await page.getByPlaceholder(/canvas sneakers/i).fill('Canvas sneakers for all-day comfort')
+  await page.getByTestId('product-photo-input').setInputFiles('e2e/fixtures/sample-ad.jpg')
+  await page.getByLabel(/tagline/i).fill('Made to move')
+
+  await page.getByRole('button', { name: /help choosing a template/i }).click()
+  await expect(page).toHaveURL(/templates=pick/)
+  const cards = page.getByRole('button', { name: /^use this template:/i })
+  await expect(cards).toHaveCount(34)
+  // Every preview image exists.
+  for (const src of await page.locator('img[src^="/templates/"]').evaluateAll((imgs) => imgs.map((i) => i.getAttribute('src')))) {
+    expect((await page.request.get(src!)).status(), src!).toBe(200)
+  }
+  // A family filter narrows the grid.
+  await page.getByRole('radio', { name: /bold promo/i }).click()
+  await expect(cards).toHaveCount(6)
+  await page.getByRole('button', { name: /^use this template: diagonal flash$/i }).click()
+
+  await expect(page).not.toHaveURL(/templates=/)
+  await expect(page.getByRole('combobox', { name: /template/i })).toContainText(/diagonal flash/i)
+  await expect(page.getByTestId('product-photo').locator('img')).toBeVisible()
+  await expect(page.getByLabel(/tagline/i)).toHaveValue('Made to move')
+  await page.getByRole('button', { name: /^run/i }).click()
+  await expect.poll(() => seen.created.length).toBe(1)
+  expect((seen.created[0] as { params: Record<string, string> }).params.template).toBe('diagonal_flash')
+})
+
+test('the browser Back button closes the template gallery', async ({ page }) => {
+  await signIn(page)
+  await page.goto('/tools')
+  await page.getByRole('radio', { name: /ad image/i }).click()
+  await page.getByRole('button', { name: /help choosing a template/i }).click()
+  await expect(page.getByRole('heading', { name: /see every layout/i })).toBeVisible()
+  await page.goBack()
+  await expect(page.getByRole('heading', { name: /see every layout/i })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /help choosing a template/i })).toBeVisible()
+})
+
+test('the template gallery fits a small phone without sideways scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 })
+  await signIn(page)
+  await page.goto('/tools?templates=pick')
+  await expect(page.getByRole('button', { name: /^use this template:/i }).first()).toBeVisible()
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  expect(overflow).toBeLessThanOrEqual(1)
+  // Opened straight from a link: closing stays on Tools rather than leaving the app.
+  await page.getByRole('button', { name: /back to the ad image/i }).click()
+  await expect(page).toHaveURL(/\/tools$/)
+})

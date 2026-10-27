@@ -117,30 +117,44 @@ const PROOF = [
   { kicker: 'Learning', text: 'A contextual bandit learns from real clicks, and a fine-tuned classifier retrains weekly on your corrections.', wide: true },
 ]
 
-const TIERS = [
+// Pricing has two independent factors: who runs the AI (compute) and where
+// the campaign goes (channels). The monthly total is the compute tier plus each
+// paid channel picked. Prices are estimates; billing for them isn't built yet.
+const COMPUTE_TIERS = [
   {
+    id: 'free',
     tier: 'Free',
     name: 'Runs on us',
-    desc: 'The full loop on our free-tier models, at no cost.',
+    price: 0,
+    desc: 'The full loop on our free-tier models.',
     feats: ['3 rounds per campaign', '3 campaigns a day, 5 team members', '1,000 contacts for email'],
-    cta: 'Start free',
   },
   {
-    tier: 'Pro',
-    name: 'Room to grow',
-    desc: 'Sharper paid models and higher limits, billed through Stripe.',
-    feats: ['10 rounds per campaign', '50 campaigns a day, 50 members', 'Unlimited contacts'],
-    cta: 'Go Pro',
-    featured: true,
-  },
-  {
+    id: 'byok',
     tier: 'Bring your own key',
     name: 'Your key, our loop',
-    desc: 'Use your own model provider; the key is kept in Supabase Vault.',
-    feats: ['10 rounds per campaign', 'Spend stays on your own account', 'No subscription needed'],
-    cta: 'Connect a key',
+    price: 9,
+    desc: 'Your own model provider does the work. We charge a platform fee; the provider bills you for usage.',
+    feats: ['10 rounds per campaign', 'Key kept in Supabase Vault', 'Model spend stays on your account'],
   },
-]
+  {
+    id: 'paid',
+    tier: 'Paid models',
+    name: 'Premium models, managed',
+    price: 29,
+    desc: 'Sharper paid models for text and images, run and paid for by us.',
+    feats: ['10 rounds per campaign', '50 campaigns a day, 50 members', 'Unlimited contacts'],
+    featured: true,
+  },
+] as const
+
+type ComputeId = (typeof COMPUTE_TIERS)[number]['id']
+
+const FREE_CHANNELS = ['Bluesky', 'Mastodon', 'Gmail and other inboxes']
+const PAID_CHANNELS = ['Google Ads', 'Meta Ads', 'Instagram', 'Facebook', 'LinkedIn', 'YouTube']
+const PAID_CHANNEL_PRICE = 19 // per channel, per month; ad spend is billed by the network
+
+const usd = (n: number) => `$${n}`
 
 const FAQS = [
   {
@@ -197,6 +211,12 @@ export default function Landing() {
   const [heroIn, setHeroIn] = useState(false)
   const [activeStep, setActiveStep] = useState(0)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
+  const [compute, setCompute] = useState<ComputeId>('free')
+  const [paidChannels, setPaidChannels] = useState<string[]>([])
+  const computeTier = COMPUTE_TIERS.find((c) => c.id === compute)!
+  const monthly = computeTier.price + paidChannels.length * PAID_CHANNEL_PRICE
+  const toggleChannel = (name: string) =>
+    setPaidChannels((on) => (on.includes(name) ? on.filter((c) => c !== name) : PAID_CHANNELS.filter((c) => on.includes(c) || c === name)))
 
   // Logged-in visitors can still read this page; its sign-up buttons just
   // take them straight to the app instead.
@@ -535,21 +555,32 @@ export default function Landing() {
               <span className={styles.eyebrow}>Pricing</span>
               <h2 className={styles.sectionTitle}>Start free. Grow when it pays off.</h2>
               <p className={styles.sectionSub}>
-                Every plan runs the same loop with every capability. Plans differ in rounds, limits and whose model key does the work.
+                Your price is two choices: who runs the AI, and where your campaigns go. Every plan runs the same loop with every capability.
               </p>
             </div>
+            <div className={`${styles.factorHead} ${styles.reveal}`} data-reveal>
+              <span className={styles.factorNum}>01</span>
+              <div>
+                <h3>Compute</h3>
+                <p>Who runs the AI.</p>
+              </div>
+            </div>
             <div className={styles.pricingGrid}>
-              {TIERS.map((t, i) => (
+              {COMPUTE_TIERS.map((t, i) => (
                 <div
-                  key={t.tier}
+                  key={t.id}
                   data-spot
                   data-reveal
-                  className={`${styles.priceCard} ${t.featured ? styles.priceFeatured : ''} ${styles.reveal}`}
+                  className={`${styles.priceCard} ${'featured' in t ? styles.priceFeatured : ''} ${styles.reveal}`}
                   style={{ '--i': i } as CSSProperties}
                 >
-                  {t.featured && <span className={styles.priceFlag}>For teams</span>}
+                  {'featured' in t && <span className={styles.priceFlag}>For teams</span>}
                   <span className={styles.priceTier}>{t.tier}</span>
                   <div className={styles.priceName}>{t.name}</div>
+                  <div className={styles.priceAmount}>
+                    {usd(t.price)}
+                    <span>{t.id === 'byok' ? '/ month platform fee' : '/ month'}</span>
+                  </div>
                   <p className={styles.priceDesc}>{t.desc}</p>
                   <ul className={styles.priceFeats}>
                     {t.feats.map((f) => (
@@ -561,12 +592,109 @@ export default function Landing() {
                       </li>
                     ))}
                   </ul>
-                  <Link className={`${styles.btn} ${t.featured ? styles.btnPrimary : styles.btnGhost} ${styles.btnBlock}`} to={signupTo}>
-                    {t.cta}
-                    <ArrowIcon />
-                  </Link>
                 </div>
               ))}
+            </div>
+
+            <div className={`${styles.factorHead} ${styles.reveal}`} data-reveal>
+              <span className={styles.factorNum}>02</span>
+              <div>
+                <h3>Channels</h3>
+                <p>Where the campaign goes.</p>
+              </div>
+            </div>
+            <div className={styles.channelGrid}>
+              <div data-spot data-reveal className={`${styles.priceCard} ${styles.reveal}`}>
+                <span className={styles.priceTier}>Free channels</span>
+                <div className={styles.priceName}>Post and email</div>
+                <div className={styles.priceAmount}>
+                  {usd(0)}
+                  <span>/ month</span>
+                </div>
+                <p className={styles.priceDesc}>Organic posts, and email to your own opted-in subscribers.</p>
+                <div className={styles.channelChips}>
+                  {FREE_CHANNELS.map((c) => (
+                    <span key={c}>{c}</span>
+                  ))}
+                </div>
+              </div>
+              <div data-spot data-reveal className={`${styles.priceCard} ${styles.reveal}`} style={{ '--i': 1 } as CSSProperties}>
+                <span className={styles.priceFlag}>Coming soon</span>
+                <span className={styles.priceTier}>Paid channels</span>
+                <div className={styles.priceName}>Ads on the big networks</div>
+                <div className={styles.priceAmount}>
+                  {usd(PAID_CHANNEL_PRICE)}
+                  <span>/ month per channel</span>
+                </div>
+                <p className={styles.priceDesc}>Paid placements, through the same two gates and crash test. Ad spend is billed by the network.</p>
+                <div className={styles.channelChips}>
+                  {PAID_CHANNELS.map((c) => (
+                    <span key={c}>{c}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className={`${styles.estimator} ${styles.reveal}`} data-reveal>
+              <div className={styles.estimatorPick}>
+                <h3>Estimate your monthly price</h3>
+                <fieldset>
+                  <legend>Compute</legend>
+                  <div className={styles.estimatorOptions}>
+                    {COMPUTE_TIERS.map((t) => (
+                      <label key={t.id} className={`${styles.estimatorOption} ${compute === t.id ? styles.estimatorOn : ''}`}>
+                        <input type="radio" name="compute" value={t.id} checked={compute === t.id} onChange={() => setCompute(t.id)} />
+                        {t.tier}
+                        <span>{usd(t.price)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                <fieldset>
+                  <legend>Paid channels</legend>
+                  <div className={styles.estimatorOptions}>
+                    {PAID_CHANNELS.map((c) => (
+                      <label key={c} className={`${styles.estimatorOption} ${paidChannels.includes(c) ? styles.estimatorOn : ''}`}>
+                        <input type="checkbox" checked={paidChannels.includes(c)} onChange={() => toggleChannel(c)} />
+                        {c}
+                        <span>+{usd(PAID_CHANNEL_PRICE)}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className={styles.estimatorNote}>Bluesky, Mastodon and email are always included at no cost.</p>
+                </fieldset>
+              </div>
+              <div className={styles.estimatorTotal} aria-live="polite">
+                <span className={styles.priceTier}>Estimated total</span>
+                <div className={styles.estimatorAmount}>
+                  {usd(monthly)}
+                  <span>/ month</span>
+                </div>
+                <ul>
+                  <li>
+                    <span>{computeTier.tier}</span>
+                    <span>{usd(computeTier.price)}</span>
+                  </li>
+                  <li>
+                    <span>Free channels</span>
+                    <span>{usd(0)}</span>
+                  </li>
+                  {paidChannels.map((c) => (
+                    <li key={c}>
+                      <span>{c}</span>
+                      <span>{usd(PAID_CHANNEL_PRICE)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className={styles.estimatorNote}>
+                  Estimated prices.{compute === 'byok' ? ' Model usage is billed by your provider.' : ''}
+                  {paidChannels.length ? ' Ad spend is paid to each network and isn’t included.' : ''}
+                </p>
+                <Link className={`${styles.btn} ${styles.btnPrimary} ${styles.btnBlock}`} to={signupTo}>
+                  {monthly === 0 ? 'Start free' : 'Get started'}
+                  <ArrowIcon />
+                </Link>
+              </div>
             </div>
           </div>
         </section>

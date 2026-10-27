@@ -1905,5 +1905,78 @@
     "markAll": "Marcar tudo como lido",
     "empty": "Nada ainda. Você saberá aqui quando uma aprovação precisar de você.",
     "email": "Também me enviar por email"
+  },
+  "tg": {
+    "link": "Precisa de ajuda para escolher um modelo?",
+    "back": "Voltar à imagem do anúncio",
+    "eyebrow": "Modelos de anúncio",
+    "title": "Veja todos os layouts",
+    "subtitle": "Os 34 modelos, com o mesmo produto de exemplo. Seu anúncio usa sua própria foto, suas palavras e a cor da sua marca.",
+    "auto": "Deixar a IA escolher",
+    "autoNote": "Ela escolhe o modelo que melhor combina com seu produto.",
+    "use": "Usar este modelo",
+    "selected": "Selecionado",
+    "scene": "Fundo com IA",
+    "sceneNote": "Modelos marcados com Fundo com IA recebem uma cena pintada atrás do seu produto. As prévias mostram a versão simples.",
+    "sample": "Produto de exemplo: Piyo Drinks, uma marca fictícia.",
+    "all": "Todos",
+    "family": {
+      "minimalist": {
+        "name": "Minimalista",
+        "desc": "Só o produto, com bastante espaço calmo."
+      },
+      "lifestyle_aspirational": {
+        "name": "Estilo de vida",
+        "desc": "O produto em um clima, lugar ou cena."
+      },
+      "testimonial_social_proof": {
+        "name": "Provas e benefícios",
+        "desc": "O que ele faz, mostrado com clareza. Nunca avaliações inventadas."
+      },
+      "humor_meme": {
+        "name": "Divertido",
+        "desc": "Layouts alegres para marcas descontraídas."
+      },
+      "urgency_scarcity": {
+        "name": "Promo chamativa",
+        "desc": "Layouts de lançamento e oferta. Ofertas só quando você informa uma."
+      }
+    },
+    "suits": {
+      "centered_hero": "Qualquer produto embalado",
+      "icon_on_void": "Perfumes, relógios, joias",
+      "podium_showcase": "Beleza, skincare, gadgets",
+      "giant_word_behind": "Tênis, moda, bebidas",
+      "negative_space": "Marcas premium e discretas",
+      "type_manifesto": "Marcas transparentes nos ingredientes",
+      "inset_frame": "Artesanal, boutique, casa",
+      "scene_still_life": "Beleza premium, casa, comida",
+      "lifestyle_inset": "Roupas, fitness, viagem",
+      "split_story": "Moda, móveis",
+      "water_ripple": "Bebidas, água, skincare",
+      "flat_lay": "Acessórios, relógios, snacks",
+      "oversized_world": "Lançamentos, produtos de destaque",
+      "ingredient_halo": "Alimentos naturais, sucos, skincare",
+      "dark_glow": "Tecnologia, energéticos, refrigerante",
+      "feature_callouts": "Gadgets, skincare",
+      "benefit_checklist": "Saúde, cuidados pessoais",
+      "numbered_steps": "Rotinas, kits, receitas",
+      "big_number": "Um número real da sua ideia",
+      "tagline_quote": "Marcas com um slogan forte",
+      "us_vs_them": "Produtos que substituem um hábito",
+      "phone_mockup": "Apps, lojas online, serviços",
+      "script_flank": "Sucos, doces, sobremesas",
+      "doodle_pop": "Snacks, marcas jovens",
+      "blob_sticker": "D2C, crianças, marcas divertidas",
+      "paper_collage": "Feito à mão, artesanato, cafés",
+      "speech_bubble": "Apps, delivery, marcas desafiantes",
+      "comic_scene": "Marcas com humor",
+      "starburst_badge": "Ofertas, lançamentos, novos sabores",
+      "diagonal_flash": "Drops, ofertas relâmpago",
+      "type_sandwich": "Lançamentos de produto",
+      "rings_orbit": "Lançamentos de tecnologia e produto",
+      "corner_ribbon": "Produtos novos ou melhorados",
+      "event_title": "Eventos, pop-ups, oficinas"
+    }
   }
 }

@@ -1,0 +1,55 @@
+/* The ad template gallery (Tools → Ad image → "Need help choosing a template?"). */
+.back {
+  display: block; width: fit-content; margin-bottom: 10px; padding: 0; border: none; background-color: transparent; cursor: pointer;
+  font: inherit; font-size: 13.5px; --wipe-base: var(--ciq-text-muted);
+}
+
+.intro { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 16px; align-items: center; }
+@media (max-width: 720px) { .intro { grid-template-columns: minmax(0, 1fr); } }
+.auto {
+  display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 14px; text-align: left; cursor: pointer;
+  font: inherit; color: var(--ciq-text); background: var(--ciq-bg-raised); border: 1px solid var(--ciq-surface-border);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.auto strong { font-size: 14.5px; }
+.auto span { font-size: 13px; color: var(--ciq-text-muted); line-height: 1.45; }
+.auto:hover { border-color: color-mix(in srgb, var(--ciq-accent) 50%, var(--ciq-surface-border)); }
+.auto:focus-visible { outline: 2px solid var(--ciq-accent); outline-offset: 2px; }
+.autoOn { border-color: var(--ciq-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ciq-accent) 16%, transparent); }
+.note { font-size: 13px; line-height: 1.55; color: var(--ciq-text-muted); max-width: 70ch; }
+
+/* Family filter: wraps onto more lines rather than scrolling sideways. */
+.filters { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; background: var(--ciq-bg-raised); align-self: flex-start; max-width: 100%; }
+.count { font-family: var(--font-mono); font-size: 11px; color: var(--ciq-text-muted); }
+.familyDesc { font-size: 13.5px; color: var(--ciq-text-muted); margin-top: -8px !important; }
+
+.grid {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px;
+}
+@media (max-width: 520px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+
+.card {
+  width: 100%; height: 100%; display: flex; flex-direction: column; gap: 4px; padding: 8px 8px 12px;
+  border-radius: 16px; border: 1px solid var(--ciq-surface-border); background: var(--ciq-bg);
+  font: inherit; color: var(--ciq-text); text-align: left; cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.25s var(--ciq-ease), box-shadow 0.2s ease;
+}
+.card:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--ciq-accent) 45%, var(--ciq-surface-border)); }
+.card:focus-visible { outline: 2px solid var(--ciq-accent); outline-offset: 2px; }
+.cardOn { border-color: var(--ciq-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ciq-accent) 16%, transparent); }
+
+.thumb { position: relative; display: block; margin-bottom: 6px; border-radius: 10px; overflow: hidden; aspect-ratio: 1; background: var(--ciq-bg-raised); }
+.thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.card strong { font-size: 14px; padding: 0 4px; }
+.suits { font-size: 12.5px; line-height: 1.4; color: var(--ciq-text-muted); padding: 0 4px; flex: 1; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; padding: 2px 4px 0; }
+.tags:empty { display: none; }
+.tag {
+  padding: 2px 7px; border-radius: 6px; font-family: var(--font-mono); font-size: 10.5px;
+  background: var(--ciq-bg-raised); border: 1px solid var(--ciq-surface-border); color: var(--ciq-text-muted);
+}
+.scene { color: var(--ciq-accent); border-color: color-mix(in srgb, var(--ciq-accent) 35%, var(--ciq-surface-border)); }
+.use { margin-top: 6px; padding: 0 4px; font-size: 12.5px; font-weight: 600; color: var(--ciq-accent); }
+
+@media (prefers-reduced-motion: reduce) { .card, .card:hover { transition: none; transform: none; } }

@@ -1905,5 +1905,78 @@
     "markAll": "Marcar todo como leído",
     "empty": "Nada aún. Aquí sabrás cuando una aprobación te necesite.",
     "email": "Enviármelas también por email"
+  },
+  "tg": {
+    "link": "¿Necesitas ayuda para elegir una plantilla?",
+    "back": "Volver a la imagen del anuncio",
+    "eyebrow": "Plantillas de anuncio",
+    "title": "Mira todos los diseños",
+    "subtitle": "Las 34 plantillas, con el mismo producto de ejemplo. Tu anuncio usa tu propia foto, tus palabras y el color de tu marca.",
+    "auto": "Deja que la IA elija",
+    "autoNote": "Elige la plantilla que mejor encaja con tu producto.",
+    "use": "Usar esta plantilla",
+    "selected": "Seleccionada",
+    "scene": "Fondo con IA",
+    "sceneNote": "Las plantillas marcadas con Fondo con IA reciben una escena pintada detrás de tu producto. Las vistas previas muestran su versión sencilla.",
+    "sample": "Producto de ejemplo: Piyo Drinks, una marca ficticia.",
+    "all": "Todas",
+    "family": {
+      "minimalist": {
+        "name": "Minimalista",
+        "desc": "Solo el producto, con mucho espacio tranquilo."
+      },
+      "lifestyle_aspirational": {
+        "name": "Estilo de vida",
+        "desc": "El producto en un ambiente, lugar o escena."
+      },
+      "testimonial_social_proof": {
+        "name": "Pruebas y beneficios",
+        "desc": "Lo que hace, mostrado con claridad. Nunca reseñas inventadas."
+      },
+      "humor_meme": {
+        "name": "Divertido",
+        "desc": "Diseños alegres para marcas desenfadadas."
+      },
+      "urgency_scarcity": {
+        "name": "Promo llamativa",
+        "desc": "Diseños de lanzamiento y oferta. Ofertas solo si tú indicas una."
+      }
+    },
+    "suits": {
+      "centered_hero": "Cualquier producto envasado",
+      "icon_on_void": "Perfumes, relojes, joyería",
+      "podium_showcase": "Belleza, cuidado de la piel, gadgets",
+      "giant_word_behind": "Zapatillas, moda, bebidas",
+      "negative_space": "Marcas premium y discretas",
+      "type_manifesto": "Marcas que destacan sus ingredientes",
+      "inset_frame": "Artesanía, boutique, hogar",
+      "scene_still_life": "Belleza premium, hogar, comida",
+      "lifestyle_inset": "Ropa, fitness, viajes",
+      "split_story": "Moda, muebles",
+      "water_ripple": "Bebidas, agua, cuidado de la piel",
+      "flat_lay": "Accesorios, relojes, snacks",
+      "oversized_world": "Lanzamientos, productos llamativos",
+      "ingredient_halo": "Alimentos naturales, zumos, cuidado de la piel",
+      "dark_glow": "Tecnología, bebidas energéticas, cola",
+      "feature_callouts": "Gadgets, cuidado de la piel",
+      "benefit_checklist": "Salud, cuidado personal",
+      "numbered_steps": "Rutinas, kits, recetas",
+      "big_number": "Un número real de tu idea",
+      "tagline_quote": "Marcas con un buen eslogan",
+      "us_vs_them": "Productos que sustituyen un hábito",
+      "phone_mockup": "Apps, tiendas online, servicios",
+      "script_flank": "Zumos, dulces, postres",
+      "doodle_pop": "Snacks, marcas juveniles",
+      "blob_sticker": "D2C, niños, marcas divertidas",
+      "paper_collage": "Hecho a mano, artesanía, cafeterías",
+      "speech_bubble": "Apps, reparto, marcas retadoras",
+      "comic_scene": "Marcas con humor",
+      "starburst_badge": "Ofertas, lanzamientos, nuevos sabores",
+      "diagonal_flash": "Lanzamientos exprés, ofertas relámpago",
+      "type_sandwich": "Lanzamientos de producto",
+      "rings_orbit": "Lanzamientos tecnológicos",
+      "corner_ribbon": "Productos nuevos o mejorados",
+      "event_title": "Eventos, pop-ups, talleres"
+    }
   }
 }

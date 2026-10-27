@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import PersonaStage from '../components/PersonaStage'
 import PersonaChat from '../components/PersonaChat'
@@ -21,6 +21,7 @@ import CrashTestReport from '../components/CrashTestReport'
 import type { CrashReport } from '../lib/types'
 import type { CampaignDecision } from '../lib/types'
 import { AD_TEMPLATES } from '../lib/adTemplates'
+import TemplateGallery from '../components/TemplateGallery'
 import { useSession } from '../lib/useAuth'
 
 const PROGRESS: { key: string; label: string }[] = [
@@ -168,6 +169,23 @@ export default function Tools() {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [params, setParams] = useSearchParams()
   const [opened, setOpened] = useState<Run | null>(null)
+  const navigate = useNavigate()
+
+  // The template gallery replaces the page (its own history entry, so Back
+  // closes it) while the form stays mounted: the photo and words survive.
+  const showGallery = params.get('templates') === 'pick'
+  const formScroll = useRef(0)
+  function openGallery() {
+    formScroll.current = window.scrollY
+    setParams({ templates: 'pick' })
+  }
+  function closeGallery() {
+    if ((window.history.state?.idx ?? 0) > 0) navigate(-1)
+    else setParams({}, { replace: true })
+  }
+  useEffect(() => {
+    window.scrollTo({ top: showGallery ? 0 : formScroll.current, behavior: 'instant' })
+  }, [showGallery])
 
   const loadRuns = useCallback(async () => {
     const { data, error } = await supabase
@@ -279,7 +297,18 @@ export default function Tools() {
   }
 
   return (
-    <div className={styles.page}>
+    <>
+    {showGallery && (
+      <TemplateGallery
+        selected={template}
+        onPick={(id) => {
+          setTemplate(id)
+          closeGallery()
+        }}
+        onBack={closeGallery}
+      />
+    )}
+    <div className={styles.page} style={showGallery ? { display: 'none' } : undefined}>
       <header className={`${styles.header} ${styles.enter}`}>
         <div>
           <span className={styles.eyebrow}>{t('tl.title')}</span>
@@ -354,15 +383,20 @@ export default function Tools() {
                 tagline={tagline}
                 onTagline={setTagline}
                 extra={
-                  <label className={local.templatePick}>
-                    <span>{t('product.template')}</span>
-                    <Select
-                      aria-label={t('product.template')}
-                      value={template}
-                      onChange={setTemplate}
-                      options={[{ value: '', label: t('tl.templateAuto') }, ...AD_TEMPLATES.map((id) => ({ value: id, label: humanize(id) }))]}
-                    />
-                  </label>
+                  <div className={local.templatePick}>
+                    <label className={local.templateField}>
+                      <span>{t('product.template')}</span>
+                      <Select
+                        aria-label={t('product.template')}
+                        value={template}
+                        onChange={setTemplate}
+                        options={[{ value: '', label: t('tl.templateAuto') }, ...AD_TEMPLATES.map((id) => ({ value: id, label: humanize(id) }))]}
+                      />
+                    </label>
+                    <button type="button" className={`${local.templateHelp} link-wipe`} onClick={openGallery}>
+                      {t('tg.link')}
+                    </button>
+                  </div>
                 }
               />
             )}
@@ -478,5 +512,6 @@ export default function Tools() {
           </Link>
       </SideDrawer>
     </div>
+    </>
   )
 }
