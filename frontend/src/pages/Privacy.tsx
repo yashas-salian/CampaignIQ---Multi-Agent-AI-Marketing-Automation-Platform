@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import LegalPage, { type LegalSection } from '../components/LegalPage'
-import { CONTACT_EMAIL } from '../lib/site'
+import { CONTACT_EMAIL, CONTACT_EMAIL_TEXT } from '../lib/site'
 
 // Describes what this codebase actually stores and sends; keep it in step with
 // src/db/*.sql and the providers/tools when either changes.
@@ -134,7 +134,7 @@ const SECTIONS: LegalSection[] = [
           masked API keys, Tools runs, AI usage and private memory. Deleting your account removes all of it, including
           your stored API keys and the category corrections future classifier training would use. Campaigns you created
           inside a team organisation belong to that team and stay with it. Posts already published on Bluesky or Mastodon must be
-          removed there separately. Questions: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+          removed there separately. Questions: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL_TEXT}</a>.
         </p>
         <p>
           <strong>How long we keep things:</strong> your data stays while your account exists. Some operational data is
@@ -163,7 +163,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <p>
         Ask anything about your data on the <Link to="/contact">contact page</Link> or at{' '}
-        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. The rules for using the service are in the{' '}
+        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL_TEXT}</a>. The rules for using the service are in the{' '}
         <Link to="/terms">terms of use</Link>.
       </p>
     ),

@@ -390,7 +390,7 @@ capabilities), and prints a report:
 
 Exits non-zero if the overall score (domain accuracy + feasibility-in-range
 rate + average persona quality, equally weighted) falls below 60% — this is
-what `.github/workflows/eval.yml` runs on every push/PR, with
+what `.github/workflows/eval.yml` runs when started by hand (Actions → Eval → Run workflow), with
 `GROQ_API_KEY`/`NEWSAPI_KEY` configured as repo Actions secrets (Reddit
 secrets are optional/on hold, same as local `.env`).
 

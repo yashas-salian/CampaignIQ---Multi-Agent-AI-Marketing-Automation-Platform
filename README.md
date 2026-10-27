@@ -145,7 +145,7 @@ Step by step: [docs/REFERENCE.md](docs/REFERENCE.md#deploying-the-frontend).
 | Web app: types, lint, browser tests on desktop and phone | `cd frontend && npx tsc -b && npm run lint && npx playwright test` |
 | Agent quality (golden set; needs Groq) | `.venv/Scripts/python -m src.eval.run_eval` |
 
-CI runs all of these on every push ([`tests.yml`](.github/workflows/tests.yml), [`eval.yml`](.github/workflows/eval.yml)).
+CI runs the tests on every push ([`tests.yml`](.github/workflows/tests.yml)). The agent-quality eval ([`eval.yml`](.github/workflows/eval.yml)) spends the shared Groq budget, so it runs only when started by hand from the Actions tab.
 
 ## Project layout
 

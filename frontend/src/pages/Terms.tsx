@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import LegalPage, { type LegalSection } from '../components/LegalPage'
-import { CONTACT_EMAIL } from '../lib/site'
+import { CONTACT_EMAIL, CONTACT_EMAIL_TEXT } from '../lib/site'
 
 const SECTIONS: LegalSection[] = [
   {
@@ -91,7 +91,7 @@ const SECTIONS: LegalSection[] = [
     body: (
       <p>
         These terms may change as the project evolves; the date above shows the latest version. Questions go to the{' '}
-        <Link to="/contact">contact page</Link> or <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. See also
+        <Link to="/contact">contact page</Link> or <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL_TEXT}</a>. See also
         the <Link to="/privacy">privacy policy</Link>.
       </p>
     ),

@@ -1,6 +1,10 @@
 import { useSession } from './useAuth'
 
-export const CONTACT_EMAIL = 'safiya.khan@nonstopio.com'
+export const CONTACT_EMAILS = ['safiyakhan0225@gmail.com', 'yashassalian40@gmail.com']
+/** For mailto: links, so a message reaches both. */
+export const CONTACT_EMAIL = CONTACT_EMAILS.join(',')
+/** For showing in text. */
+export const CONTACT_EMAIL_TEXT = CONTACT_EMAILS.join(' or ')
 export const REPO_URL = 'https://github.com/yashas-salian/CampaignIQ---Multi-Agent-AI-Marketing-Automation-Platform'
 
 /** Where log-in / sign-up calls to action should go for this visitor. */

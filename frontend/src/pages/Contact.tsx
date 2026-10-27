@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { toast } from '../lib/toast'
 import PublicLayout from '../components/PublicLayout'
 import { ArrowIcon } from '../components/PublicNav'
-import { CONTACT_EMAIL, REPO_URL } from '../lib/site'
+import { CONTACT_EMAIL, CONTACT_EMAILS, CONTACT_EMAIL_TEXT, REPO_URL } from '../lib/site'
 import styles from '../components/public.module.css'
 import local from './Contact.module.css'
 
@@ -29,7 +29,7 @@ export default function Contact() {
   async function copyEmail() {
     try {
       await navigator.clipboard.writeText(CONTACT_EMAIL)
-      toast.success('Email address copied.')
+      toast.success('Email addresses copied.')
     } catch {
       // Clipboard blocked: the address is still on screen to copy by hand.
       toast.error("Couldn't copy. Select the address above and copy it by hand.")
@@ -92,7 +92,7 @@ export default function Contact() {
           </div>
           {opened && (
             <p className={local.sent} role="status">
-              Your email app should have opened with the message. If it didn’t, write to {CONTACT_EMAIL} directly.
+              Your email app should have opened with the message. If it didn’t, write to {CONTACT_EMAIL_TEXT} directly.
             </p>
           )}
         </form>
@@ -100,7 +100,11 @@ export default function Contact() {
         <aside className={local.side}>
           <div className={`${styles.card} ${styles.enter}`} style={{ '--i': 3 } as CSSProperties}>
             <span className={styles.cardKicker}>Email</span>
-            <h3 className={local.email}>{CONTACT_EMAIL}</h3>
+            <h3 className={local.email}>
+              {CONTACT_EMAILS.map((address) => (
+                <span key={address}>{address}</span>
+              ))}
+            </h3>
             <div className={local.actions}>
               <a className="link-wipe" href={`mailto:${CONTACT_EMAIL}`}>
                 Write an email
