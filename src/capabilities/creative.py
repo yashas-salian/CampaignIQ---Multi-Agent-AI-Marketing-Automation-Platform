@@ -13,7 +13,7 @@ from src.prompts import PROMPTS
 from src.security.prompt_guard import fence
 from src.tools.bandit import select_arm_for_campaign
 from src.tools.ad_composer import compose_ad
-from src.tools.ad_templates import Slots, compose_product_ad, family_menu, resolve
+from src.tools.ad_templates import TEMPLATES, Slots, compose_product_ad, family_menu, resolve
 from src.tools.image_compositing import overlay_template
 
 logger = logging.getLogger("capabilities.creative")
@@ -186,7 +186,7 @@ def generate_creative(
             {**parsed, "template": template} if template else parsed, checks, product_cutout, image_provider,
             headline=headline, cta=cta, tagline=_clean_line(tagline, forbidden),
             forbidden=forbidden, brand=brand, image_style=image_style, copy_tone=copy_tone, arm_index=arm_index,
-            arm_explain=_explain(persona, domain_category, active_channels, arm_index),
+            arm_explain=_explain(persona, domain_category, active_channels, arm_index), forced=template,
         )
     template_bytes = None
     if use_image_template and user_id:
@@ -225,9 +225,27 @@ def generate_creative(
     )
 
 
+def arm_for_template(
+    template: str, ranked: list[tuple[int, str, str]], preferred: tuple[int, str, str] | None = None
+) -> tuple[int, str, str]:
+    """The arm for a template the user chose. Its image style must be the
+    template's family (an arm of another style would swap the template for one
+    of its own), so: `preferred` if it has that style, else the best-ranked arm
+    that does, else that style with a plain tone. The bandit still learns which
+    copy tone works with the layout."""
+    from src.tools.bandit import ARMS
+
+    family = TEMPLATES[template].family
+    for arm in ([preferred] if preferred else []) + list(ranked):
+        if arm and arm[1] == family:
+            return arm
+    return (ARMS.index((family, "direct_factual")), family, "direct_factual")
+
+
 def _product_creative(
     parsed: dict, checks: GuardrailResult, product: bytes, image_provider, *, headline: str, cta: str, tagline: str,
     forbidden: list[str], brand: BrandKit | None, image_style: str, copy_tone: str, arm_index: int, arm_explain: dict | None,
+    forced: str | None = None,
 ) -> Creative:
     """The campaign's real product set into a template. Only templates with a
     painted background call the image model; if that call fails the template
@@ -238,7 +256,9 @@ def _product_creative(
         items = raw.get(key) if isinstance(raw.get(key), list) else []
         clean[key] = [v for v in (_clean_line(x, forbidden) for x in items[:3]) if v]
     slots = Slots.from_dict({**clean, "headline": headline, "cta": cta, "tagline": tagline})
-    template = resolve(str(parsed.get("template") or ""), image_style, slots)
+    # A template the user chose is drawn as chosen, even with an extra word
+    # (a number, steps) missing; otherwise the LLM's pick is checked.
+    template = TEMPLATES[forced] if forced in TEMPLATES else resolve(str(parsed.get("template") or ""), image_style, slots)
     scene_prompt = str(parsed.get("image_prompt") or "").strip()
     scene = None
     if template.scene:

@@ -16,6 +16,7 @@ PRODUCT_PHOTOS_BUCKET = "product-photos"
 class Product:
     cutout: bytes | None  # trimmed RGBA PNG, or None when the campaign has no usable photo
     tagline: str = ""
+    template: str = ""  # the ad template the creator picked for every round, or "" (best fit each round)
 
 
 def cutout_path(campaign_id: str) -> str:
@@ -30,15 +31,21 @@ def product_for_campaign(campaign_id: str | None) -> Product:
     try:
         from src.db.supabase_client import get_client
 
-        row = get_client().table("campaigns").select("product_image_path,product_tagline").eq("id", campaign_id).maybe_single().execute()
+        row = (
+            get_client().table("campaigns").select("product_image_path,product_tagline,ad_template")
+            .eq("id", campaign_id).maybe_single().execute()
+        )
         row = (row.data if row else None) or {}
     except Exception as exc:
         logger.warning("reading the campaign's product failed: %s", exc)
         return Product(None)
+    from src.tools.ad_templates import TEMPLATES
+
     tagline = (row.get("product_tagline") or "").strip()
+    template = row.get("ad_template") if row.get("ad_template") in TEMPLATES else ""
     if not row.get("product_image_path"):
-        return Product(None, tagline)
-    return Product(_cutout(campaign_id, row["product_image_path"]), tagline)
+        return Product(None, tagline, template)
+    return Product(_cutout(campaign_id, row["product_image_path"]), tagline, template)
 
 
 def _cutout(campaign_id: str, photo_path: str) -> bytes | None:

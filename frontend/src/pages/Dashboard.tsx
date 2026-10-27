@@ -1,7 +1,7 @@
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import LogoMark from '../components/LogoMark'
 import RewardChart, { type RewardPoint } from '../components/RewardChart'
 import { CAMPAIGN_LANGUAGES } from '../lib/languages'
@@ -18,6 +18,8 @@ import type { Campaign, CampaignDecision, CampaignStatus, Metric } from '../lib/
 import styles from './Dashboard.module.css'
 import Select from '../components/Select'
 import { ProductFields } from '../components/ProductFields'
+import TemplateGallery from '../components/TemplateGallery'
+import TemplatePicker from '../components/TemplatePicker'
 import { isWebLink } from '../lib/product'
 import { DecisionBadge } from '../components/DecisionCard'
 
@@ -291,6 +293,24 @@ export default function Dashboard() {
   const [productPhoto, setProductPhoto] = useState<File | null>(null)
   const [tagline, setTagline] = useState('')
   const [ctaLink, setCtaLink] = useState('')
+  // Optional: every round's ad uses this layout. Empty = the best fit each round.
+  const [adTemplate, setAdTemplate] = useState('')
+  // The template gallery replaces the page (its own history entry, so Back
+  // closes it) while the composer stays mounted: the photo and words survive.
+  const [params, setParams] = useSearchParams()
+  const showGallery = params.get('templates') === 'pick'
+  const composerScroll = useRef(0)
+  function openGallery() {
+    composerScroll.current = window.scrollY
+    setParams({ templates: 'pick' })
+  }
+  function closeGallery() {
+    if ((window.history.state?.idx ?? 0) > 0) navigate(-1)
+    else setParams({}, { replace: true })
+  }
+  useEffect(() => {
+    window.scrollTo({ top: showGallery ? 0 : composerScroll.current, behavior: 'instant' })
+  }, [showGallery])
   const [creating, setCreating] = useState(false)
 
   const [filter, setFilter] = useState<Filter>('all')
@@ -391,7 +411,7 @@ export default function Dashboard() {
     const { error, response } = await supabase.functions.invoke('create-campaign', {
       body: {
         idea: idea.trim(), target_language: targetLanguage, org_id: orgId, ab_test: abTest,
-        product_image_path: path, tagline: tagline.trim(), cta_url: ctaLink.trim(),
+        product_image_path: path, tagline: tagline.trim(), cta_url: ctaLink.trim(), template: adTemplate,
       },
     })
     setCreating(false)
@@ -411,6 +431,7 @@ export default function Dashboard() {
     setProductPhoto(null)
     setTagline('')
     setCtaLink('')
+    setAdTemplate('')
   }
 
   function onComposerKey(e: ReactKeyboardEvent<HTMLTextAreaElement>) {
@@ -600,7 +621,18 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={styles.page}>
+    <>
+    {showGallery && (
+      <TemplateGallery
+        selected={adTemplate}
+        onPick={(id) => {
+          setAdTemplate(id)
+          closeGallery()
+        }}
+        onBack={closeGallery}
+      />
+    )}
+    <div className={styles.page} style={showGallery ? { display: 'none' } : undefined}>
       {/* Header */}
       <header className={`${styles.header} ${styles.enter}`}>
         <div>
@@ -708,6 +740,7 @@ export default function Dashboard() {
             onTagline={setTagline}
             link={ctaLink}
             onLink={setCtaLink}
+            extra={<TemplatePicker value={adTemplate} onChange={setAdTemplate} onBrowse={openGallery} note={t('dash.templateLocked')} wide />}
           />
           <div className={styles.composerFoot}>
             <label className={styles.langPick}>
@@ -1133,5 +1166,6 @@ export default function Dashboard() {
         </div>
       </section>
     </div>
+    </>
   )
 }

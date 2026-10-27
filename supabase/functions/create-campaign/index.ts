@@ -30,7 +30,7 @@ async function handle(req: Request): Promise<Response> {
     return new Response("Invalid session", { status: 401 });
   }
 
-  const { idea, target_language, email_to, org_id, ab_test, product_image_path, tagline, cta_url } = await req.json();
+  const { idea, target_language, email_to, org_id, ab_test, product_image_path, tagline, cta_url, template } = await req.json();
   if (!idea) {
     return new Response("Missing idea", { status: 400 });
   }
@@ -56,6 +56,11 @@ async function handle(req: Request): Promise<Response> {
     } catch {
       return new Response("The link must be a web address (https://…)", { status: 400 });
     }
+  }
+  // Optional: an ad template every round must use (src/tools/ad_templates.py ids).
+  const adTemplate = typeof template === "string" ? template.trim() : "";
+  if (adTemplate && !/^[a-z_]{1,40}$/.test(adTemplate)) {
+    return new Response("Unknown ad template", { status: 400 });
   }
   // Creating a campaign in an organisation needs the "create" permission there
   // (owner, admin or marketer), checked with the caller's own JWT.
@@ -96,6 +101,7 @@ async function handle(req: Request): Promise<Response> {
       product_image_path,
       product_tagline: cleanTagline || null,
       cta_url: cleanLink || null,
+      ad_template: adTemplate || null,
     })
     .select("id")
     .single();

@@ -14,6 +14,11 @@ GitHub Release notes.
 ## [Unreleased]
 
 ### Added
+- **Pick an ad template for a campaign, or see them all first** (`components/TemplatePicker`, `components/TemplateGallery`, `frontend/public/templates/`, migration `20261028000400_campaign_ad_template`):
+  - **Choosing:** the campaign composer and Tools → Ad image both have an optional template dropdown, and a "Need help choosing a template?" link.
+  - **The gallery:** it shows all 34 templates on the same sample product, filterable by style. Picking one returns to the form with everything still filled in.
+  - **On a campaign:** a chosen template is stored as `campaigns.ad_template`, and **every round's ad uses it**, variant B included. The bandit still picks the copy tone within that template's style. The template is drawn as chosen even when one of its extra words, such as a number, is missing.
+  - **Left on "best fit":** the bandit and the creative step choose each round, as before.
 - **Notifications for the people who must act** (`src/notifications.py`, migration `20261028000100_notifications`):
   - **Who:**
     - **Gates waiting, market moments and re-evaluations** go to the organisation's **designated approvers**, chosen by managers in Settings → Team. If nobody is chosen, everyone who can approve is told.

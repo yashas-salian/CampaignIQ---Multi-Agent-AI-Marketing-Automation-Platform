@@ -150,7 +150,8 @@
     "helpModelSub": "O classificador que treinamos, sua precisão e como aprende",
     "st_blocked": "Bloqueada",
     "st_failed": "Falha ao iniciar",
-    "researching": "Pesquisando o mercado…"
+    "researching": "Pesquisando o mercado…",
+    "templateLocked": "O anúncio de cada rodada usará este layout."
   },
   "cd": {
     "back": "Todas as campanhas",

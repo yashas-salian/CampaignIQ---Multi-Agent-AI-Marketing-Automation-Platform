@@ -22,6 +22,10 @@ The study also used 9 reference ads supplied by the product owner.
    - It does the same for a template whose required words are missing (for example `big_number` with no number in the idea).
    - A failed background call leaves the template to draw its own.
 
+**When the user picks one.** In the campaign composer (or Tools → Ad image), a person may choose a template, with a gallery of all 34 on a sample product to help them choose. A campaign's choice (`campaigns.ad_template`) holds for every round:
+- **The style follows the template:** the bandit's arm is the best one in that template's family, and only the copy tone is learned. Variant B uses the second-best tone in that family.
+- **Nothing swaps it:** a promoted A/B winner or a fatigue refresh of another style is moved into the family, and the template is drawn even if one of its extra words is missing.
+
 ## The 34 templates
 
 | # | Template | Family (bandit style) | Inspired by | Suits |

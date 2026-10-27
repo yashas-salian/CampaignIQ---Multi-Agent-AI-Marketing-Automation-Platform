@@ -150,7 +150,8 @@
     "helpModelSub": "The classifier we trained, its accuracy and how it learns",
     "st_blocked": "Blocked",
     "st_failed": "Failed to start",
-    "researching": "Researching the market…"
+    "researching": "Researching the market…",
+    "templateLocked": "Every round's ad uses this layout."
   },
   "cd": {
     "back": "All campaigns",

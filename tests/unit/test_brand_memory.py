@@ -119,7 +119,7 @@ class TestUse:
         monkeypatch.setattr(node, "generate_creative", lambda *a, **k: seen.update(k) or "c")
         monkeypatch.setattr(node, "brand_kit_for_campaign", lambda cid: None)
         monkeypatch.setattr(node, "playbook_section_for_campaign", lambda cid: "")
-        monkeypatch.setattr(node, "product_for_campaign", lambda cid: type("P", (), {"cutout": None, "tagline": ""})())
+        monkeypatch.setattr(node, "product_for_campaign", lambda cid: type("P", (), {"cutout": None, "tagline": "", "template": ""})())
         monkeypatch.setattr(node, "recall", lambda ctx: bm.Recall("MEMORY SECTION", {"avoid_terms": ["cheap"], "prefer_terms": [],
                                                                                     "avoid_tones": ["humorous"], "avoid_styles": []}, []))
         monkeypatch.setattr(node, "_candidate_arms", lambda state: [(2, "minimalist", "humorous"), (0, "minimalist", "direct_factual")])

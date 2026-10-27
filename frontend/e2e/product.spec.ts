@@ -157,3 +157,32 @@ test('the template gallery fits a small phone without sideways scroll', async ({
   await page.getByRole('button', { name: /back to the ad image/i }).click()
   await expect(page).toHaveURL(/\/tools$/)
 })
+
+test('a campaign can lock every round to a template picked in the gallery; leaving it out lets each round choose', async ({ page }) => {
+  const seen = await signIn(page)
+  await page.goto('/dashboard')
+  await page.getByPlaceholder(/campaign idea/i).fill('Cold electrolyte drink for runners')
+  await page.getByTestId('product-photo-input').setInputFiles('e2e/fixtures/sample-ad.jpg')
+  await page.getByLabel(/tagline/i).fill('Piyo aur pine do')
+
+  await page.getByRole('button', { name: /help choosing a template/i }).click()
+  await expect(page.getByRole('button', { name: /^use this template:/i })).toHaveCount(34)
+  await page.getByRole('button', { name: /^use this template: rings orbit$/i }).click()
+
+  // Back on the composer with everything still filled in, and the choice explained.
+  await expect(page.getByRole('combobox', { name: /template/i })).toContainText(/rings orbit/i)
+  await expect(page.getByText(/every round.s ad uses this layout/i)).toBeVisible()
+  await expect(page.getByTestId('product-photo').locator('img')).toBeVisible()
+  await expect(page.getByLabel(/tagline/i)).toHaveValue('Piyo aur pine do')
+  await page.getByRole('button', { name: /create campaign/i }).click()
+  await expect.poll(() => seen.created.length).toBe(1)
+  expect(seen.created[0]).toMatchObject({ template: 'rings_orbit', tagline: 'Piyo aur pine do' })
+
+  // The composer resets to "best fit" for the next campaign.
+  await expect(page.getByRole('combobox', { name: /template/i })).toContainText(/best fit/i)
+  await page.getByPlaceholder(/campaign idea/i).fill('Second idea')
+  await page.getByTestId('product-photo-input').setInputFiles('e2e/fixtures/sample-ad.jpg')
+  await page.getByRole('button', { name: /create campaign/i }).click()
+  await expect.poll(() => seen.created.length).toBe(2)
+  expect(seen.created[1]).toMatchObject({ template: '' })
+})

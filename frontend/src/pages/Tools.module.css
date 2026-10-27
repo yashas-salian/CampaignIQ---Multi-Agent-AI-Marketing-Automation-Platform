@@ -97,13 +97,6 @@
 .interview svg { width: 16px; height: 16px; color: var(--ciq-accent); }
 
 /* The ad image's template picker, set beside the tagline in ProductFields. */
-.templatePick { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.templateField { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--ciq-text-muted); min-width: 0; }
-.templateHelp {
-  align-self: flex-start; padding: 0; border: none; background-color: transparent; cursor: pointer;
-  font: inherit; font-size: 13px; font-weight: 600; --wipe-base: var(--ciq-accent);
-}
-
 /* The crash test's ad fields: the text, then headline and button side by side. */
 .adFields { display: flex; flex-direction: column; gap: 12px; }
 .adRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }

@@ -123,7 +123,7 @@ def test_the_next_round_gets_the_refresh(monkeypatch):
     monkeypatch.setattr(node, "generate_creative", lambda *a, **k: seen.update(k) or "creative")
     monkeypatch.setattr(node, "brand_kit_for_campaign", lambda cid: None)
     monkeypatch.setattr(node, "playbook_section_for_campaign", lambda cid: "")
-    monkeypatch.setattr(node, "product_for_campaign", lambda cid: type("P", (), {"cutout": None, "tagline": ""})())
+    monkeypatch.setattr(node, "product_for_campaign", lambda cid: type("P", (), {"cutout": None, "tagline": "", "template": ""})())
     monkeypatch.setattr(fx, "apply_pending_refresh", lambda cid, rnd, candidates_fn=None: ("Use a new hook.", (9, "humor_meme", "humorous")))
     persona = type("P", (), {"age_bracket": "25-34", "income_tier": "middle"})()
     node.creative_node({"idea": "i", "primary_persona": persona, "domain_category": "other", "campaign_id": "c1", "round_id": 3,

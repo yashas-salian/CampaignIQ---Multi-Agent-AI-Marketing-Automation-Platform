@@ -1,6 +1,6 @@
 from src.capabilities.brand import brand_kit_for_campaign
 from src.capabilities.brand_memory import allowed_arm, context_from_state, recall
-from src.capabilities.creative import generate_creative
+from src.capabilities.creative import arm_for_template, generate_creative
 from src.capabilities.playbooks import playbook_section_for_campaign
 from src.capabilities.product import product_for_campaign
 from src.constants import active_channels
@@ -25,6 +25,11 @@ def creative_node(state: CampaignState) -> CampaignState:
     avoids = memory.directives.get("avoid_tones") or memory.directives.get("avoid_styles")
     if arm is None and avoids and state.get("primary_persona") is not None:
         arm = allowed_arm(_candidate_arms(state), memory.directives)
+    # A template the creator picked holds for every round: the arm keeps its
+    # style, and the template is drawn as chosen.
+    template = product.template or None
+    if template:
+        arm = arm_for_template(template, _candidate_arms(state), arm)
     return {
         "promote_arm": None,
         "creative": generate_creative(
@@ -44,6 +49,7 @@ def creative_node(state: CampaignState) -> CampaignState:
             arm=arm,
             product_cutout=product.cutout,
             tagline=product.tagline,
+            template=template,
         ),
     }
 

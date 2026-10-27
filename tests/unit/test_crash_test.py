@@ -237,7 +237,7 @@ class TestApplyRevision:
             "copy_revisions": [],
         })
         monkeypatch.setattr(rc, "get_client", lambda: client)
-        monkeypatch.setattr("src.capabilities.product.product_for_campaign", lambda cid: type("P", (), {"cutout": b"png"})())
+        monkeypatch.setattr("src.capabilities.product.product_for_campaign", lambda cid: type("P", (), {"cutout": b"png", "template": ""})())
         monkeypatch.setattr("src.capabilities.brand.brand_kit_for_campaign", lambda cid: None)
         monkeypatch.setattr("src.tools.ad_templates.compose_product_ad", lambda *a, **k: b"jpg")
         monkeypatch.setattr("src.db.supabase_client.upload_ad_image", lambda cid, rnd, data, **k: f"{cid}/round-{rnd}.jpg")

@@ -150,7 +150,8 @@
     "helpModelSub": "Le classifieur que nous avons entraîné, sa précision, son apprentissage",
     "st_blocked": "Bloquée",
     "st_failed": "Échec du démarrage",
-    "researching": "Étude du marché…"
+    "researching": "Étude du marché…",
+    "templateLocked": "L’annonce de chaque tour utilisera cette mise en page."
   },
   "cd": {
     "back": "Toutes les campagnes",

@@ -20,8 +20,8 @@ import DecisionCard from '../components/DecisionCard'
 import CrashTestReport from '../components/CrashTestReport'
 import type { CrashReport } from '../lib/types'
 import type { CampaignDecision } from '../lib/types'
-import { AD_TEMPLATES } from '../lib/adTemplates'
 import TemplateGallery from '../components/TemplateGallery'
+import TemplatePicker from '../components/TemplatePicker'
 import { useSession } from '../lib/useAuth'
 
 const PROGRESS: { key: string; label: string }[] = [
@@ -382,22 +382,7 @@ export default function Tools() {
                 onPhoto={setProductPhoto}
                 tagline={tagline}
                 onTagline={setTagline}
-                extra={
-                  <div className={local.templatePick}>
-                    <label className={local.templateField}>
-                      <span>{t('product.template')}</span>
-                      <Select
-                        aria-label={t('product.template')}
-                        value={template}
-                        onChange={setTemplate}
-                        options={[{ value: '', label: t('tl.templateAuto') }, ...AD_TEMPLATES.map((id) => ({ value: id, label: humanize(id) }))]}
-                      />
-                    </label>
-                    <button type="button" className={`${local.templateHelp} link-wipe`} onClick={openGallery}>
-                      {t('tg.link')}
-                    </button>
-                  </div>
-                }
+                extra={<TemplatePicker value={template} onChange={setTemplate} onBrowse={openGallery} />}
               />
             )}
             <div className={local.formFoot}>
